@@ -1,11 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { GlassCard } from "@/components/ui/glass-card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { Loader2, Plus, ChevronLeft, ChevronRight, Search, Utensils, Check } from "lucide-react"
+import { Loader2, Plus, ChevronLeft, ChevronRight, ChevronDown, Search, Utensils, Check } from "lucide-react"
 import { cn } from "@/lib/utils"
 import useSWR from "swr"
 import { toast } from "sonner"
@@ -63,12 +63,24 @@ function formatDisplayDate(dateStr: string): string {
   })
 }
 
+// Determine current meal based on time of day
+function getCurrentMeal(): string {
+  const hour = new Date().getHours()
+  if (hour < 11) return "Breakfast"
+  if (hour < 16) return "Lunch"
+  return "Dinner"
+}
+
 export function YaleDiningMenu({ onLogMeal }: YaleDiningMenuProps) {
-  const [selectedLocation, setSelectedLocation] = useState("jonathan-edwards-college")
+  const [selectedLocation, setSelectedLocation] = useState("branford-college")
   const [selectedDate, setSelectedDate] = useState(formatDate(new Date()))
   const [searchQuery, setSearchQuery] = useState("")
   const [loggingItem, setLoggingItem] = useState<number | null>(null)
   const [loggedItems, setLoggedItems] = useState<Set<number>>(new Set())
+
+  // Collapsible state - meals and sections
+  const [expandedMeals, setExpandedMeals] = useState<Set<string>>(new Set([getCurrentMeal()]))
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set())
 
   const { data, isLoading, error } = useSWR<MenuResponse>(
     `/api/yale-menu?date=${selectedDate}&location=${selectedLocation}`,
@@ -78,6 +90,47 @@ export function YaleDiningMenu({ onLogMeal }: YaleDiningMenuProps) {
       dedupingInterval: 60000, // 1 minute
     }
   )
+
+  // Auto-expand current meal when data loads
+  useEffect(() => {
+    if (data?.meals) {
+      const currentMeal = getCurrentMeal()
+      setExpandedMeals(new Set([currentMeal]))
+      // Expand all sections of current meal by default
+      const currentMealData = data.meals.find(m => m.mealType === currentMeal)
+      if (currentMealData) {
+        const sections = new Set<string>()
+        currentMealData.items.forEach(item => {
+          if (item.section) sections.add(`${currentMeal}-${item.section}`)
+        })
+        setExpandedSections(sections)
+      }
+    }
+  }, [data])
+
+  const toggleMeal = (mealType: string) => {
+    setExpandedMeals(prev => {
+      const next = new Set(prev)
+      if (next.has(mealType)) {
+        next.delete(mealType)
+      } else {
+        next.add(mealType)
+      }
+      return next
+    })
+  }
+
+  const toggleSection = (sectionKey: string) => {
+    setExpandedSections(prev => {
+      const next = new Set(prev)
+      if (next.has(sectionKey)) {
+        next.delete(sectionKey)
+      } else {
+        next.add(sectionKey)
+      }
+      return next
+    })
+  }
 
   const handlePrevDay = () => {
     const date = new Date(selectedDate + "T12:00:00")
@@ -207,6 +260,8 @@ export function YaleDiningMenu({ onLogMeal }: YaleDiningMenuProps) {
         const filteredItems = filterItems(meal.items)
         if (filteredItems.length === 0) return null
 
+        const isMealExpanded = expandedMeals.has(meal.mealType)
+
         // Group items by section
         const sections = new Map<string, MenuItem[]>()
         for (const item of filteredItems) {
@@ -218,84 +273,123 @@ export function YaleDiningMenu({ onLogMeal }: YaleDiningMenuProps) {
         }
 
         return (
-          <GlassCard key={meal.mealType}>
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <span
+          <GlassCard key={meal.mealType} className="overflow-hidden">
+            {/* Meal Header - Clickable */}
+            <button
+              onClick={() => toggleMeal(meal.mealType)}
+              className="w-full flex items-center justify-between p-4 -m-4 mb-0 hover:bg-secondary/30 transition-colors rounded-t-xl"
+            >
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <span
+                  className={cn(
+                    "w-2 h-2 rounded-full",
+                    meal.mealType === "Breakfast" && "bg-warning",
+                    meal.mealType === "Lunch" && "bg-success",
+                    meal.mealType === "Dinner" && "bg-primary"
+                  )}
+                />
+                {meal.mealType}
+                <span className="text-sm font-normal text-muted-foreground">
+                  ({filteredItems.length} items)
+                </span>
+              </h3>
+              <ChevronDown
                 className={cn(
-                  "w-2 h-2 rounded-full",
-                  meal.mealType === "Breakfast" && "bg-warning",
-                  meal.mealType === "Lunch" && "bg-success",
-                  meal.mealType === "Dinner" && "bg-primary"
+                  "h-5 w-5 text-muted-foreground transition-transform",
+                  isMealExpanded && "rotate-180"
                 )}
               />
-              {meal.mealType}
-              <span className="text-sm font-normal text-muted-foreground">
-                ({filteredItems.length} items)
-              </span>
-            </h3>
+            </button>
 
-            <div className="space-y-4">
-              {Array.from(sections.entries()).map(([sectionName, sectionItems]) => (
-                <div key={sectionName}>
-                  <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 px-1">
-                    {sectionName}
-                  </h4>
-                  <div className="grid gap-2">
-                    {sectionItems.map((item) => {
-                      const isLogging = loggingItem === item.menuItemId
-                      const isLogged = loggedItems.has(item.menuItemId)
+            {/* Meal Content - Collapsible */}
+            {isMealExpanded && (
+              <div className="space-y-3 mt-4 pt-4 border-t border-border/30">
+                {Array.from(sections.entries()).map(([sectionName, sectionItems]) => {
+                  const sectionKey = `${meal.mealType}-${sectionName}`
+                  const isSectionExpanded = expandedSections.has(sectionKey)
 
-                      return (
-                        <div
-                          key={item.menuItemId}
+                  return (
+                    <div key={sectionName} className="rounded-lg bg-secondary/20">
+                      {/* Section Header - Clickable */}
+                      <button
+                        onClick={() => toggleSection(sectionKey)}
+                        className="w-full flex items-center justify-between px-3 py-2 hover:bg-secondary/30 transition-colors rounded-lg"
+                      >
+                        <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          {sectionName}
+                          <span className="ml-2 text-muted-foreground/60">
+                            ({sectionItems.length})
+                          </span>
+                        </h4>
+                        <ChevronDown
                           className={cn(
-                            "flex items-center justify-between gap-3 p-3 rounded-lg transition-colors",
-                            "bg-secondary/30 hover:bg-secondary/50",
-                            isLogged && "bg-success/10 border border-success/20"
+                            "h-4 w-4 text-muted-foreground transition-transform",
+                            isSectionExpanded && "rotate-180"
                           )}
-                        >
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-foreground truncate">{item.name}</p>
-                            <div className="flex flex-wrap gap-2 mt-1 text-xs text-muted-foreground">
-                              <span className="text-success font-medium">{item.calories} cal</span>
-                              <span>P: {item.proteinG}g</span>
-                              <span>C: {item.carbsG}g</span>
-                              <span>F: {item.fatG}g</span>
-                            </div>
-                          </div>
+                        />
+                      </button>
 
-                          <Button
-                            size="sm"
-                            variant={isLogged ? "outline" : "default"}
-                            onClick={() => handleLogItem(item, meal.mealType)}
-                            disabled={isLogging}
-                            className={cn(
-                              "h-9 min-w-[80px]",
-                              !isLogged && "gradient-primary glow-primary",
-                              isLogged && "border-success text-success"
-                            )}
-                          >
-                            {isLogging ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : isLogged ? (
-                              <>
-                                <Check className="h-4 w-4 mr-1" />
-                                Added
-                              </>
-                            ) : (
-                              <>
-                                <Plus className="h-4 w-4 mr-1" />
-                                Log
-                              </>
-                            )}
-                          </Button>
+                      {/* Section Items - Collapsible */}
+                      {isSectionExpanded && (
+                        <div className="grid gap-2 p-2 pt-0">
+                          {sectionItems.map((item) => {
+                            const isLogging = loggingItem === item.menuItemId
+                            const isLogged = loggedItems.has(item.menuItemId)
+
+                            return (
+                              <div
+                                key={item.menuItemId}
+                                className={cn(
+                                  "flex items-center justify-between gap-3 p-3 rounded-lg transition-colors",
+                                  "bg-secondary/30 hover:bg-secondary/50",
+                                  isLogged && "bg-success/10 border border-success/20"
+                                )}
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-foreground truncate">{item.name}</p>
+                                  <div className="flex flex-wrap gap-2 mt-1 text-xs text-muted-foreground">
+                                    <span className="text-success font-medium">{item.calories} cal</span>
+                                    <span>P: {item.proteinG}g</span>
+                                    <span>C: {item.carbsG}g</span>
+                                    <span>F: {item.fatG}g</span>
+                                  </div>
+                                </div>
+
+                                <Button
+                                  size="sm"
+                                  variant={isLogged ? "outline" : "default"}
+                                  onClick={() => handleLogItem(item, meal.mealType)}
+                                  disabled={isLogging}
+                                  className={cn(
+                                    "h-9 min-w-[80px]",
+                                    !isLogged && "gradient-primary glow-primary",
+                                    isLogged && "border-success text-success"
+                                  )}
+                                >
+                                  {isLogging ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : isLogged ? (
+                                    <>
+                                      <Check className="h-4 w-4 mr-1" />
+                                      Added
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Plus className="h-4 w-4 mr-1" />
+                                      Log
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            )
+                          })}
                         </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </GlassCard>
         )
       })}

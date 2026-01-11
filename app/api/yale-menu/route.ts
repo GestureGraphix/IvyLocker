@@ -11,7 +11,7 @@ const DINING_HALLS = [
   { slug: "pierson-college", name: "Pierson" },
   { slug: "saybrook-college", name: "Saybrook" },
   { slug: "silliman-college", name: "Silliman" },
-  { slug: "stiles-college", name: "Stiles" },
+  { slug: "ezra-stiles-college", name: "Ezra Stiles" },
   { slug: "timothy-dwight-college", name: "Timothy Dwight" },
   { slug: "trumbull-college", name: "Trumbull" },
   { slug: "benjamin-franklin-college", name: "Franklin" },
