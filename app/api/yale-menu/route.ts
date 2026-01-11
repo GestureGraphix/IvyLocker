@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 
 // Yale Dining locations
 const DINING_HALLS = [
-  { slug: "jonathan-edwards-college", name: "Jonathan Edwards", id: "57753" },
+  { slug: "jonathan-edwards-college", name: "Jonathan Edwards" },
   { slug: "branford-college", name: "Branford" },
   { slug: "berkeley-college", name: "Berkeley" },
   { slug: "calhoun-college", name: "Hopper" },
@@ -41,13 +41,10 @@ interface MenuItem {
   fatG: number
   carbsG: number
   servingSize?: string
+  section?: string
 }
 
-// Cache nutrition data for 1 hour (in-memory, resets on cold start)
-const nutritionCache = new Map<string, { data: any; timestamp: number }>()
-const CACHE_TTL = 60 * 60 * 1000 // 1 hour
-
-async function fetchWithTimeout(url: string, timeout = 8000): Promise<Response> {
+async function fetchWithTimeout(url: string, timeout = 10000): Promise<Response> {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeout)
 
@@ -64,44 +61,6 @@ async function fetchWithTimeout(url: string, timeout = 8000): Promise<Response> 
   }
 }
 
-async function fetchNutrition(menuItemId: number, date: string): Promise<Partial<MenuItem>> {
-  const cacheKey = `${menuItemId}-${date}`
-
-  // Check cache
-  const cached = nutritionCache.get(cacheKey)
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return cached.data
-  }
-
-  try {
-    const response = await fetchWithTimeout(
-      `${API_BASE}/menu-items/${menuItemId}/order-settings/?date=${date}`
-    )
-
-    if (!response.ok) {
-      return { calories: 0, proteinG: 0, fatG: 0, carbsG: 0 }
-    }
-
-    const data = await response.json()
-    const nutrition = data.tax_nutrition_info || data.raw_nutrition_info || {}
-
-    const result = {
-      calories: nutrition.calories || 0,
-      proteinG: nutrition.g_protein || 0,
-      fatG: nutrition.g_fat || 0,
-      carbsG: nutrition.g_carbs || 0,
-      servingSize: nutrition.serving_size_info,
-    }
-
-    // Cache the result
-    nutritionCache.set(cacheKey, { data: result, timestamp: Date.now() })
-
-    return result
-  } catch {
-    return { calories: 0, proteinG: 0, fatG: 0, carbsG: 0 }
-  }
-}
-
 async function fetchMenuForMeal(
   locationSlug: string,
   mealSlug: string,
@@ -115,6 +74,7 @@ async function fetchMenuForMeal(
     )
 
     if (!response.ok) {
+      console.error(`Failed to fetch menu: ${response.status}`)
       return []
     }
 
@@ -125,38 +85,43 @@ async function fetchMenuForMeal(
       return []
     }
 
-    // Process menu items - fetch nutrition in parallel but limit concurrency
     const items: MenuItem[] = []
-    const menuItems = dayData.menu_items.slice(0, 30) // Limit to 30 items per meal
+    let currentSection = ""
 
-    // Process in batches of 5 to avoid overwhelming the API
-    for (let i = 0; i < menuItems.length; i += 5) {
-      const batch = menuItems.slice(i, i + 5)
-      const batchResults = await Promise.all(
-        batch.map(async (item: any) => {
-          const menuItemId = item.id
-          const foodName = item.food?.name || item.name || "Unknown Item"
+    for (const item of dayData.menu_items) {
+      // Track section headers
+      if (item.is_section_title && item.text) {
+        currentSection = item.text
+        continue
+      }
 
-          const nutrition = await fetchNutrition(menuItemId, date)
+      const food = item.food
+      if (!food || !food.name) continue
 
-          return {
-            id: item.food?.id || menuItemId,
-            menuItemId,
-            name: foodName,
-            description: item.food?.description,
-            ...nutrition,
-          } as MenuItem
-        })
-      )
-      items.push(...batchResults)
+      // Get nutrition from rounded_nutrition_info (already in response)
+      const nutrition = food.rounded_nutrition_info || {}
+
+      items.push({
+        id: food.id,
+        menuItemId: item.id,
+        name: food.name,
+        description: food.description || undefined,
+        calories: Math.round(nutrition.calories || 0),
+        proteinG: Math.round(nutrition.g_protein || 0),
+        fatG: Math.round(nutrition.g_fat || 0),
+        carbsG: Math.round(nutrition.g_carbs || 0),
+        servingSize: food.serving_size_info || undefined,
+        section: currentSection || undefined,
+      })
     }
 
-    // Filter out items with no nutrition data and duplicates
+    // Remove duplicates by name
     const seen = new Set<string>()
     return items.filter((item) => {
-      if (seen.has(item.name.toLowerCase())) return false
-      seen.add(item.name.toLowerCase())
-      return item.calories > 0 || item.proteinG > 0
+      const key = item.name.toLowerCase()
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
     })
   } catch (error) {
     console.error(`Failed to fetch menu for ${locationSlug}/${mealSlug}:`, error)
@@ -167,7 +132,7 @@ async function fetchMenuForMeal(
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const date = searchParams.get("date") || new Date().toISOString().split("T")[0]
-  const location = searchParams.get("location") || "jonathan-edwards-college"
+  const location = searchParams.get("location") || "branford-college"
   const meal = searchParams.get("meal") // Optional: filter to specific meal
 
   try {
@@ -188,7 +153,13 @@ export async function GET(request: Request) {
       // For dinner, also fetch additional offerings
       if (mealType.slug === "dinner") {
         const additional = await fetchMenuForMeal(location, "additional-dinner-offerings", date)
-        items.push(...additional)
+        // Add additional items, avoiding duplicates
+        const existingNames = new Set(items.map(i => i.name.toLowerCase()))
+        for (const item of additional) {
+          if (!existingNames.has(item.name.toLowerCase())) {
+            items.push(item)
+          }
+        }
       }
 
       return {

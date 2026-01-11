@@ -20,6 +20,7 @@ interface MenuItem {
   fatG: number
   carbsG: number
   servingSize?: string
+  section?: string
 }
 
 interface MealSection {
@@ -206,6 +207,16 @@ export function YaleDiningMenu({ onLogMeal }: YaleDiningMenuProps) {
         const filteredItems = filterItems(meal.items)
         if (filteredItems.length === 0) return null
 
+        // Group items by section
+        const sections = new Map<string, MenuItem[]>()
+        for (const item of filteredItems) {
+          const section = item.section || "Other"
+          if (!sections.has(section)) {
+            sections.set(section, [])
+          }
+          sections.get(section)!.push(item)
+        }
+
         return (
           <GlassCard key={meal.mealType}>
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -223,58 +234,67 @@ export function YaleDiningMenu({ onLogMeal }: YaleDiningMenuProps) {
               </span>
             </h3>
 
-            <div className="grid gap-2">
-              {filteredItems.map((item) => {
-                const isLogging = loggingItem === item.menuItemId
-                const isLogged = loggedItems.has(item.menuItemId)
+            <div className="space-y-4">
+              {Array.from(sections.entries()).map(([sectionName, sectionItems]) => (
+                <div key={sectionName}>
+                  <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 px-1">
+                    {sectionName}
+                  </h4>
+                  <div className="grid gap-2">
+                    {sectionItems.map((item) => {
+                      const isLogging = loggingItem === item.menuItemId
+                      const isLogged = loggedItems.has(item.menuItemId)
 
-                return (
-                  <div
-                    key={item.menuItemId}
-                    className={cn(
-                      "flex items-center justify-between gap-3 p-3 rounded-lg transition-colors",
-                      "bg-secondary/30 hover:bg-secondary/50",
-                      isLogged && "bg-success/10 border border-success/20"
-                    )}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground truncate">{item.name}</p>
-                      <div className="flex flex-wrap gap-2 mt-1 text-xs text-muted-foreground">
-                        <span className="text-success font-medium">{item.calories} cal</span>
-                        <span>P: {item.proteinG}g</span>
-                        <span>C: {item.carbsG}g</span>
-                        <span>F: {item.fatG}g</span>
-                      </div>
-                    </div>
+                      return (
+                        <div
+                          key={item.menuItemId}
+                          className={cn(
+                            "flex items-center justify-between gap-3 p-3 rounded-lg transition-colors",
+                            "bg-secondary/30 hover:bg-secondary/50",
+                            isLogged && "bg-success/10 border border-success/20"
+                          )}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-foreground truncate">{item.name}</p>
+                            <div className="flex flex-wrap gap-2 mt-1 text-xs text-muted-foreground">
+                              <span className="text-success font-medium">{item.calories} cal</span>
+                              <span>P: {item.proteinG}g</span>
+                              <span>C: {item.carbsG}g</span>
+                              <span>F: {item.fatG}g</span>
+                            </div>
+                          </div>
 
-                    <Button
-                      size="sm"
-                      variant={isLogged ? "outline" : "default"}
-                      onClick={() => handleLogItem(item, meal.mealType)}
-                      disabled={isLogging}
-                      className={cn(
-                        "h-9 min-w-[80px]",
-                        !isLogged && "gradient-primary glow-primary",
-                        isLogged && "border-success text-success"
-                      )}
-                    >
-                      {isLogging ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : isLogged ? (
-                        <>
-                          <Check className="h-4 w-4 mr-1" />
-                          Added
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="h-4 w-4 mr-1" />
-                          Log
-                        </>
-                      )}
-                    </Button>
+                          <Button
+                            size="sm"
+                            variant={isLogged ? "outline" : "default"}
+                            onClick={() => handleLogItem(item, meal.mealType)}
+                            disabled={isLogging}
+                            className={cn(
+                              "h-9 min-w-[80px]",
+                              !isLogged && "gradient-primary glow-primary",
+                              isLogged && "border-success text-success"
+                            )}
+                          >
+                            {isLogging ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : isLogged ? (
+                              <>
+                                <Check className="h-4 w-4 mr-1" />
+                                Added
+                              </>
+                            ) : (
+                              <>
+                                <Plus className="h-4 w-4 mr-1" />
+                                Log
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      )
+                    })}
                   </div>
-                )
-              })}
+                </div>
+              ))}
             </div>
           </GlassCard>
         )
