@@ -58,3 +58,30 @@ temp/
 credentials.json
 secrets.json
 .secrets
+
+# Turbopack
+.turbo/
+
+# ESLint
+.eslintcache
+
+# Testing artifacts
+/tmp/
+cookies.txt
+
+# Lock files (keep only one package manager)
+# Uncomment the ones you don't use:
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# Sentry
+.sentryclirc
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
+# Storybook
+storybook-static/

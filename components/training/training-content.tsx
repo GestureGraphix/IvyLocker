@@ -5,8 +5,11 @@ import { GlassCard } from "@/components/ui/glass-card"
 import { Button } from "@/components/ui/button"
 import { SessionCard } from "./session-card"
 import { AddSessionDialog } from "./add-session-dialog"
-import { Plus, Calendar, Dumbbell, Trophy, Filter } from "lucide-react"
+import { TemplateDialog } from "./template-dialog"
+import { TemplateCard } from "./template-card"
+import { Plus, Calendar, Dumbbell, Trophy, Filter, LayoutTemplate, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import useSWR from "swr"
 import { TrainingSkeleton } from "@/components/ui/skeletons"
 
@@ -14,63 +17,19 @@ type SessionType = "all" | "strength" | "conditioning" | "practice" | "competiti
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
-// Demo data for when not authenticated
-const demoSessions = [
-  {
-    id: "1",
-    type: "strength",
-    title: "Upper Body Push Day",
-    start_at: new Date().toISOString(),
-    end_at: new Date(Date.now() + 3600000).toISOString(),
-    intensity: "high",
-    focus: "Chest, Shoulders, Triceps",
-    notes: "Focus on progressive overload",
-    completed: false,
-  },
-  {
-    id: "2",
-    type: "practice",
-    title: "Team Practice",
-    start_at: new Date(Date.now() + 7200000).toISOString(),
-    end_at: new Date(Date.now() + 14400000).toISOString(),
-    intensity: "medium",
-    focus: "Offensive drills",
-    notes: "",
-    completed: false,
-  },
-  {
-    id: "3",
-    type: "conditioning",
-    title: "Sprint Intervals",
-    start_at: new Date(Date.now() - 86400000).toISOString(),
-    end_at: new Date(Date.now() - 82800000).toISOString(),
-    intensity: "high",
-    focus: "Speed and agility",
-    notes: "Great session, felt strong",
-    completed: true,
-  },
-  {
-    id: "4",
-    type: "strength",
-    title: "Lower Body Power",
-    start_at: new Date(Date.now() - 172800000).toISOString(),
-    end_at: new Date(Date.now() - 169200000).toISOString(),
-    intensity: "high",
-    focus: "Squats, Deadlifts",
-    notes: "New PR on squat: 315 lbs",
-    completed: true,
-  },
-]
-
 export function TrainingContent() {
   const [filter, setFilter] = useState<SessionType>("all")
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false)
+  const [templatesOpen, setTemplatesOpen] = useState(false)
 
-  const { data, mutate, isLoading } = useSWR("/api/athletes/sessions", fetcher)
+  const { data: sessionsData, mutate: mutateSessions, isLoading: sessionsLoading } = useSWR("/api/athletes/sessions", fetcher)
+  const { data: templatesData, mutate: mutateTemplates, isLoading: templatesLoading } = useSWR("/api/athletes/templates", fetcher)
 
-  const sessions = data?.sessions || []
+  const sessions = sessionsData?.sessions || []
+  const templates = templatesData?.templates || []
 
-  if (isLoading) {
+  if (sessionsLoading) {
     return <TrainingSkeleton />
   }
 
@@ -105,10 +64,20 @@ export function TrainingContent() {
           </h1>
           <p className="text-muted-foreground">Schedule, track, and analyze your workouts</p>
         </div>
-        <Button onClick={() => setIsAddDialogOpen(true)} className="gradient-primary glow-primary">
-          <Plus className="h-4 w-4 mr-2" />
-          New Session
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setIsTemplateDialogOpen(true)}
+            className="border-border/50"
+          >
+            <LayoutTemplate className="h-4 w-4 mr-2" />
+            New Template
+          </Button>
+          <Button onClick={() => setIsAddDialogOpen(true)} className="gradient-primary glow-primary">
+            <Plus className="h-4 w-4 mr-2" />
+            New Session
+          </Button>
+        </div>
       </div>
 
       {/* Stats Row */}
@@ -147,6 +116,81 @@ export function TrainingContent() {
           </div>
         </GlassCard>
       </div>
+
+      {/* Templates Section */}
+      {templates.length > 0 && (
+        <Collapsible open={templatesOpen} onOpenChange={setTemplatesOpen}>
+          <CollapsibleTrigger asChild>
+            <Button
+              variant="outline"
+              className="w-full justify-between bg-secondary/30 border-border/50 hover:bg-secondary/50"
+            >
+              <span className="flex items-center gap-2">
+                <LayoutTemplate className="h-4 w-4" />
+                Training Templates ({templates.length})
+              </span>
+              <ChevronDown className={cn("h-4 w-4 transition-transform", templatesOpen && "rotate-180")} />
+            </Button>
+          </CollapsibleTrigger>
+
+          <CollapsibleContent className="pt-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              {templates.map((template: {
+                id: string
+                name: string
+                type: string
+                duration_minutes: number
+                intensity: string
+                focus?: string
+                notes?: string
+                exercises?: Array<{
+                  name: string
+                  notes?: string
+                  sets: Array<{ reps: number; weight?: number; rpe?: number }>
+                }>
+                schedule?: {
+                  enabled: boolean
+                  weekdays: number[]
+                  start_time: string
+                  end_date?: string
+                }
+              }) => (
+                <TemplateCard
+                  key={template.id}
+                  template={template}
+                  onUpdate={() => mutateTemplates()}
+                  onSessionCreated={() => mutateSessions()}
+                />
+              ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+
+      {/* Empty templates state */}
+      {templates.length === 0 && !templatesLoading && (
+        <GlassCard className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-secondary">
+                <LayoutTemplate className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="font-medium text-foreground">No templates yet</p>
+                <p className="text-sm text-muted-foreground">Create templates to quickly add recurring workouts</p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsTemplateDialogOpen(true)}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Create Template
+            </Button>
+          </div>
+        </GlassCard>
+      )}
 
       {/* Filters */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2">
@@ -193,12 +237,19 @@ export function TrainingContent() {
               focus: string
               notes: string
               completed: boolean
-            }) => <SessionCard key={session.id} session={session} onUpdate={() => mutate()} />,
+              exercises?: Array<{
+                id: string
+                name: string
+                notes?: string
+                sets: Array<{ id: string; reps: number; weight?: number; rpe?: number; completed: boolean }>
+              }>
+            }) => <SessionCard key={session.id} session={session} onUpdate={() => mutateSessions()} />,
           )
         )}
       </div>
 
-      <AddSessionDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} onSuccess={() => mutate()} />
+      <AddSessionDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} onSuccess={() => mutateSessions()} />
+      <TemplateDialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen} onSuccess={() => mutateTemplates()} />
     </div>
   )
 }

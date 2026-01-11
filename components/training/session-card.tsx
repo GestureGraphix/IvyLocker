@@ -4,10 +4,27 @@ import { useState } from "react"
 import { GlassCard } from "@/components/ui/glass-card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
-import { Clock, Check, MoreVertical, Pencil, Trash2, UserCheck } from "lucide-react"
+import { Clock, Check, MoreVertical, Pencil, Trash2, UserCheck, ChevronDown, Dumbbell } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { EditSessionDialog } from "./edit-session-dialog"
+
+interface SetData {
+  id: string
+  reps: number
+  weight?: number
+  rpe?: number
+  completed: boolean
+}
+
+interface ExerciseData {
+  id: string
+  name: string
+  notes?: string
+  sets: SetData[]
+}
 
 interface Session {
   id: string
@@ -20,6 +37,7 @@ interface Session {
   notes: string
   completed: boolean
   assigned_by?: string | null
+  exercises?: ExerciseData[]
 }
 
 interface SessionCardProps {
@@ -30,6 +48,8 @@ interface SessionCardProps {
 export function SessionCard({ session, onUpdate }: SessionCardProps) {
   const [isCompleting, setIsCompleting] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
+  const [exercisesOpen, setExercisesOpen] = useState(false)
+  const [localExercises, setLocalExercises] = useState(session.exercises || [])
 
   const startTime = new Date(session.start_at)
   const endTime = new Date(session.end_at)
@@ -64,6 +84,37 @@ export function SessionCard({ session, onUpdate }: SessionCardProps) {
     }
   }
 
+  const handleToggleSetComplete = async (exerciseIndex: number, setIndex: number) => {
+    const newExercises = [...localExercises]
+    newExercises[exerciseIndex].sets[setIndex].completed = !newExercises[exerciseIndex].sets[setIndex].completed
+    setLocalExercises(newExercises)
+
+    // Update on server
+    try {
+      await fetch(`/api/athletes/sessions/${session.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          exercises: newExercises.map(ex => ({
+            name: ex.name,
+            notes: ex.notes,
+            sets: ex.sets.map(s => ({
+              reps: s.reps,
+              weight: s.weight,
+              rpe: s.rpe,
+              completed: s.completed
+            }))
+          }))
+        }),
+      })
+    } catch (error) {
+      console.error("Failed to update set:", error)
+      // Revert on error
+      newExercises[exerciseIndex].sets[setIndex].completed = !newExercises[exerciseIndex].sets[setIndex].completed
+      setLocalExercises([...newExercises])
+    }
+  }
+
   const handleDelete = async () => {
     if (!confirm("Are you sure you want to delete this session?")) return
 
@@ -77,16 +128,20 @@ export function SessionCard({ session, onUpdate }: SessionCardProps) {
     }
   }
 
+  // Calculate exercise progress
+  const totalSets = localExercises.reduce((acc, ex) => acc + ex.sets.length, 0)
+  const completedSets = localExercises.reduce((acc, ex) => acc + ex.sets.filter(s => s.completed).length, 0)
+
   return (
     <GlassCard className={cn("transition-all", session.completed && "opacity-75")}>
       <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-4 flex-1 min-w-0">
           {/* Complete checkbox */}
           <button
             onClick={handleToggleComplete}
             disabled={isCompleting}
             className={cn(
-              "mt-1 h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all",
+              "mt-1 h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all shrink-0",
               session.completed
                 ? "bg-success border-success text-white"
                 : "border-muted-foreground hover:border-primary",
@@ -95,7 +150,7 @@ export function SessionCard({ session, onUpdate }: SessionCardProps) {
             {session.completed && <Check className="h-4 w-4" />}
           </button>
 
-          <div className="space-y-2">
+          <div className="space-y-2 flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h3
                 className={cn(
@@ -141,6 +196,78 @@ export function SessionCard({ session, onUpdate }: SessionCardProps) {
             {session.notes && (
               <p className="text-sm text-foreground/80 bg-secondary/50 px-3 py-2 rounded-lg">{session.notes}</p>
             )}
+
+            {/* Exercises Section */}
+            {localExercises.length > 0 && (
+              <Collapsible open={exercisesOpen} onOpenChange={setExercisesOpen}>
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-between px-2 h-8 text-muted-foreground hover:text-foreground"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Dumbbell className="h-3 w-3" />
+                      {localExercises.length} exercise{localExercises.length !== 1 ? "s" : ""}
+                      {totalSets > 0 && (
+                        <span className="text-xs">
+                          ({completedSets}/{totalSets} sets)
+                        </span>
+                      )}
+                    </span>
+                    <ChevronDown className={cn("h-3 w-3 transition-transform", exercisesOpen && "rotate-180")} />
+                  </Button>
+                </CollapsibleTrigger>
+
+                <CollapsibleContent className="pt-2 space-y-3">
+                  {localExercises.map((exercise, exerciseIndex) => (
+                    <div key={exercise.id || exerciseIndex} className="bg-secondary/30 rounded-lg p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-sm">{exercise.name}</span>
+                        {exercise.notes && (
+                          <span className="text-xs text-muted-foreground">{exercise.notes}</span>
+                        )}
+                      </div>
+
+                      {exercise.sets.length > 0 && (
+                        <div className="space-y-1">
+                          <div className="grid grid-cols-[auto_1fr_1fr_1fr] gap-2 text-xs text-muted-foreground px-1">
+                            <span className="w-5"></span>
+                            <span>Reps</span>
+                            <span>Weight</span>
+                            <span>RPE</span>
+                          </div>
+                          {exercise.sets.map((set, setIndex) => (
+                            <div
+                              key={set.id || setIndex}
+                              className={cn(
+                                "grid grid-cols-[auto_1fr_1fr_1fr] gap-2 items-center text-sm py-1 px-1 rounded",
+                                set.completed && "bg-success/10"
+                              )}
+                            >
+                              <Checkbox
+                                checked={set.completed}
+                                onCheckedChange={() => handleToggleSetComplete(exerciseIndex, setIndex)}
+                                className="h-4 w-4"
+                              />
+                              <span className={cn(set.completed && "line-through text-muted-foreground")}>
+                                {set.reps}
+                              </span>
+                              <span className={cn(set.completed && "line-through text-muted-foreground")}>
+                                {set.weight ? `${set.weight} lbs` : "-"}
+                              </span>
+                              <span className={cn(set.completed && "line-through text-muted-foreground")}>
+                                {set.rpe || "-"}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </CollapsibleContent>
+              </Collapsible>
+            )}
           </div>
         </div>
 
@@ -164,10 +291,13 @@ export function SessionCard({ session, onUpdate }: SessionCardProps) {
       </div>
 
       <EditSessionDialog
-        session={session}
+        session={{ ...session, exercises: localExercises }}
         open={isEditOpen}
         onOpenChange={setIsEditOpen}
-        onSuccess={onUpdate}
+        onSuccess={() => {
+          onUpdate()
+          setLocalExercises(session.exercises || [])
+        }}
       />
     </GlassCard>
   )
