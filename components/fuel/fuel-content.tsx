@@ -9,7 +9,8 @@ import { MealList } from "./meal-list"
 import { HydrationTracker } from "./hydration-tracker"
 import { AddMealDialog } from "./add-meal-dialog"
 import { AddHydrationDialog } from "./add-hydration-dialog"
-import { Plus, Utensils, Droplets, Flame, Beef } from "lucide-react"
+import { YaleDiningMenu } from "./yale-dining-menu"
+import { Plus, Utensils, Droplets, Flame, Beef, Building2 } from "lucide-react"
 import useSWR from "swr"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
@@ -208,12 +209,33 @@ export function FuelContent() {
         </p>
       </GlassCard>
 
-      {/* Tabs for Meals and Hydration History */}
-      <Tabs defaultValue="meals" className="space-y-4">
+      {/* Tabs for Meals, Yale Dining, and Hydration History */}
+      <Tabs defaultValue="yale-dining" className="space-y-4">
         <TabsList className="bg-secondary/50">
-          <TabsTrigger value="meals">Meals</TabsTrigger>
-          <TabsTrigger value="hydration">Hydration Log</TabsTrigger>
+          <TabsTrigger value="yale-dining" className="flex items-center gap-1.5">
+            <Building2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Yale Dining</span>
+            <span className="sm:hidden">Dining</span>
+          </TabsTrigger>
+          <TabsTrigger value="meals">My Meals</TabsTrigger>
+          <TabsTrigger value="hydration">Hydration</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="yale-dining">
+          <YaleDiningMenu
+            onLogMeal={async (meal) => {
+              await fetch("/api/athletes/meal-logs", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  ...meal,
+                  date_time: new Date().toISOString(),
+                }),
+              })
+              mutateMeals()
+            }}
+          />
+        </TabsContent>
 
         <TabsContent value="meals">
           <MealList meals={meals} onUpdate={() => mutateMeals()} />
