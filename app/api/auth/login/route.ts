@@ -41,6 +41,17 @@ export async function POST(request: Request) {
     })
   } catch (error) {
     console.error("Login error:", error)
-    return NextResponse.json({ error: "Failed to login" }, { status: 500 })
+
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
+
+    if (errorMessage.includes("DATABASE_URL")) {
+      return NextResponse.json({ error: "Database configuration error. Please contact support." }, { status: 500 })
+    }
+
+    if (errorMessage.includes("rate limit")) {
+      return NextResponse.json({ error: "Too many requests. Please try again in a moment." }, { status: 429 })
+    }
+
+    return NextResponse.json({ error: "Failed to login. Please try again." }, { status: 500 })
   }
 }

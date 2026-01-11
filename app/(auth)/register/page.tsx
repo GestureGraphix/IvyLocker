@@ -183,6 +183,13 @@ export default function RegisterPage() {
             </Link>
           </div>
         </GlassCard>
+
+        {/* Back to home link */}
+        <div className="mt-4 text-center">
+          <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            ← Back to home
+          </Link>
+        </div>
       </div>
     </div>
   )
