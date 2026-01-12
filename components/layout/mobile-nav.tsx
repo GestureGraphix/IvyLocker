@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Dumbbell, Utensils, Activity, GraduationCap } from "lucide-react"
+import { LayoutDashboard, Dumbbell, Utensils, Activity, GraduationCap, User } from "lucide-react"
 
 const navItems = [
   { href: "/", label: "Home", icon: LayoutDashboard },
@@ -11,6 +11,7 @@ const navItems = [
   { href: "/fuel", label: "Fuel", icon: Utensils },
   { href: "/mobility", label: "Mobility", icon: Activity },
   { href: "/academics", label: "Academics", icon: GraduationCap },
+  { href: "/account", label: "Account", icon: User },
 ]
 
 export function MobileNav() {
@@ -28,7 +29,7 @@ export function MobileNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-all min-w-[60px]",
+                "flex flex-col items-center justify-center gap-1 px-2 py-2 rounded-lg transition-all min-w-[50px]",
                 isActive ? "text-primary" : "text-muted-foreground",
               )}
             >
