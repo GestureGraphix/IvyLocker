@@ -15,6 +15,13 @@ import useSWR from "swr"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
+// Default goals (used as fallback if profile not loaded)
+const DEFAULT_GOALS = {
+  calories: 2500,
+  protein: 150,
+  hydration: 100,
+}
+
 // Demo data
 const demoMeals = [
   {
@@ -60,16 +67,19 @@ export function FuelContent() {
   const [isMealDialogOpen, setIsMealDialogOpen] = useState(false)
   const [isHydrationDialogOpen, setIsHydrationDialogOpen] = useState(false)
 
+  // Fetch user profile for goals
+  const { data: userData } = useSWR("/api/me", fetcher)
+
   const { data: mealsData, mutate: mutateMeals } = useSWR("/api/athletes/meal-logs", fetcher, {
     fallbackData: { meals: demoMeals },
   })
 
   const { data: hydrationData, mutate: mutateHydration } = useSWR("/api/athletes/hydration-logs", fetcher, {
-    fallbackData: { logs: demoHydration },
+    revalidateOnFocus: true,
   })
 
   const meals = mealsData?.meals || demoMeals
-  const hydrationLogs = hydrationData?.logs || demoHydration
+  const hydrationLogs = hydrationData?.logs || []
 
   // Calculate today's totals
   const today = new Date().toDateString()
@@ -92,11 +102,12 @@ export function FuelContent() {
     .filter((h: { date: string }) => h.date === new Date().toISOString().split("T")[0])
     .reduce((acc: number, log: { ounces: number }) => acc + Number(log.ounces || 0), 0)
 
-  // Goals (would come from user profile)
+  // Goals from user profile
+  const userProfile = userData?.user
   const goals = {
-    calories: 2500,
-    protein: 150,
-    hydration: 100,
+    calories: Number(userProfile?.calorie_goal) || DEFAULT_GOALS.calories,
+    protein: Number(userProfile?.protein_goal_grams) || DEFAULT_GOALS.protein,
+    hydration: Number(userProfile?.hydration_goal_oz) || DEFAULT_GOALS.hydration,
   }
 
   return (
