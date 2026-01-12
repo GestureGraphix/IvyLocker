@@ -54,7 +54,7 @@ export function HydrationTracker({ logs, onUpdate }: HydrationTrackerProps) {
   return (
     <div className="space-y-6">
       {sortedDates.map((date) => {
-        const dayTotal = groupedLogs[date].reduce((acc, log) => acc + log.ounces, 0)
+        const dayTotal = groupedLogs[date].reduce((acc, log) => acc + Number(log.ounces || 0), 0)
         const isToday = date === new Date().toISOString().split("T")[0]
 
         return (

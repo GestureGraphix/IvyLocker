@@ -80,17 +80,17 @@ export function FuelContent() {
       acc: { calories: number; protein: number; carbs: number; fat: number },
       meal: { calories: number; protein_grams: number; carbs_grams: number; fat_grams: number },
     ) => ({
-      calories: acc.calories + (meal.calories || 0),
-      protein: acc.protein + (meal.protein_grams || 0),
-      carbs: acc.carbs + (meal.carbs_grams || 0),
-      fat: acc.fat + (meal.fat_grams || 0),
+      calories: acc.calories + Number(meal.calories || 0),
+      protein: acc.protein + Number(meal.protein_grams || 0),
+      carbs: acc.carbs + Number(meal.carbs_grams || 0),
+      fat: acc.fat + Number(meal.fat_grams || 0),
     }),
     { calories: 0, protein: 0, carbs: 0, fat: 0 },
   )
 
   const todayHydration = hydrationLogs
     .filter((h: { date: string }) => h.date === new Date().toISOString().split("T")[0])
-    .reduce((acc: number, log: { ounces: number }) => acc + log.ounces, 0)
+    .reduce((acc: number, log: { ounces: number }) => acc + Number(log.ounces || 0), 0)
 
   // Goals (would come from user profile)
   const goals = {
