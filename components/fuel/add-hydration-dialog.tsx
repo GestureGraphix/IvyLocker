@@ -11,10 +11,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Droplets } from "lucide-react"
 import { cn } from "@/lib/utils"
 
+interface HydrationLog {
+  id: string
+  ounces: number
+  source: string
+  time: string
+  date: string
+}
+
 interface AddHydrationDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSuccess: () => void
+  onSuccess: (newLog: HydrationLog) => void
 }
 
 const quickAmounts = [8, 12, 16, 20, 32]
@@ -32,18 +40,23 @@ export function AddHydrationDialog({ open, onOpenChange, onSuccess }: AddHydrati
 
     try {
       const now = new Date()
-      await fetch("/api/athletes/hydration-logs", {
+      const newLogData = {
+        ounces: Number.parseInt(ounces),
+        source,
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().slice(0, 5),
+      }
+
+      const response = await fetch("/api/athletes/hydration-logs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ounces: Number.parseInt(ounces),
-          source,
-          date: now.toISOString().split("T")[0],
-          time: now.toTimeString().slice(0, 5),
-        }),
+        body: JSON.stringify(newLogData),
       })
 
-      onSuccess()
+      const data = await response.json()
+      const newLog = data.log || { id: Date.now().toString(), ...newLogData }
+
+      onSuccess(newLog)
       onOpenChange(false)
       setOunces("")
       setSource("water")

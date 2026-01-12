@@ -261,7 +261,16 @@ export function FuelContent() {
       <AddHydrationDialog
         open={isHydrationDialogOpen}
         onOpenChange={setIsHydrationDialogOpen}
-        onSuccess={() => mutateHydration()}
+        onSuccess={(newLog) => {
+          // Optimistically update the cache with the new log
+          mutateHydration(
+            (currentData: { logs: Array<{ id: string; ounces: number; source: string; time: string; date: string }> } | undefined) => {
+              const currentLogs = currentData?.logs || []
+              return { logs: [newLog, ...currentLogs] }
+            },
+            { revalidate: false }
+          )
+        }}
       />
     </div>
   )
