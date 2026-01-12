@@ -22,6 +22,14 @@ const DEFAULT_GOALS = {
   hydration: 100,
 }
 
+// Get local date string in YYYY-MM-DD format (not UTC)
+function getLocalDateString(date: Date = new Date()): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 // Demo data
 const demoMeals = [
   {
@@ -98,8 +106,9 @@ export function FuelContent() {
     { calories: 0, protein: 0, carbs: 0, fat: 0 },
   )
 
+  const todayDateString = getLocalDateString()
   const todayHydration = hydrationLogs
-    .filter((h: { date: string }) => h.date === new Date().toISOString().split("T")[0])
+    .filter((h: { date: string }) => h.date === todayDateString)
     .reduce((acc: number, log: { ounces: number }) => acc + Number(log.ounces || 0), 0)
 
   // Goals from user profile

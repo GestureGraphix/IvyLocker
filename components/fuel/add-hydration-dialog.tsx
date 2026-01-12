@@ -27,6 +27,14 @@ interface AddHydrationDialogProps {
 
 const quickAmounts = [8, 12, 16, 20, 32]
 
+// Get local date string in YYYY-MM-DD format (not UTC)
+function getLocalDateString(date: Date = new Date()): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 export function AddHydrationDialog({ open, onOpenChange, onSuccess }: AddHydrationDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [ounces, setOunces] = useState("")
@@ -43,7 +51,7 @@ export function AddHydrationDialog({ open, onOpenChange, onSuccess }: AddHydrati
       const newLogData = {
         ounces: Number.parseInt(ounces),
         source,
-        date: now.toISOString().split("T")[0],
+        date: getLocalDateString(now),
         time: now.toTimeString().slice(0, 5),
       }
 

@@ -14,6 +14,14 @@ interface HydrationLog {
   date: string
 }
 
+// Get local date string in YYYY-MM-DD format (not UTC)
+function getLocalDateString(date: Date = new Date()): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 interface HydrationTrackerProps {
   logs: HydrationLog[]
   onUpdate: () => void
@@ -55,7 +63,7 @@ export function HydrationTracker({ logs, onUpdate }: HydrationTrackerProps) {
     <div className="space-y-6">
       {sortedDates.map((date) => {
         const dayTotal = groupedLogs[date].reduce((acc, log) => acc + Number(log.ounces || 0), 0)
-        const isToday = date === new Date().toISOString().split("T")[0]
+        const isToday = date === getLocalDateString()
 
         return (
           <div key={date} className="space-y-3">
