@@ -7,6 +7,7 @@ import { SessionCard } from "./session-card"
 import { AddSessionDialog } from "./add-session-dialog"
 import { TemplateDialog } from "./template-dialog"
 import { TemplateCard } from "./template-card"
+import { FormAnalysisButton } from "./form-analysis"
 import { Plus, Calendar, Dumbbell, Trophy, Filter, LayoutTemplate, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -65,6 +66,7 @@ export function TrainingContent() {
           <p className="text-muted-foreground">Schedule, track, and analyze your workouts</p>
         </div>
         <div className="flex gap-2">
+          <FormAnalysisButton />
           <Button
             variant="outline"
             onClick={() => setIsTemplateDialogOpen(true)}

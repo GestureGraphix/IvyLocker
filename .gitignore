@@ -85,3 +85,10 @@ cookies.txt
 
 # Storybook
 storybook-static/
+
+# Uploaded files (user videos, form analysis)
+public/uploads/
+
+# Database dumps and backups
+*.sql.backup
+*.dump
