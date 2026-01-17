@@ -89,6 +89,18 @@ export function VideoUpload({
 
       setUploadProgress(90)
 
+      // Check content type to ensure we got JSON back
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text()
+        console.error('Non-JSON response:', text.substring(0, 500))
+        throw new Error(
+          response.status === 413
+            ? 'File too large for server. Try a smaller file.'
+            : `Server error (${response.status}). Please try again.`
+        )
+      }
+
       if (!response.ok) {
         const data = await response.json()
         throw new Error(data.error || 'Upload failed')

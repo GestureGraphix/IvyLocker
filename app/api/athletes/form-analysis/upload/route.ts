@@ -3,6 +3,10 @@ import { getCurrentUser } from '@/lib/auth'
 import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 
+// Route segment config for handling large video uploads (100MB)
+export const dynamic = 'force-dynamic'
+export const maxDuration = 60
+
 // Try to import Vercel Blob, but don't fail if token isn't configured
 let vercelBlobPut: typeof import('@vercel/blob').put | null = null
 try {
