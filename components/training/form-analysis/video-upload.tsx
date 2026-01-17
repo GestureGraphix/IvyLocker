@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { Upload, X, Video, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
+import { uploadVideo } from '@/lib/actions/upload-video'
 
 interface VideoUploadProps {
   purpose: 'reference' | 'attempt'
@@ -77,36 +78,22 @@ export function VideoUpload({
       const duration = await getVideoDuration(file)
       setUploadProgress(10)
 
-      // Upload to server
+      // Upload to server using server action
       const formData = new FormData()
       formData.append('file', file)
       formData.append('purpose', purpose)
 
-      const response = await fetch('/api/athletes/form-analysis/upload', {
-        method: 'POST',
-        body: formData,
-      })
+      setUploadProgress(50)
+
+      const result = await uploadVideo(formData)
 
       setUploadProgress(90)
 
-      // Check content type to ensure we got JSON back
-      const contentType = response.headers.get('content-type')
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text()
-        console.error('Non-JSON response:', text.substring(0, 500))
-        throw new Error(
-          response.status === 413
-            ? 'File too large for server. Try a smaller file.'
-            : `Server error (${response.status}). Please try again.`
-        )
+      if (!result.success) {
+        throw new Error(result.error)
       }
 
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Upload failed')
-      }
-
-      const data = await response.json()
+      const data = result
       setUploadProgress(100)
 
       onUploadComplete({
