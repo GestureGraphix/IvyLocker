@@ -58,6 +58,15 @@ temp/
 credentials.json
 secrets.json
 .secrets
+*.secret
+api_key*
+*_api_key*
+.anthropic
+.openai
+service-account*.json
+firebase-*.json
+gcp-*.json
+aws-*.json
 
 # Turbopack
 .turbo/
