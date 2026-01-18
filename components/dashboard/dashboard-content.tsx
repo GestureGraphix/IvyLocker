@@ -12,23 +12,18 @@ import useSWR from "swr"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
-// Get local date string in YYYY-MM-DD format
-function getLocalDateString(date: Date = new Date()): string {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
 interface DashboardContentProps {
   userName?: string
 }
 
 export function DashboardContent({ userName = "Athlete" }: DashboardContentProps) {
+  // Get local date for API calls
+  const localDate = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`
+
   // Fetch data from the same endpoints as fuel page for consistency
   const { data: userData } = useSWR("/api/me", fetcher)
   const { data: mealsData, isLoading: mealsLoading } = useSWR("/api/athletes/meal-logs", fetcher)
-  const { data: hydrationData, isLoading: hydrationLoading } = useSWR("/api/athletes/hydration-logs", fetcher)
+  const { data: hydrationData, isLoading: hydrationLoading } = useSWR(`/api/athletes/hydration-logs?date=${localDate}`, fetcher)
   const { data: sessionsData } = useSWR("/api/athletes/sessions", fetcher)
   const { data: checkInData } = useSWR("/api/athletes/check-in/today", fetcher)
   const { data: academicsData } = useSWR("/api/athletes/academics", fetcher)
@@ -50,12 +45,8 @@ export function DashboardContent({ userName = "Athlete" }: DashboardContentProps
     { calories: 0, protein: 0 }
   )
 
-  // Calculate today's hydration (same logic as fuel page)
-  const hydrationLogs = hydrationData?.logs || []
-  const todayDateString = getLocalDateString()
-  const todayHydration = hydrationLogs
-    .filter((h: { date: string }) => h.date === todayDateString)
-    .reduce((acc: number, log: { ounces: number }) => acc + Number(log.ounces || 0), 0)
+  // Get today's hydration total directly from API
+  const todayHydration = hydrationData?.todayTotal || 0
 
   // Get goals from user profile
   const userProfile = userData?.user

@@ -34,12 +34,15 @@ export function FuelContent() {
   const [isMealDialogOpen, setIsMealDialogOpen] = useState(false)
   const [isHydrationDialogOpen, setIsHydrationDialogOpen] = useState(false)
 
+  // Get local date for API calls
+  const localDate = getLocalDateString()
+
   // Fetch user profile for goals
   const { data: userData } = useSWR("/api/me", fetcher)
 
   const { data: mealsData, mutate: mutateMeals } = useSWR("/api/athletes/meal-logs", fetcher)
 
-  const { data: hydrationData, mutate: mutateHydration } = useSWR("/api/athletes/hydration-logs", fetcher, {
+  const { data: hydrationData, mutate: mutateHydration } = useSWR(`/api/athletes/hydration-logs?date=${localDate}`, fetcher, {
     revalidateOnFocus: true,
   })
 
@@ -65,11 +68,8 @@ export function FuelContent() {
     { calories: 0, protein: 0, carbs: 0, fat: 0 },
   )
 
-  // Calculate today's hydration using local date (YYYY-MM-DD format)
-  const todayDateString = getLocalDateString()
-  const todayHydration = hydrationLogs
-    .filter((h: { date: string }) => h.date === todayDateString)
-    .reduce((acc: number, log: { ounces: number }) => acc + Number(log.ounces || 0), 0)
+  // Get today's hydration total directly from API
+  const todayHydration = hydrationData?.todayTotal || 0
 
   // Goals from user profile
   const userProfile = userData?.user
