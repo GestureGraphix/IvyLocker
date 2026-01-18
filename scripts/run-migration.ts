@@ -27,7 +27,9 @@ if (!DATABASE_URL) {
 const sql = neon(DATABASE_URL);
 
 async function runMigration() {
-  const migrationSQL = readFileSync('scripts/002-training-exercises-templates.sql', 'utf8');
+  const migrationFile = process.argv[2] || 'scripts/005-daily-recommendations.sql';
+  console.log(`Running migration: ${migrationFile}\n`);
+  const migrationSQL = readFileSync(migrationFile, 'utf8');
 
   // Remove comment lines and then split by semicolons
   const sqlWithoutComments = migrationSQL
