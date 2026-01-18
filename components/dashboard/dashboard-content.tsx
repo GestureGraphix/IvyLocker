@@ -1,6 +1,5 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { GlassCard } from "@/components/ui/glass-card"
 import { StatCard } from "@/components/ui/stat-card"
 import { ProgressBar } from "@/components/ui/progress-bar"
@@ -9,14 +8,16 @@ import { DailyRecommendationCard } from "./daily-recommendation-card"
 import { UpcomingItems } from "./upcoming-items"
 import { Droplets, Utensils, Dumbbell, Brain, TrendingUp } from "lucide-react"
 import { DashboardSkeleton } from "@/components/ui/skeletons"
+import useSWR from "swr"
 
-interface DashboardData {
-  hydration: { current: number; goal: number }
-  meals: { count: number; calories: number; protein: number; calorieGoal: number; proteinGoal: number }
-  sessions: { completed: number; total: number }
-  wellnessScore: string | null
-  upcomingSessions: Array<{ id: string; title: string; type: string; time: string; intensity: string }>
-  upcomingAcademics: Array<{ id: string; title: string; course: string; dueDate: string; priority: string }>
+const fetcher = (url: string) => fetch(url).then((res) => res.json())
+
+// Get local date string in YYYY-MM-DD format
+function getLocalDateString(date: Date = new Date()): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 interface DashboardContentProps {
@@ -24,36 +25,89 @@ interface DashboardContentProps {
 }
 
 export function DashboardContent({ userName = "Athlete" }: DashboardContentProps) {
-  const [data, setData] = useState<DashboardData | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  // Fetch data from the same endpoints as fuel page for consistency
+  const { data: userData } = useSWR("/api/me", fetcher)
+  const { data: mealsData, isLoading: mealsLoading } = useSWR("/api/athletes/meal-logs", fetcher)
+  const { data: hydrationData, isLoading: hydrationLoading } = useSWR("/api/athletes/hydration-logs", fetcher)
+  const { data: sessionsData } = useSWR("/api/athletes/sessions", fetcher)
+  const { data: checkInData } = useSWR("/api/athletes/check-in/today", fetcher)
+  const { data: academicsData } = useSWR("/api/athletes/academics", fetcher)
 
-  useEffect(() => {
-    async function fetchDashboard() {
-      try {
-        // Send local date to API to ensure correct day filtering
-        const localDate = new Date()
-        const dateStr = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`
+  const isLoading = mealsLoading || hydrationLoading
 
-        const res = await fetch(`/api/athletes/dashboard?date=${dateStr}`)
-        if (res.ok) {
-          const dashboardData = await res.json()
-          setData(dashboardData)
-        }
-      } catch (error) {
-        console.error("Failed to fetch dashboard:", error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    fetchDashboard()
-  }, [])
+  // Calculate today's meal totals (same logic as fuel page)
+  const meals = mealsData?.meals || []
+  const todayDateStr = new Date().toDateString()
+  const todayMeals = meals.filter((m: { date_time: string }) =>
+    new Date(m.date_time).toDateString() === todayDateStr
+  )
 
-  const todayStats = data || {
-    hydration: { current: 0, goal: 100 },
-    meals: { count: 0, calories: 0, protein: 0, calorieGoal: 2500, proteinGoal: 150 },
-    sessions: { completed: 0, total: 0 },
-    wellnessScore: null,
+  const mealTotals = todayMeals.reduce(
+    (acc: { calories: number; protein: number }, meal: { calories: number; protein_grams: number }) => ({
+      calories: acc.calories + Number(meal.calories || 0),
+      protein: acc.protein + Number(meal.protein_grams || 0),
+    }),
+    { calories: 0, protein: 0 }
+  )
+
+  // Calculate today's hydration (same logic as fuel page)
+  const hydrationLogs = hydrationData?.logs || []
+  const todayDateString = getLocalDateString()
+  const todayHydration = hydrationLogs
+    .filter((h: { date: string }) => h.date === todayDateString)
+    .reduce((acc: number, log: { ounces: number }) => acc + Number(log.ounces || 0), 0)
+
+  // Get goals from user profile
+  const userProfile = userData?.user
+  const goals = {
+    calories: Number(userProfile?.calorie_goal) || 2500,
+    protein: Number(userProfile?.protein_goal_grams) || 150,
+    hydration: Number(userProfile?.hydration_goal_oz) || 100,
   }
+
+  // Calculate sessions for today
+  const sessions = sessionsData?.sessions || []
+  const todaySessions = sessions.filter((s: { start_at: string }) =>
+    new Date(s.start_at).toDateString() === todayDateStr
+  )
+  const completedSessions = todaySessions.filter((s: { completed: boolean }) => s.completed).length
+
+  // Wellness score from check-in
+  const checkIn = checkInData?.checkIn
+  const wellnessScore = checkIn
+    ? ((Number(checkIn.mental_state) + Number(checkIn.physical_state)) / 2).toFixed(1)
+    : null
+
+  // Upcoming items
+  const upcomingSessions = todaySessions
+    .filter((s: { completed: boolean }) => !s.completed)
+    .slice(0, 5)
+    .map((s: { id: string; title: string; type: string; start_at: string; intensity: string }) => ({
+      id: s.id,
+      title: s.title,
+      type: s.type,
+      time: new Date(s.start_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+      intensity: s.intensity,
+    }))
+
+  const academics = academicsData?.items || []
+  const upcomingAcademics = academics
+    .filter((a: { completed: boolean; due_date: string }) => {
+      if (a.completed) return false
+      const dueDate = new Date(a.due_date)
+      const today = new Date()
+      const weekFromNow = new Date()
+      weekFromNow.setDate(weekFromNow.getDate() + 7)
+      return dueDate >= today && dueDate <= weekFromNow
+    })
+    .slice(0, 5)
+    .map((a: { id: string; title: string; due_date: string; priority: string; course?: { code: string } }) => ({
+      id: a.id,
+      title: a.title,
+      course: a.course?.code || "General",
+      dueDate: formatDueDate(new Date(a.due_date)),
+      priority: a.priority,
+    }))
 
   const firstName = userName.split(" ")[0]
 
@@ -85,19 +139,18 @@ export function DashboardContent({ userName = "Athlete" }: DashboardContentProps
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard
           label="Hydration"
-          value={`${todayStats.hydration.current} oz`}
+          value={`${todayHydration} oz`}
           icon={Droplets}
           variant="primary"
-          trend={{ value: 12, isPositive: true }}
         />
-        <StatCard label="Meals Logged" value={todayStats.meals.count} icon={Utensils} variant="success" />
+        <StatCard label="Meals Logged" value={todayMeals.length} icon={Utensils} variant="success" />
         <StatCard
           label="Training"
-          value={`${todayStats.sessions.completed}/${todayStats.sessions.total}`}
+          value={`${completedSessions}/${todaySessions.length}`}
           icon={Dumbbell}
           variant="warning"
         />
-        <StatCard label="Wellness Score" value={todayStats.wellnessScore || "—"} icon={Brain} />
+        <StatCard label="Wellness Score" value={wellnessScore || "—"} icon={Brain} />
       </div>
 
       {/* Progress Bars */}
@@ -108,14 +161,16 @@ export function DashboardContent({ userName = "Athlete" }: DashboardContentProps
             Hydration Progress
           </h3>
           <ProgressBar
-            value={todayStats.hydration.current}
-            max={todayStats.hydration.goal}
+            value={todayHydration}
+            max={goals.hydration}
             label="Today's intake"
             variant="primary"
             size="lg"
           />
           <p className="mt-3 text-sm text-muted-foreground">
-            {todayStats.hydration.goal - todayStats.hydration.current} oz remaining to hit your goal
+            {todayHydration >= goals.hydration
+              ? "Great job! You've hit your hydration goal!"
+              : `${goals.hydration - todayHydration} oz remaining to hit your goal`}
           </p>
         </GlassCard>
 
@@ -125,18 +180,36 @@ export function DashboardContent({ userName = "Athlete" }: DashboardContentProps
             Nutrition Summary
           </h3>
           <div className="space-y-3">
-            <ProgressBar value={todayStats.meals.calories} max={todayStats.meals.calorieGoal || 2500} label="Calories" variant="success" size="md" />
-            <ProgressBar value={todayStats.meals.protein} max={todayStats.meals.proteinGoal || 150} label="Protein (g)" variant="primary" size="md" />
+            <ProgressBar value={mealTotals.calories} max={goals.calories} label="Calories" variant="success" size="md" />
+            <ProgressBar value={mealTotals.protein} max={goals.protein} label="Protein (g)" variant="primary" size="md" />
           </div>
         </GlassCard>
       </div>
 
       {/* Upcoming Items */}
       <UpcomingItems
-        workouts={data?.upcomingSessions || []}
-        academics={data?.upcomingAcademics || []}
-        isLoading={isLoading}
+        workouts={upcomingSessions}
+        academics={upcomingAcademics}
+        isLoading={false}
       />
     </div>
   )
+}
+
+function formatDueDate(date: Date): string {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+
+  const targetDate = new Date(date)
+  targetDate.setHours(0, 0, 0, 0)
+
+  if (targetDate.getTime() === today.getTime()) {
+    return "Today"
+  } else if (targetDate.getTime() === tomorrow.getTime()) {
+    return "Tomorrow"
+  } else {
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+  }
 }

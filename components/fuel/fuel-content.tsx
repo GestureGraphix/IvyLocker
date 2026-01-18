@@ -30,47 +30,6 @@ function getLocalDateString(date: Date = new Date()): string {
   return `${year}-${month}-${day}`
 }
 
-// Demo data
-const demoMeals = [
-  {
-    id: "1",
-    meal_type: "breakfast",
-    description: "Oatmeal with berries and protein shake",
-    calories: 520,
-    protein_grams: 35,
-    carbs_grams: 65,
-    fat_grams: 12,
-    date_time: new Date().toISOString(),
-  },
-  {
-    id: "2",
-    meal_type: "lunch",
-    description: "Grilled chicken salad with quinoa",
-    calories: 680,
-    protein_grams: 45,
-    carbs_grams: 55,
-    fat_grams: 18,
-    date_time: new Date(Date.now() - 3600000).toISOString(),
-  },
-  {
-    id: "3",
-    meal_type: "snack",
-    description: "Greek yogurt with almonds",
-    calories: 250,
-    protein_grams: 18,
-    carbs_grams: 20,
-    fat_grams: 12,
-    date_time: new Date(Date.now() - 7200000).toISOString(),
-  },
-]
-
-const demoHydration = [
-  { id: "1", ounces: 16, source: "water", time: "08:00", date: new Date().toISOString().split("T")[0] },
-  { id: "2", ounces: 20, source: "water", time: "10:30", date: new Date().toISOString().split("T")[0] },
-  { id: "3", ounces: 12, source: "sports drink", time: "12:00", date: new Date().toISOString().split("T")[0] },
-  { id: "4", ounces: 16, source: "water", time: "14:30", date: new Date().toISOString().split("T")[0] },
-]
-
 export function FuelContent() {
   const [isMealDialogOpen, setIsMealDialogOpen] = useState(false)
   const [isHydrationDialogOpen, setIsHydrationDialogOpen] = useState(false)
@@ -78,20 +37,20 @@ export function FuelContent() {
   // Fetch user profile for goals
   const { data: userData } = useSWR("/api/me", fetcher)
 
-  const { data: mealsData, mutate: mutateMeals } = useSWR("/api/athletes/meal-logs", fetcher, {
-    fallbackData: { meals: demoMeals },
-  })
+  const { data: mealsData, mutate: mutateMeals } = useSWR("/api/athletes/meal-logs", fetcher)
 
   const { data: hydrationData, mutate: mutateHydration } = useSWR("/api/athletes/hydration-logs", fetcher, {
     revalidateOnFocus: true,
   })
 
-  const meals = mealsData?.meals || demoMeals
+  const meals = mealsData?.meals || []
   const hydrationLogs = hydrationData?.logs || []
 
-  // Calculate today's totals
-  const today = new Date().toDateString()
-  const todayMeals = meals.filter((m: { date_time: string }) => new Date(m.date_time).toDateString() === today)
+  // Calculate today's meal totals using local date
+  const todayDateStr = new Date().toDateString()
+  const todayMeals = meals.filter((m: { date_time: string }) =>
+    new Date(m.date_time).toDateString() === todayDateStr
+  )
 
   const todayTotals = todayMeals.reduce(
     (
@@ -106,6 +65,7 @@ export function FuelContent() {
     { calories: 0, protein: 0, carbs: 0, fat: 0 },
   )
 
+  // Calculate today's hydration using local date (YYYY-MM-DD format)
   const todayDateString = getLocalDateString()
   const todayHydration = hydrationLogs
     .filter((h: { date: string }) => h.date === todayDateString)
@@ -203,12 +163,12 @@ export function FuelContent() {
         </GlassCard>
       </div>
 
-      {/* Hydration Quick View */}
-      <GlassCard glow="primary">
+      {/* Hydration Progress - same style as dashboard */}
+      <GlassCard>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <Droplets className="h-5 w-5 text-primary" />
-            Today's Hydration
+            Hydration Progress
           </h3>
           <Button variant="ghost" size="sm" onClick={() => setIsHydrationDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-1" />
@@ -218,14 +178,14 @@ export function FuelContent() {
         <ProgressBar
           value={todayHydration}
           max={goals.hydration}
-          label="Daily intake (oz)"
+          label="Today's intake"
           variant="primary"
           size="lg"
         />
-        <p className="text-sm text-muted-foreground mt-2">
+        <p className="mt-3 text-sm text-muted-foreground">
           {todayHydration >= goals.hydration
             ? "Great job! You've hit your hydration goal!"
-            : `${goals.hydration - todayHydration} oz to go`}
+            : `${goals.hydration - todayHydration} oz remaining to hit your goal`}
         </p>
       </GlassCard>
 
@@ -270,15 +230,9 @@ export function FuelContent() {
       <AddHydrationDialog
         open={isHydrationDialogOpen}
         onOpenChange={setIsHydrationDialogOpen}
-        onSuccess={(newLog) => {
-          // Optimistically update the cache with the new log
-          mutateHydration(
-            (currentData: { logs: Array<{ id: string; ounces: number; source: string; time: string; date: string }> } | undefined) => {
-              const currentLogs = currentData?.logs || []
-              return { logs: [newLog, ...currentLogs] }
-            },
-            { revalidate: false }
-          )
+        onSuccess={() => {
+          // Revalidate hydration data from server
+          mutateHydration()
         }}
       />
     </div>
