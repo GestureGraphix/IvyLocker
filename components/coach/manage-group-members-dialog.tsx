@@ -22,7 +22,9 @@ import {
   UserMinus,
   Users,
   X,
+  AlertCircle,
 } from "lucide-react"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 
 interface Group {
@@ -295,10 +297,29 @@ export function ManageGroupMembersDialog({
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             ) : filteredAvailable.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                {availableAthletes.length === 0
-                  ? "All athletes are already in this group"
-                  : "No athletes match your search"}
+              <div className="text-center py-8">
+                {availableAthletes.length === 0 && members.length === 0 ? (
+                  <div className="space-y-3">
+                    <AlertCircle className="h-8 w-8 mx-auto text-muted-foreground" />
+                    <p className="text-muted-foreground">
+                      You need to add athletes to your roster first
+                    </p>
+                    <Link href="/coach">
+                      <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Go to Coach Portal
+                      </Button>
+                    </Link>
+                  </div>
+                ) : availableAthletes.length === 0 ? (
+                  <p className="text-muted-foreground">
+                    All your athletes are already in this group
+                  </p>
+                ) : (
+                  <p className="text-muted-foreground">
+                    No athletes match your search
+                  </p>
+                )}
               </div>
             ) : (
               <>
