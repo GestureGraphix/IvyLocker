@@ -30,7 +30,11 @@ export function DashboardContent({ userName = "Athlete" }: DashboardContentProps
   useEffect(() => {
     async function fetchDashboard() {
       try {
-        const res = await fetch("/api/athletes/dashboard")
+        // Send local date to API to ensure correct day filtering
+        const localDate = new Date()
+        const dateStr = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`
+
+        const res = await fetch(`/api/athletes/dashboard?date=${dateStr}`)
         if (res.ok) {
           const dashboardData = await res.json()
           setData(dashboardData)

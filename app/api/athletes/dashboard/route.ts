@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
 import { sql } from "@/lib/db"
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const user = await getCurrentUser()
 
@@ -10,9 +10,12 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const today = new Date().toISOString().split("T")[0]
-    const startOfDay = `${today}T00:00:00Z`
-    const endOfDay = `${today}T23:59:59Z`
+    // Get local date from client (YYYY-MM-DD format) or fallback to server date
+    const { searchParams } = new URL(request.url)
+    const clientDate = searchParams.get('date')
+
+    // Use client's local date if provided, otherwise use server's local date
+    const today = clientDate || new Date().toLocaleDateString('en-CA') // en-CA gives YYYY-MM-DD format
 
     // Get today's hydration total
     const hydrationResult = await sql`
@@ -29,7 +32,7 @@ export async function GET() {
       WHERE user_id = ${user.id}
     `
 
-    // Get today's meals
+    // Get today's meals - compare date part only to handle timezone differences
     const mealsResult = await sql`
       SELECT
         COUNT(*) as count,
@@ -39,8 +42,7 @@ export async function GET() {
         COALESCE(SUM(fat_grams), 0) as fat
       FROM meal_logs
       WHERE user_id = ${user.id}
-        AND date_time >= ${startOfDay}
-        AND date_time <= ${endOfDay}
+        AND DATE(date_time) = ${today}
     `
 
     // Get today's sessions
