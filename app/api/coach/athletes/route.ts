@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth"
 import { sql } from "@/lib/db"
 
 // GET /api/coach/athletes - List all athletes for this coach
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const user = await getCurrentUser()
 
@@ -15,7 +15,11 @@ export async function GET() {
       return NextResponse.json({ error: "Not authorized - coaches only" }, { status: 403 })
     }
 
-    // Get all athletes linked to this coach with their profile data
+    const { searchParams } = new URL(request.url)
+    const search = searchParams.get('search')
+    const notInGroup = searchParams.get('notInGroup')
+
+    // Get all athletes linked to this coach with their profile data and groups
     const athletes = await sql`
       SELECT
         u.id, u.email, u.name, u.created_at,
@@ -38,11 +42,19 @@ export async function GET() {
           WHERE user_id = u.id
             AND start_at >= CURRENT_DATE
             AND start_at < CURRENT_DATE + INTERVAL '7 days'
-        ) as upcoming_sessions
+        ) as upcoming_sessions,
+        (
+          SELECT COALESCE(json_agg(json_build_object('id', g.id, 'name', g.name, 'color', g.color)), '[]'::json)
+          FROM athlete_group_members gm
+          JOIN athlete_groups g ON g.id = gm.group_id
+          WHERE gm.athlete_id = u.id AND g.coach_id = ${user.id}
+        ) as groups
       FROM coach_athletes ca
       JOIN users u ON ca.athlete_id = u.id
       LEFT JOIN athlete_profiles ap ON u.id = ap.user_id
       WHERE ca.coach_id = ${user.id}
+        ${search ? sql`AND (u.name ILIKE ${'%' + search + '%'} OR u.email ILIKE ${'%' + search + '%'})` : sql``}
+        ${notInGroup ? sql`AND u.id NOT IN (SELECT athlete_id FROM athlete_group_members WHERE group_id = ${notInGroup})` : sql``}
       ORDER BY u.name
     `
 

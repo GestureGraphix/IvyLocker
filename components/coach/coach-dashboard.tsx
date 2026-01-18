@@ -6,7 +6,8 @@ import { GlassCard } from "@/components/ui/glass-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Users, UserPlus, Search, Calendar, Activity } from "lucide-react"
+import { Users, UserPlus, Search, Calendar, Activity, FolderOpen } from "lucide-react"
+import Link from "next/link"
 import { AthleteCard } from "./athlete-card"
 import { AddAthleteDialog } from "./add-athlete-dialog"
 import { AssignWorkoutDialog } from "./assign-workout-dialog"
@@ -89,6 +90,12 @@ export function CoachDashboard() {
           <p className="text-muted-foreground">Manage your athletes and assign workouts</p>
         </div>
         <div className="flex gap-2">
+          <Link href="/coach/groups">
+            <Button variant="outline">
+              <FolderOpen className="h-4 w-4 mr-2" />
+              Groups
+            </Button>
+          </Link>
           <Button onClick={() => setAddAthleteOpen(true)} variant="outline">
             <UserPlus className="h-4 w-4 mr-2" />
             Add Athlete
