@@ -5,6 +5,7 @@ import { GlassCard } from "@/components/ui/glass-card"
 import { StatCard } from "@/components/ui/stat-card"
 import { ProgressBar } from "@/components/ui/progress-bar"
 import { CheckInWidget } from "./check-in-widget"
+import { DailyRecommendationCard } from "./daily-recommendation-card"
 import { UpcomingItems } from "./upcoming-items"
 import { Droplets, Utensils, Dumbbell, Brain, TrendingUp } from "lucide-react"
 import { DashboardSkeleton } from "@/components/ui/skeletons"
@@ -72,6 +73,9 @@ export function DashboardContent({ userName = "Athlete" }: DashboardContentProps
 
       {/* Daily Check-in */}
       <CheckInWidget />
+
+      {/* AI Daily Recommendations */}
+      <DailyRecommendationCard />
 
       {/* Today's Progress Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
