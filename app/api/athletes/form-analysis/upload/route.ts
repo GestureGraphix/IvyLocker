@@ -42,11 +42,12 @@ export async function POST(request: Request) {
       )
     }
 
-    // Validate file size (100MB limit)
-    const maxSize = 100 * 1024 * 1024
+    // Validate file size (4MB limit for local dev due to Next.js body parser limit)
+    // For larger files, configure BLOB_READ_WRITE_TOKEN for Vercel Blob
+    const maxSize = process.env.BLOB_READ_WRITE_TOKEN ? 100 * 1024 * 1024 : 4 * 1024 * 1024
     if (file.size > maxSize) {
       return NextResponse.json(
-        { error: 'File too large. Maximum size is 100MB' },
+        { error: `File too large. Maximum size is ${process.env.BLOB_READ_WRITE_TOKEN ? '100MB' : '4MB (configure Vercel Blob for larger files)'}` },
         { status: 400 }
       )
     }

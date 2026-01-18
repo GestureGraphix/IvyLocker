@@ -5,7 +5,6 @@ import { toast } from 'sonner'
 import { Upload, X, Video, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { uploadVideo } from '@/lib/actions/upload-video'
 
 interface VideoUploadProps {
   purpose: 'reference' | 'attempt'
@@ -22,7 +21,7 @@ export function VideoUpload({
   purpose,
   onUploadComplete,
   onError,
-  maxSizeMB = 100,
+  maxSizeMB = 4, // Default 4MB for local dev (Next.js limit). Use Vercel Blob for larger files.
 }: VideoUploadProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -78,22 +77,36 @@ export function VideoUpload({
       const duration = await getVideoDuration(file)
       setUploadProgress(10)
 
-      // Upload to server using server action
+      // Upload to server
       const formData = new FormData()
       formData.append('file', file)
       formData.append('purpose', purpose)
 
       setUploadProgress(50)
 
-      const result = await uploadVideo(formData)
+      const response = await fetch('/api/athletes/form-analysis/upload', {
+        method: 'POST',
+        body: formData,
+      })
 
       setUploadProgress(90)
 
-      if (!result.success) {
-        throw new Error(result.error)
+      // Handle non-JSON responses (usually means body too large)
+      const contentType = response.headers.get('content-type')
+      if (!contentType?.includes('application/json')) {
+        throw new Error(
+          file.size > 4 * 1024 * 1024
+            ? 'File too large. Maximum 4MB for local development. Configure Vercel Blob for larger files.'
+            : 'Server error. Please try again.'
+        )
       }
 
-      const data = result
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Upload failed')
+      }
+
       setUploadProgress(100)
 
       onUploadComplete({
