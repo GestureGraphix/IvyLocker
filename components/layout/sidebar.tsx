@@ -14,12 +14,14 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  CalendarDays,
 } from "lucide-react"
 import { useState } from "react"
 import { useAuth } from "@/hooks/use-auth"
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/schedule", label: "Schedule", icon: CalendarDays },
   { href: "/training", label: "Training", icon: Dumbbell },
   { href: "/fuel", label: "Fuel", icon: Utensils },
   { href: "/mobility", label: "Mobility", icon: Activity },
