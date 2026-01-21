@@ -34,71 +34,80 @@ export async function GET(request: Request) {
     }
 
     // Fetch coach-assigned workouts
-    const assignedWorkouts = await sql`
+    const assignedWorkoutsRaw = await sql`
       SELECT
         aw.id,
-        aw.workout_date as date,
+        TO_CHAR(aw.workout_date, 'YYYY-MM-DD') as date,
         aw.completed,
         ps.session_type as type,
-        ps.title,
-        ps.start_time,
-        ps.end_time,
+        COALESCE(ps.title, INITCAP(ps.session_type) || ' Session') as title,
+        TO_CHAR(ps.start_time, 'HH24:MI') as start_time,
+        TO_CHAR(ps.end_time, 'HH24:MI') as end_time,
         ps.location,
         ps.is_optional,
         wp.name as plan_name,
-        u.name as coach_name,
-        'coach_workout' as item_type
+        u.name as coach_name
       FROM assigned_workouts aw
       JOIN plan_sessions ps ON ps.id = aw.plan_session_id
       JOIN plan_days pd ON pd.id = ps.plan_day_id
       JOIN weekly_plans wp ON wp.id = pd.weekly_plan_id
       JOIN users u ON u.id = wp.coach_id
       WHERE aw.athlete_id = ${user.id}
-        AND aw.workout_date >= ${startDate}
-        AND aw.workout_date <= ${endDate}
+        AND aw.workout_date >= ${startDate}::date
+        AND aw.workout_date <= ${endDate}::date
       ORDER BY aw.workout_date, ps.start_time
     `
+    const assignedWorkouts = assignedWorkoutsRaw.map((w: Record<string, unknown>) => ({
+      ...w,
+      item_type: 'coach_workout'
+    }))
 
     // Fetch self-created sessions
-    const sessions = await sql`
+    const sessionsRaw = await sql`
       SELECT
         id,
-        DATE(start_at) as date,
+        TO_CHAR(DATE(start_at), 'YYYY-MM-DD') as date,
         completed,
         type,
         title,
         start_at,
         end_at,
         intensity,
-        focus,
-        'session' as item_type
+        focus
       FROM sessions
       WHERE user_id = ${user.id}
-        AND DATE(start_at) >= ${startDate}
-        AND DATE(start_at) <= ${endDate}
+        AND DATE(start_at) >= ${startDate}::date
+        AND DATE(start_at) <= ${endDate}::date
       ORDER BY start_at
     `
+    const sessions = sessionsRaw.map((s: Record<string, unknown>) => ({
+      ...s,
+      item_type: 'session'
+    }))
 
     // Fetch academic items (assignments, exams, etc.)
-    const academics = await sql`
+    const academicsRaw = await sql`
       SELECT
         ai.id,
-        ai.due_date as date,
+        TO_CHAR(ai.due_date, 'YYYY-MM-DD') as date,
         ai.completed,
         ai.type,
         ai.title,
         ai.priority,
-        ai.due_date,
+        TO_CHAR(ai.due_date, 'YYYY-MM-DD') as due_date,
         c.name as course_name,
-        c.code as course_code,
-        'academic' as item_type
+        c.code as course_code
       FROM academic_items ai
       LEFT JOIN courses c ON c.id = ai.course_id
       WHERE ai.user_id = ${user.id}
-        AND ai.due_date >= ${startDate}
-        AND ai.due_date <= ${endDate}
+        AND ai.due_date >= ${startDate}::date
+        AND ai.due_date <= ${endDate}::date
       ORDER BY ai.due_date, ai.priority DESC
     `
+    const academics = academicsRaw.map((a: Record<string, unknown>) => ({
+      ...a,
+      item_type: 'academic'
+    }))
 
     // Fetch courses for class schedule
     const courses = await sql`
@@ -114,12 +123,23 @@ export async function GET(request: Request) {
       WHERE user_id = ${user.id}
     `
 
+    console.log('Schedule API - Date range:', { startDate, endDate })
+    console.log('Schedule API - Assigned workouts:', assignedWorkouts.length)
+    console.log('Schedule API - Sessions:', sessions.length)
+    console.log('Schedule API - Academics:', academics.length)
+
     return NextResponse.json({
       assignedWorkouts,
       sessions,
       academics,
       courses,
-      dateRange: { startDate, endDate }
+      dateRange: { startDate, endDate },
+      debug: {
+        userId: user.id,
+        workoutsCount: assignedWorkouts.length,
+        sessionsCount: sessions.length,
+        academicsCount: academics.length
+      }
     })
   } catch (error) {
     console.error('Get schedule error:', error)

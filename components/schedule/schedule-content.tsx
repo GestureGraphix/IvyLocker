@@ -77,7 +77,11 @@ function getWeekDates(baseDate: Date): Date[] {
 }
 
 function formatDateKey(date: Date): string {
-  return date.toISOString().split("T")[0]
+  // Use local date to avoid timezone issues
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
 }
 
 function formatTime(time: string | null | undefined): string | null {
@@ -220,12 +224,29 @@ export function ScheduleContent() {
     itemsByDate[formatDateKey(date)] = []
   })
 
+  // Debug logging
+  if (data) {
+    console.log('Schedule data received:', {
+      workouts: data.assignedWorkouts?.length,
+      sessions: data.sessions?.length,
+      academics: data.academics?.length,
+      dateRange: data.dateRange,
+      debug: data.debug
+    })
+    if (data.assignedWorkouts?.length > 0) {
+      console.log('Sample workout date:', data.assignedWorkouts[0].date)
+    }
+    console.log('Expected date keys:', Object.keys(itemsByDate))
+  }
+
   if (data) {
     // Add coach workouts
     data.assignedWorkouts?.forEach((item: ScheduleItem) => {
       const dateKey = item.date
       if (itemsByDate[dateKey]) {
         itemsByDate[dateKey].push({ ...item, item_type: "coach_workout" })
+      } else {
+        console.log('Workout date not in range:', dateKey)
       }
     })
 
