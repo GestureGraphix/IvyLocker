@@ -81,15 +81,6 @@ const DAY_NAMES: Record<string, string> = {
   saturday: "Saturday",
 }
 
-const SESSION_ICONS: Record<string, React.ReactNode> = {
-  practice: <Dumbbell className="h-4 w-4" />,
-  lift: <Dumbbell className="h-4 w-4" />,
-  conditioning: <Dumbbell className="h-4 w-4" />,
-  recovery: <Coffee className="h-4 w-4" />,
-  competition: <Dumbbell className="h-4 w-4" />,
-  optional: <Coffee className="h-4 w-4" />,
-}
-
 const SESSION_COLORS: Record<string, string> = {
   practice: "bg-blue-500/20 text-blue-400 border-blue-500/30",
   lift: "bg-purple-500/20 text-purple-400 border-purple-500/30",
@@ -97,6 +88,24 @@ const SESSION_COLORS: Record<string, string> = {
   recovery: "bg-green-500/20 text-green-400 border-green-500/30",
   competition: "bg-red-500/20 text-red-400 border-red-500/30",
   optional: "bg-gray-500/20 text-gray-400 border-gray-500/30",
+}
+
+const DEFAULT_SESSION_COLOR = "bg-slate-500/20 text-slate-400 border-slate-500/30"
+
+const getSessionColor = (type: string) => SESSION_COLORS[type] || DEFAULT_SESSION_COLOR
+
+const getSessionIcon = (type: string) => {
+  switch (type) {
+    case "lift":
+      return <Dumbbell className="h-4 w-4" />
+    case "recovery":
+    case "optional":
+      return <Coffee className="h-4 w-4" />
+    case "competition":
+      return <Calendar className="h-4 w-4" />
+    default:
+      return <Dumbbell className="h-4 w-4" />
+  }
 }
 
 export function PlanBuilder() {
@@ -151,7 +160,30 @@ export function PlanBuilder() {
         throw new Error(data.error || "Failed to parse plan")
       }
 
-      setParsedPlan(data.plan)
+      // Ensure the plan has required structure with defaults
+      const safePlan: ParsedPlan = {
+        days: (data.plan?.days || []).map((day: ParsedDay) => ({
+          dayOfWeek: day.dayOfWeek || "monday",
+          isOffDay: day.isOffDay ?? false,
+          sessions: (day.sessions || []).map((session: ParsedSession) => ({
+            type: session.type || "practice",
+            title: session.title || null,
+            startTime: session.startTime || null,
+            endTime: session.endTime || null,
+            location: session.location || null,
+            isOptional: session.isOptional ?? false,
+            forGroups: session.forGroups || null,
+            exercises: (session.exercises || []).map((ex: ParsedExercise) => ({
+              name: ex.name || "Exercise",
+              details: ex.details || null,
+              forGroups: ex.forGroups || null,
+            })),
+          })),
+        })),
+        detectedGroups: data.plan?.detectedGroups || [],
+        scheduleInfo: data.plan?.scheduleInfo || null,
+      }
+      setParsedPlan(safePlan)
       setStep(2)
       toast.success("Plan parsed successfully!")
     } catch (error) {
@@ -459,11 +491,11 @@ Practice 4:45-5:45
                     {day.sessions.map((session, sessionIdx) => (
                       <div
                         key={sessionIdx}
-                        className={`p-3 rounded-lg border ${SESSION_COLORS[session.type]}`}
+                        className={`p-3 rounded-lg border ${getSessionColor(session.type)}`}
                       >
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
-                            {SESSION_ICONS[session.type]}
+                            {getSessionIcon(session.type)}
                             <span className="font-medium capitalize">
                               {session.title || session.type}
                             </span>
