@@ -29,15 +29,15 @@ export function TrainingContent() {
 
   const { data: sessionsData, mutate: mutateSessions, isLoading: sessionsLoading } = useSWR("/api/athletes/sessions", fetcher)
   const { data: templatesData, mutate: mutateTemplates, isLoading: templatesLoading } = useSWR("/api/athletes/templates", fetcher)
-  const { data: workoutsData, mutate: mutateWorkouts, isLoading: workoutsLoading } = useSWR("/api/athletes/workouts?week=current", fetcher)
+  // Fetch only incomplete workouts for the training page
+  const { data: workoutsData, mutate: mutateWorkouts, isLoading: workoutsLoading } = useSWR("/api/athletes/workouts?week=current&excludeCompleted=true", fetcher)
+  // Also fetch count of completed workouts this week for the link
+  const { data: completedData } = useSWR("/api/athletes/workouts/history?days=7", fetcher)
 
   const sessions = sessionsData?.sessions || []
   const templates = templatesData?.templates || []
-  const allAssignedWorkouts = workoutsData?.workouts || []
-
-  // Filter to only show incomplete workouts - completed ones go to history
-  const assignedWorkouts = allAssignedWorkouts.filter((w: { completed: boolean }) => !w.completed)
-  const completedAssignedCount = allAssignedWorkouts.filter((w: { completed: boolean }) => w.completed).length
+  const assignedWorkouts = workoutsData?.workouts || []
+  const completedAssignedCount = completedData?.workouts?.length || 0
 
   if (sessionsLoading) {
     return <TrainingSkeleton />

@@ -14,6 +14,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const dateParam = searchParams.get('date')
     const weekParam = searchParams.get('week') // 'current' or 'next' or YYYY-MM-DD
+    const excludeCompleted = searchParams.get('excludeCompleted') === 'true'
 
     // Calculate date range
     let startDate: string
@@ -90,6 +91,7 @@ export async function GET(request: Request) {
       WHERE aw.athlete_id = ${user.id}
         AND aw.workout_date >= ${startDate}
         AND aw.workout_date <= ${endDate}
+        ${excludeCompleted ? sql`AND aw.completed = false` : sql``}
       ORDER BY aw.workout_date ASC, ps.start_time ASC NULLS LAST
     `
 
