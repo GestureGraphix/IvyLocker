@@ -27,17 +27,21 @@ export function TrainingContent() {
   const [templatesOpen, setTemplatesOpen] = useState(false)
   const [coachWorkoutsOpen, setCoachWorkoutsOpen] = useState(true)
 
-  const { data: sessionsData, mutate: mutateSessions, isLoading: sessionsLoading } = useSWR("/api/athletes/sessions", fetcher)
+  // Fetch only incomplete sessions for the training page
+  const { data: sessionsData, mutate: mutateSessions, isLoading: sessionsLoading } = useSWR("/api/athletes/sessions?excludeCompleted=true", fetcher)
   const { data: templatesData, mutate: mutateTemplates, isLoading: templatesLoading } = useSWR("/api/athletes/templates", fetcher)
   // Fetch only incomplete workouts for the training page
   const { data: workoutsData, mutate: mutateWorkouts, isLoading: workoutsLoading } = useSWR("/api/athletes/workouts?week=current&excludeCompleted=true", fetcher)
-  // Also fetch count of completed workouts this week for the link
-  const { data: completedData } = useSWR("/api/athletes/workouts/history?days=7", fetcher)
+  // Fetch count of completed items this week for the link
+  const { data: completedWorkoutsData } = useSWR("/api/athletes/workouts/history?days=7", fetcher)
+  const { data: completedSessionsData } = useSWR("/api/athletes/sessions/history?days=7", fetcher)
 
   const sessions = sessionsData?.sessions || []
   const templates = templatesData?.templates || []
   const assignedWorkouts = workoutsData?.workouts || []
-  const completedAssignedCount = completedData?.workouts?.length || 0
+  const completedWorkoutsCount = completedWorkoutsData?.workouts?.length || 0
+  const completedSessionsCount = completedSessionsData?.sessions?.length || 0
+  const totalCompletedCount = completedWorkoutsCount + completedSessionsCount
 
   if (sessionsLoading) {
     return <TrainingSkeleton />
@@ -78,7 +82,7 @@ export function TrainingContent() {
           <Link href="/training/history">
             <Button variant="outline" className="border-border/50">
               <History className="h-4 w-4 mr-2" />
-              History
+              History{totalCompletedCount > 0 && ` (${totalCompletedCount})`}
             </Button>
           </Link>
           <FormAnalysisButton />
@@ -135,7 +139,7 @@ export function TrainingContent() {
       </div>
 
       {/* Coach Assigned Workouts Section */}
-      {(assignedWorkouts.length > 0 || completedAssignedCount > 0) && (
+      {(assignedWorkouts.length > 0 || completedWorkoutsCount > 0) && (
         <Collapsible open={coachWorkoutsOpen} onOpenChange={setCoachWorkoutsOpen}>
           <CollapsibleTrigger asChild>
             <Button
@@ -158,7 +162,7 @@ export function TrainingContent() {
                 <Trophy className="h-8 w-8 text-success mx-auto mb-2" />
                 <p className="text-foreground font-medium">All workouts completed this week!</p>
                 <p className="text-sm text-muted-foreground mb-3">
-                  You've completed {completedAssignedCount} workout{completedAssignedCount !== 1 ? "s" : ""}
+                  You've completed {completedWorkoutsCount} workout{completedWorkoutsCount !== 1 ? "s" : ""}
                 </p>
                 <Link href="/training/history">
                   <Button variant="outline" size="sm">
@@ -194,12 +198,12 @@ export function TrainingContent() {
                     showDate
                   />
                 ))}
-                {completedAssignedCount > 0 && (
+                {completedWorkoutsCount > 0 && (
                   <div className="text-center pt-2">
                     <Link href="/training/history">
                       <Button variant="ghost" size="sm" className="text-muted-foreground">
                         <History className="h-4 w-4 mr-2" />
-                        View {completedAssignedCount} completed workout{completedAssignedCount !== 1 ? "s" : ""}
+                        View {completedWorkoutsCount} completed workout{completedWorkoutsCount !== 1 ? "s" : ""}
                       </Button>
                     </Link>
                   </div>

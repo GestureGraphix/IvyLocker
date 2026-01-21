@@ -15,7 +15,7 @@ interface ExerciseInput {
   sets: SetInput[]
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const user = await getCurrentUser()
 
@@ -23,10 +23,14 @@ export async function GET() {
       return NextResponse.json({ sessions: [] })
     }
 
+    const { searchParams } = new URL(request.url)
+    const excludeCompleted = searchParams.get('excludeCompleted') === 'true'
+
     // Get all sessions for the user
     const sessions = await sql`
       SELECT * FROM sessions
       WHERE user_id = ${user.id}
+        ${excludeCompleted ? sql`AND completed = false` : sql``}
       ORDER BY start_at DESC
     `
 

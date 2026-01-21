@@ -19,6 +19,7 @@ import {
   MapPin,
   User,
   History,
+  ClipboardList,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -46,13 +47,38 @@ interface CompletedWorkout {
   plan_name: string
   coach_name: string
   exercises: Exercise[] | null
+  source: "coach"
 }
+
+interface SessionExercise {
+  id: string
+  name: string
+  notes?: string
+  sets: Array<{ id: string; reps: number; weight?: number; rpe?: number; completed: boolean }>
+}
+
+interface CompletedSession {
+  id: string
+  title: string
+  type: string
+  start_at: string
+  end_at: string
+  intensity: string
+  focus?: string
+  notes?: string
+  completed: boolean
+  exercises?: SessionExercise[]
+  source: "self"
+}
+
+type HistoryItem = (CompletedWorkout | CompletedSession) & { sortDate: string }
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 const SESSION_COLORS: Record<string, string> = {
   practice: "bg-blue-500/20 text-blue-400 border-blue-500/30",
   lift: "bg-purple-500/20 text-purple-400 border-purple-500/30",
+  strength: "bg-purple-500/20 text-purple-400 border-purple-500/30",
   conditioning: "bg-orange-500/20 text-orange-400 border-orange-500/30",
   recovery: "bg-green-500/20 text-green-400 border-green-500/30",
   competition: "bg-red-500/20 text-red-400 border-red-500/30",
@@ -62,6 +88,7 @@ const SESSION_COLORS: Record<string, string> = {
 const getSessionIcon = (type: string) => {
   switch (type) {
     case "lift":
+    case "strength":
       return <Dumbbell className="h-4 w-4" />
     case "recovery":
     case "optional":
@@ -80,7 +107,7 @@ function getLocalDateString(date: Date = new Date()): string {
   return `${year}-${month}-${day}`
 }
 
-function WorkoutLogCard({ workout }: { workout: CompletedWorkout }) {
+function CoachWorkoutLogCard({ workout }: { workout: CompletedWorkout }) {
   const [expanded, setExpanded] = useState(false)
 
   const formatTime = (time: string | null) => {
@@ -107,6 +134,10 @@ function WorkoutLogCard({ workout }: { workout: CompletedWorkout }) {
           <Badge className={cn("text-xs", sessionColor)}>
             {getSessionIcon(workout.session_type)}
             <span className="ml-1 capitalize">{workout.session_type}</span>
+          </Badge>
+          <Badge variant="outline" className="text-xs text-primary border-primary/50">
+            <ClipboardList className="h-3 w-3 mr-1" />
+            Coach
           </Badge>
           {workout.perceived_effort && (
             <Badge variant="outline" className="text-xs">
@@ -189,36 +220,159 @@ function WorkoutLogCard({ workout }: { workout: CompletedWorkout }) {
   )
 }
 
+function SelfSessionLogCard({ session }: { session: CompletedSession }) {
+  const [expanded, setExpanded] = useState(false)
+
+  const sessionColor = SESSION_COLORS[session.type] || SESSION_COLORS.practice
+
+  return (
+    <div className="flex items-start gap-3 py-3 border-b border-border/50 last:border-0">
+      <div className="pt-0.5">
+        <div className="h-6 w-6 rounded-full bg-success/20 flex items-center justify-center">
+          <Check className="h-3 w-3 text-success" />
+        </div>
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Badge className={cn("text-xs", sessionColor)}>
+            {getSessionIcon(session.type)}
+            <span className="ml-1 capitalize">{session.type}</span>
+          </Badge>
+          <Badge variant="outline" className="text-xs text-muted-foreground">
+            Personal
+          </Badge>
+          {session.intensity && (
+            <Badge variant="outline" className="text-xs">
+              {session.intensity}
+            </Badge>
+          )}
+        </div>
+
+        <h4 className="font-medium mt-1">{session.title}</h4>
+
+        <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground flex-wrap">
+          <span className="flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            {new Date(session.start_at).toLocaleTimeString("en-US", {
+              hour: "numeric",
+              minute: "2-digit",
+            })}
+          </span>
+          {session.focus && (
+            <span className="text-xs">{session.focus}</span>
+          )}
+        </div>
+
+        {session.notes && (
+          <p className="text-sm text-muted-foreground mt-2 italic">"{session.notes}"</p>
+        )}
+
+        {session.exercises && session.exercises.length > 0 && (
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setExpanded(!expanded)}
+              className="mt-2 h-7 px-2 text-xs"
+            >
+              {expanded ? (
+                <>
+                  <ChevronUp className="h-3 w-3 mr-1" />
+                  Hide exercises
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-3 w-3 mr-1" />
+                  Show {session.exercises.length} exercises
+                </>
+              )}
+            </Button>
+
+            {expanded && (
+              <ul className="mt-2 space-y-1 text-sm">
+                {session.exercises.map((ex) => (
+                  <li key={ex.id} className="text-muted-foreground">
+                    <span className="text-foreground">{ex.name}</span>
+                    {ex.sets && ex.sets.length > 0 && (
+                      <span className="ml-1">
+                        - {ex.sets.length} sets
+                        {ex.sets[0].weight && ` @ ${ex.sets[0].weight}lbs`}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+      </div>
+
+      <span className="text-xs text-muted-foreground shrink-0">
+        {new Date(session.end_at || session.start_at).toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+        })}
+      </span>
+    </div>
+  )
+}
+
 export function WorkoutHistory() {
-  // Fetch completed workouts (past 30 days)
-  const { data, isLoading } = useSWR<{ workouts: CompletedWorkout[] }>(
+  // Fetch completed coach-assigned workouts (past 30 days)
+  const { data: workoutsData, isLoading: workoutsLoading } = useSWR<{ workouts: CompletedWorkout[] }>(
     "/api/athletes/workouts/history",
     fetcher
   )
 
-  const completedWorkouts = (data?.workouts || []).filter((w) => w.completed)
-
-  // Group by date
-  const groupedWorkouts = completedWorkouts.reduce(
-    (acc, workout) => {
-      const date = workout.workout_date
-      if (!acc[date]) acc[date] = []
-      acc[date].push(workout)
-      return acc
-    },
-    {} as Record<string, CompletedWorkout[]>
+  // Fetch completed self-created sessions (past 30 days)
+  const { data: sessionsData, isLoading: sessionsLoading } = useSWR<{ sessions: CompletedSession[] }>(
+    "/api/athletes/sessions/history",
+    fetcher
   )
 
-  const sortedDates = Object.keys(groupedWorkouts).sort(
+  const isLoading = workoutsLoading || sessionsLoading
+
+  // Combine and normalize both types
+  const coachWorkouts: HistoryItem[] = (workoutsData?.workouts || [])
+    .filter((w) => w.completed)
+    .map((w) => ({
+      ...w,
+      source: "coach" as const,
+      sortDate: w.workout_date,
+    }))
+
+  const selfSessions: HistoryItem[] = (sessionsData?.sessions || [])
+    .filter((s) => s.completed)
+    .map((s) => ({
+      ...s,
+      source: "self" as const,
+      sortDate: new Date(s.start_at).toISOString().split("T")[0],
+    }))
+
+  const allItems = [...coachWorkouts, ...selfSessions]
+
+  // Group by date
+  const groupedItems = allItems.reduce(
+    (acc, item) => {
+      const date = item.sortDate
+      if (!acc[date]) acc[date] = []
+      acc[date].push(item)
+      return acc
+    },
+    {} as Record<string, HistoryItem[]>
+  )
+
+  const sortedDates = Object.keys(groupedItems).sort(
     (a, b) => new Date(b).getTime() - new Date(a).getTime()
   )
 
-  const totalCompleted = completedWorkouts.length
-  const thisWeekCompleted = completedWorkouts.filter((w) => {
-    const workoutDate = new Date(w.workout_date)
+  const totalCompleted = allItems.length
+  const thisWeekCompleted = allItems.filter((item) => {
+    const itemDate = new Date(item.sortDate)
     const weekAgo = new Date()
     weekAgo.setDate(weekAgo.getDate() - 7)
-    return workoutDate >= weekAgo
+    return itemDate >= weekAgo
   }).length
 
   return (
@@ -257,7 +411,7 @@ export function WorkoutHistory() {
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{totalCompleted}</p>
-              <p className="text-sm text-muted-foreground">Total</p>
+              <p className="text-sm text-muted-foreground">Total (30 days)</p>
             </div>
           </div>
         </GlassCard>
@@ -278,11 +432,11 @@ export function WorkoutHistory() {
             ))}
           </div>
         </GlassCard>
-      ) : completedWorkouts.length === 0 ? (
+      ) : allItems.length === 0 ? (
         <GlassCard className="text-center py-12">
           <History className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-medium text-foreground mb-2">No completed workouts yet</h3>
-          <p className="text-muted-foreground mb-4">Complete your assigned workouts to see them here</p>
+          <p className="text-muted-foreground mb-4">Complete your workouts to see them here</p>
           <Link href="/training">
             <Button className="gradient-primary">
               <Dumbbell className="h-4 w-4 mr-2" />
@@ -317,13 +471,17 @@ export function WorkoutHistory() {
                     {dateLabel}
                   </h3>
                   <Badge variant="outline" className="border-success/50 text-success">
-                    {groupedWorkouts[date].length} completed
+                    {groupedItems[date].length} completed
                   </Badge>
                 </div>
 
                 <GlassCard>
-                  {groupedWorkouts[date].map((workout) => (
-                    <WorkoutLogCard key={workout.id} workout={workout} />
+                  {groupedItems[date].map((item) => (
+                    item.source === "coach" ? (
+                      <CoachWorkoutLogCard key={`coach-${item.id}`} workout={item as CompletedWorkout} />
+                    ) : (
+                      <SelfSessionLogCard key={`self-${item.id}`} session={item as CompletedSession} />
+                    )
                   ))}
                 </GlassCard>
               </div>
