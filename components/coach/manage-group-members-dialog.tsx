@@ -244,6 +244,7 @@ export function ManageGroupMembersDialog({
                         <Checkbox
                           checked={selectedToRemove.includes(athlete.id)}
                           onCheckedChange={() => toggleRemoveSelection(athlete.id)}
+                          className="border-2 border-muted-foreground/60 data-[state=checked]:border-destructive"
                         />
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-foreground truncate">
@@ -338,6 +339,7 @@ export function ManageGroupMembersDialog({
                         <Checkbox
                           checked={selectedToAdd.includes(athlete.id)}
                           onCheckedChange={() => toggleAddSelection(athlete.id)}
+                          className="border-2 border-muted-foreground/60 data-[state=checked]:border-primary"
                         />
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-foreground truncate">
