@@ -8,7 +8,8 @@ import { AddSessionDialog } from "./add-session-dialog"
 import { TemplateDialog } from "./template-dialog"
 import { TemplateCard } from "./template-card"
 import { FormAnalysisButton } from "./form-analysis"
-import { Plus, Calendar, Dumbbell, Trophy, Filter, LayoutTemplate, ChevronDown } from "lucide-react"
+import { AssignedWorkoutCard } from "./assigned-workout-card"
+import { Plus, Calendar, Dumbbell, Trophy, Filter, LayoutTemplate, ChevronDown, ClipboardList } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import useSWR from "swr"
@@ -23,12 +24,15 @@ export function TrainingContent() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false)
   const [templatesOpen, setTemplatesOpen] = useState(false)
+  const [coachWorkoutsOpen, setCoachWorkoutsOpen] = useState(true)
 
   const { data: sessionsData, mutate: mutateSessions, isLoading: sessionsLoading } = useSWR("/api/athletes/sessions", fetcher)
   const { data: templatesData, mutate: mutateTemplates, isLoading: templatesLoading } = useSWR("/api/athletes/templates", fetcher)
+  const { data: workoutsData, mutate: mutateWorkouts, isLoading: workoutsLoading } = useSWR("/api/athletes/workouts?week=current", fetcher)
 
   const sessions = sessionsData?.sessions || []
   const templates = templatesData?.templates || []
+  const assignedWorkouts = workoutsData?.workouts || []
 
   if (sessionsLoading) {
     return <TrainingSkeleton />
@@ -118,6 +122,54 @@ export function TrainingContent() {
           </div>
         </GlassCard>
       </div>
+
+      {/* Coach Assigned Workouts Section */}
+      {assignedWorkouts.length > 0 && (
+        <Collapsible open={coachWorkoutsOpen} onOpenChange={setCoachWorkoutsOpen}>
+          <CollapsibleTrigger asChild>
+            <Button
+              variant="outline"
+              className="w-full justify-between bg-primary/10 border-primary/30 hover:bg-primary/20"
+            >
+              <span className="flex items-center gap-2">
+                <ClipboardList className="h-4 w-4 text-primary" />
+                <span className="text-primary font-medium">Coach Assigned Workouts ({assignedWorkouts.length})</span>
+              </span>
+              <ChevronDown className={cn("h-4 w-4 text-primary transition-transform", coachWorkoutsOpen && "rotate-180")} />
+            </Button>
+          </CollapsibleTrigger>
+
+          <CollapsibleContent className="pt-4">
+            <div className="space-y-3">
+              {assignedWorkouts.map((workout: {
+                id: string
+                workout_date: string
+                completed: boolean
+                completed_at: string | null
+                athlete_notes: string | null
+                perceived_effort: number | null
+                session_id: string
+                session_type: string
+                session_title: string | null
+                start_time: string | null
+                end_time: string | null
+                location: string | null
+                is_optional: boolean
+                plan_name: string
+                coach_name: string
+                exercises: Array<{ id: string; name: string; details: string | null; sort_order: number }> | null
+              }) => (
+                <AssignedWorkoutCard
+                  key={workout.id}
+                  workout={workout}
+                  onUpdate={() => mutateWorkouts()}
+                  showDate
+                />
+              ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
 
       {/* Templates Section */}
       {templates.length > 0 && (
