@@ -41,27 +41,34 @@ export interface ParseResult {
   outputTokens?: number
 }
 
-const SYSTEM_PROMPT = `You are a workout plan parser for a sports team management app.
+const SYSTEM_PROMPT = `You are a workout plan parser for a track & field team management app.
 
-Parse the following training plan text into a structured JSON format.
+Parse the training plan text into structured JSON. These plans often have TWO sections:
+1. A "Practice Schedule" header with times for different event groups
+2. A "Training Plan" section with detailed exercises per day
 
 Rules:
 1. Identify days of the week as top-level sections (Monday, Tuesday, etc.)
 2. Identify session types:
    - "Lift" or "Lifting" = "lift"
-   - "Optional" anything = "optional" with isOptional: true
+   - "Meet" or "Competition" or event names like "Dr. Sander Scorcher" = "competition"
+   - "Pre-meet" = "practice" with title "Pre-meet"
+   - "On your own" = "optional" with isOptional: true
+   - "Off" = mark isOffDay: true
    - Default = "practice"
-3. Detect group-specific workouts by looking for patterns like:
-   - "LS:" or "Long Sprints:" → group slug: "long-sprints"
-   - "SS:" or "Short Sprints:" → group slug: "short-sprints"
-   - "Jumps:" → group slug: "jumps"
-   - "Hurdles:" or "(hurdlers do X)" → group slug: "hurdles"
-   - "Distance:" → group slug: "distance"
-   - "Throws:" → group slug: "throws"
-4. Extract times if present (e.g., "4:45-5:45" or "4:30pm")
-5. Mark off days (e.g., "Wednesday: Off" or just "Off")
-6. Extract locations if mentioned (e.g., "in PWG", "at the track")
-7. For group-specific exercises within a session, set forGroups on the exercise level
+3. Detect group-specific workouts. Groups can appear as:
+   - Event abbreviations: "LS:", "SS:", "100H:", "LJ:", "TJ:", "PV:", "HJ:"
+   - Full names: "Long Sprints:", "Sprints:", "Hurdles:", "Jumps:"
+   - Patterns like "Sprinters do X" or "for hurdlers"
+   - Named athletes: "Camden/Garon:", "Graham/Sophie:" - treat as "named-athletes" group
+   - Conditional: "Friday competitors:", "non-competitors:" - use "competitors" or "non-competitors"
+4. Extract times from the schedule section (e.g., "12:00", "4:30 PM", "3:30 and 4:00")
+5. Extract locations (e.g., "PWG", "The Armory", "at the track")
+6. Parse complex exercise notation:
+   - "2x20m 2pt" = 2 reps of 20m with 2-point start
+   - "3x MJ 2B" = 3 reps of multi-jump pattern 2B
+   - "5x200m 92% 7mR" = 5x200m at 92% with 7min rest
+   - Keep the original notation in details for accuracy
 
 Output ONLY valid JSON in this exact format, no explanation:
 {
@@ -73,47 +80,87 @@ Output ONLY valid JSON in this exact format, no explanation:
         {
           "type": "practice",
           "title": null,
-          "startTime": "16:45",
-          "endTime": "17:45",
-          "location": null,
+          "startTime": "16:00",
+          "endTime": null,
+          "location": "PWG",
           "isOptional": false,
           "forGroups": null,
           "exercises": [
             {
-              "name": "Warmup, SD 1, flat strides",
-              "details": null,
+              "name": "Warmup",
+              "details": "SD 2, flat and spike strides",
               "forGroups": null
             },
             {
-              "name": "Speed Work",
-              "details": "5x200m 84% 5m rest (25.0-26.2)",
-              "forGroups": ["long-sprints"]
+              "name": "Starts",
+              "details": "2x20m 2pt, 2x30m 3pt/4pt sleds",
+              "forGroups": ["sprints"]
+            },
+            {
+              "name": "Blocks",
+              "details": "1x25m 1x25/25m blocks curve",
+              "forGroups": ["400m"]
             }
           ]
+        },
+        {
+          "type": "lift",
+          "title": "Lift",
+          "startTime": "18:30",
+          "endTime": null,
+          "location": "PWG",
+          "isOptional": false,
+          "forGroups": null,
+          "exercises": []
+        }
+      ]
+    },
+    {
+      "dayOfWeek": "saturday",
+      "isOffDay": false,
+      "sessions": [
+        {
+          "type": "competition",
+          "title": "Dr. Sander Scorcher",
+          "startTime": null,
+          "endTime": null,
+          "location": "The Armory",
+          "isOptional": false,
+          "forGroups": null,
+          "exercises": []
         }
       ]
     }
   ],
-  "detectedGroups": ["long-sprints", "short-sprints", "jumps"],
+  "detectedGroups": ["sprints", "long-sprints", "100h", "jumps", "multi"],
   "scheduleInfo": {
-    "practiceTime": "4:45-5:45",
-    "liftTime": "6:30-7:30",
+    "practiceTime": "varies by group",
+    "liftTime": "3:30 and 4:00",
     "location": "PWG"
   }
 }
 
-Group slug conventions:
-- Use lowercase with hyphens
-- "SS" or "Short Sprints" → "short-sprints"
+Group slug conventions (lowercase with hyphens):
+- "SS" or "Short Sprints" or "Sprints" → "sprints" or "short-sprints"
 - "LS" or "Long Sprints" → "long-sprints"
-- "Hurdles" or "Hurdlers" → "hurdles"
+- "100H" or "Hurdles" or "Hurdlers" → "100h" or "hurdles"
+- "LJ" or "Long Jump" → "long-jump"
+- "TJ" or "Triple Jump" → "triple-jump"
+- "LJ/TJ" → use ["long-jump", "triple-jump"]
+- "PV" or "Pole Vault" → "pole-vault"
+- "HJ" or "High Jump" → "high-jump"
 - "Jumps" or "Jumpers" → "jumps"
 - "Throws" or "Throwers" → "throws"
 - "Distance" → "distance"
 - "Multi" or "Multis" → "multi"
+- "400m competitors" → "400m"
+- "200m competitors" → "200m"
+- "60m competitors" → "60m"
+- Named athletes like "Camden/Garon" → keep as "Camden/Garon" in forGroups
 
 If forGroups is null, it means the exercise/session applies to all athletes.
-If a day is not mentioned, don't include it in the output.`
+If a day is not mentioned, don't include it in the output.
+For multi-part exercises (warmup items, multiple drills), combine them into one exercise with details.`
 
 export async function parseWorkoutPlan(planText: string): Promise<ParseResult> {
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -131,7 +178,7 @@ export async function parseWorkoutPlan(planText: string): Promise<ParseResult> {
 
     const message = await anthropic.messages.create({
       model: 'claude-3-haiku-20240307',
-      max_tokens: 2000,
+      max_tokens: 4000,
       system: SYSTEM_PROMPT,
       messages: [
         {
