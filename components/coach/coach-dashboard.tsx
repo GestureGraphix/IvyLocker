@@ -6,7 +6,7 @@ import { GlassCard } from "@/components/ui/glass-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Users, UserPlus, Search, Calendar, Activity, FolderOpen, FileText } from "lucide-react"
+import { Users, UserPlus, Search, Calendar, Activity, FolderOpen, FileText, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { AthleteCard } from "./athlete-card"
 import { AddAthleteDialog } from "./add-athlete-dialog"
@@ -82,12 +82,17 @@ export function CoachDashboard() {
     <div className="p-4 md:p-8 space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
-            <Users className="h-7 w-7 text-primary" />
-            Coach Portal
-          </h1>
-          <p className="text-muted-foreground">Manage your athletes and assign workouts</p>
+        <div className="flex items-center gap-4">
+          <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
+              <Users className="h-7 w-7 text-primary" />
+              Coach Portal
+            </h1>
+            <p className="text-muted-foreground">Manage your athletes and assign workouts</p>
+          </div>
         </div>
         <div className="flex gap-2">
           <Link href="/coach/plans">

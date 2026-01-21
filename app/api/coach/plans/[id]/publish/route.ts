@@ -40,6 +40,7 @@ export async function POST(
     const sessions = await sql`
       SELECT
         ps.id as session_id,
+        ps.for_specific_groups,
         pd.day_of_week,
         COALESCE(
           array_agg(psg.group_id) FILTER (WHERE psg.group_id IS NOT NULL),
@@ -49,7 +50,7 @@ export async function POST(
       JOIN plan_days pd ON pd.id = ps.plan_day_id
       LEFT JOIN plan_session_groups psg ON psg.plan_session_id = ps.id
       WHERE pd.weekly_plan_id = ${id}
-      GROUP BY ps.id, pd.day_of_week
+      GROUP BY ps.id, ps.for_specific_groups, pd.day_of_week
     `
 
     // Calculate the workout date for each session based on day_of_week
@@ -69,7 +70,12 @@ export async function POST(
       // Get athletes for this session
       let athletes
       if (session.group_ids.length === 0) {
-        // No specific groups - assign to all coach's athletes
+        if (session.for_specific_groups) {
+          // Session was meant for specific groups but none matched - skip this session
+          // This prevents assigning group-specific workouts to everyone
+          continue
+        }
+        // No specific groups and not intended for specific groups - assign to all coach's athletes
         athletes = await sql`
           SELECT DISTINCT ca.athlete_id
           FROM coach_athletes ca
