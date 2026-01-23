@@ -125,10 +125,11 @@ export async function GET(request: Request) {
       WHERE user_id = ${user.id}
     `
 
+    console.log('Schedule API - User ID:', user.id)
     console.log('Schedule API - Date range:', { startDate, endDate })
-    console.log('Schedule API - Assigned workouts:', assignedWorkouts.length)
-    console.log('Schedule API - Sessions:', sessions.length)
-    console.log('Schedule API - Academics:', academics.length)
+    console.log('Schedule API - Assigned workouts:', assignedWorkouts.length, assignedWorkouts.map((w: Record<string, unknown>) => ({ date: w.date, title: w.title })))
+    console.log('Schedule API - Sessions:', sessions.length, sessions.map((s: Record<string, unknown>) => ({ date: s.date, title: s.title })))
+    console.log('Schedule API - Academics:', academics.length, academics.map((a: Record<string, unknown>) => ({ date: a.date, title: a.title })))
 
     return NextResponse.json({
       assignedWorkouts,
