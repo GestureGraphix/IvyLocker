@@ -86,6 +86,8 @@ export async function GET(request: Request) {
     }))
 
     // Fetch academic items (assignments, exams, etc.)
+    // Note: Use DATE() to extract date part since due_date is TIMESTAMP WITH TIME ZONE
+    // Without DATE(), items due after midnight wouldn't match <= endDate::date
     const academicsRaw = await sql`
       SELECT
         ai.id,
@@ -100,8 +102,8 @@ export async function GET(request: Request) {
       FROM academic_items ai
       LEFT JOIN courses c ON c.id = ai.course_id
       WHERE ai.user_id = ${user.id}
-        AND ai.due_date >= ${startDate}::date
-        AND ai.due_date <= ${endDate}::date
+        AND DATE(ai.due_date) >= ${startDate}::date
+        AND DATE(ai.due_date) <= ${endDate}::date
       ORDER BY ai.due_date, ai.priority DESC
     `
     const academics = academicsRaw.map((a: Record<string, unknown>) => ({
