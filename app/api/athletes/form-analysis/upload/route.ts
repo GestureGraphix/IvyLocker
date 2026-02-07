@@ -3,7 +3,8 @@ import { getCurrentUser } from '@/lib/auth'
 import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 
-// Route segment config for handling large video uploads (100MB)
+// Ensure Node.js runtime for fs access and larger body handling
+export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
@@ -18,13 +19,16 @@ try {
 }
 
 export async function POST(request: Request) {
+  let step = 'init'
   try {
+    step = 'auth'
     const user = await getCurrentUser()
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    step = 'parse-formdata'
     const formData = await request.formData()
     const file = formData.get('file') as File | null
     const purpose = formData.get('purpose') as string | null // 'reference' or 'attempt'
@@ -37,17 +41,16 @@ export async function POST(request: Request) {
     const validTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-m4v']
     if (!validTypes.includes(file.type)) {
       return NextResponse.json(
-        { error: 'Invalid file type. Supported formats: MP4, WebM, MOV' },
+        { error: `Invalid file type "${file.type}". Supported formats: MP4, WebM, MOV` },
         { status: 400 }
       )
     }
 
-    // Validate file size (4MB limit for local dev due to Next.js body parser limit)
-    // For larger files, configure BLOB_READ_WRITE_TOKEN for Vercel Blob
-    const maxSize = process.env.BLOB_READ_WRITE_TOKEN ? 100 * 1024 * 1024 : 4 * 1024 * 1024
+    // Validate file size
+    const maxSize = process.env.BLOB_READ_WRITE_TOKEN ? 100 * 1024 * 1024 : 10 * 1024 * 1024
     if (file.size > maxSize) {
       return NextResponse.json(
-        { error: `File too large. Maximum size is ${process.env.BLOB_READ_WRITE_TOKEN ? '100MB' : '4MB (configure Vercel Blob for larger files)'}` },
+        { error: `File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum size is ${process.env.BLOB_READ_WRITE_TOKEN ? '100MB' : '10MB'}` },
         { status: 400 }
       )
     }
@@ -59,6 +62,7 @@ export async function POST(request: Request) {
 
     // Use Vercel Blob if available, otherwise use local storage
     if (vercelBlobPut && process.env.BLOB_READ_WRITE_TOKEN) {
+      step = 'blob-upload'
       const blob = await vercelBlobPut(pathname, file, {
         access: 'public',
         contentType: file.type,
@@ -76,6 +80,7 @@ export async function POST(request: Request) {
     }
 
     // Local storage fallback for development
+    step = 'mkdir'
     const uploadsDir = join(process.cwd(), 'public', 'uploads', 'form-analysis', user.id, purpose || 'video')
     await mkdir(uploadsDir, { recursive: true })
 
@@ -83,8 +88,11 @@ export async function POST(request: Request) {
     const filepath = join(uploadsDir, filename)
 
     // Convert File to Buffer and write
+    step = 'read-buffer'
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
+
+    step = 'write-file'
     await writeFile(filepath, buffer)
 
     // Return local URL
@@ -100,7 +108,11 @@ export async function POST(request: Request) {
       { status: 201 }
     )
   } catch (error) {
-    console.error('Upload error:', error)
-    return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    console.error(`Upload error at step "${step}":`, message, error)
+    return NextResponse.json(
+      { error: `Upload failed at ${step}: ${message}` },
+      { status: 500 }
+    )
   }
 }

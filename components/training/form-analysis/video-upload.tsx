@@ -22,7 +22,7 @@ export function VideoUpload({
   purpose,
   onUploadComplete,
   onError,
-  maxSizeMB = 4, // Default 4MB for local dev (Next.js limit). Use Vercel Blob for larger files.
+  maxSizeMB = 100,
 }: VideoUploadProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -69,57 +69,67 @@ export function VideoUpload({
     setIsUploading(true)
     setUploadProgress(0)
 
-    try {
-      // Create preview
-      const preview = URL.createObjectURL(file)
-      setPreviewUrl(preview)
+    // Create preview blob URL immediately - this is what we'll use for analysis
+    const preview = URL.createObjectURL(file)
+    setPreviewUrl(preview)
 
+    try {
       // Get video duration
       const duration = await getVideoDuration(file)
-      setUploadProgress(10)
+      setUploadProgress(20)
 
-      // Upload to server
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('purpose', purpose)
+      // Try server upload for persistence, but don't block on failure
+      let serverUrl = ''
+      let serverPath = ''
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('purpose', purpose)
 
-      setUploadProgress(50)
+        setUploadProgress(50)
 
-      const response = await fetch('/api/athletes/form-analysis/upload', {
-        method: 'POST',
-        body: formData,
-      })
+        const response = await fetch('/api/athletes/form-analysis/upload', {
+          method: 'POST',
+          body: formData,
+        })
 
-      setUploadProgress(90)
+        setUploadProgress(90)
 
-      // Handle non-JSON responses (usually means body too large)
-      const contentType = response.headers.get('content-type')
-      if (!contentType?.includes('application/json')) {
-        throw new Error(
-          file.size > 4 * 1024 * 1024
-            ? 'File too large. Maximum 4MB for local development. Configure Vercel Blob for larger files.'
-            : 'Server error. Please try again.'
-        )
-      }
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Upload failed')
+        const contentType = response.headers.get('content-type')
+        if (contentType?.includes('application/json')) {
+          const data = await response.json()
+          if (response.ok) {
+            serverUrl = data.url
+            serverPath = data.pathname
+          } else {
+            console.warn('Server upload returned error:', data.error)
+          }
+        } else {
+          console.warn('Server upload returned non-JSON response')
+        }
+      } catch (uploadErr) {
+        // Server upload failed - that's OK, we can still do analysis with the blob URL
+        console.warn('Server upload failed (analysis will still work):', uploadErr)
       }
 
       setUploadProgress(100)
 
+      // Always complete with the local blob URL for analysis
+      // Server URL is used for persistence (saving to DB) if available
       onUploadComplete({
-        url: data.url,
-        blobPath: data.pathname,
+        url: serverUrl || preview,
+        blobPath: serverPath || `local-${purpose}-${Date.now()}`,
         duration,
         localBlobUrl: preview,
       })
 
-      toast.success('Video uploaded successfully')
+      if (serverUrl) {
+        toast.success('Video uploaded successfully')
+      } else {
+        toast.success('Video ready for analysis')
+      }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Upload failed'
+      const message = err instanceof Error ? err.message : 'Failed to process video'
       toast.error(message)
       onError?.(message)
       setPreviewUrl(null)
@@ -208,7 +218,7 @@ export function VideoUpload({
         <div className="space-y-4">
           <Loader2 className="h-10 w-10 mx-auto text-primary animate-spin" />
           <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Uploading video...</p>
+            <p className="text-sm text-muted-foreground">Processing video...</p>
             <Progress value={uploadProgress} className="h-2 max-w-[200px] mx-auto" />
             <p className="text-xs text-muted-foreground">{uploadProgress}%</p>
           </div>
@@ -227,7 +237,7 @@ export function VideoUpload({
               {isDragging ? 'Drop video here' : 'Drop video or click to browse'}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              MP4, WebM, or MOV up to {maxSizeMB}MB
+              MP4, WebM, or MOV
             </p>
           </div>
         </div>
