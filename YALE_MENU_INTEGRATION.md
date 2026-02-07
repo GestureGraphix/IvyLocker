@@ -9,7 +9,7 @@ Yale Dining uses **Nutrislice** for menu management. The API is publicly accessi
 ## API Base URL
 
 ```
-https://yaledining.api.nutrislice.com/menu/api
+https://yalehospitality.api.nutrislice.com/menu/api
 ```
 
 ## Required Headers
@@ -17,7 +17,7 @@ https://yaledining.api.nutrislice.com/menu/api
 ```typescript
 const headers = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-  "Referer": "https://yaledining.nutrislice.com/"
+  "Referer": "https://yalehospitality.nutrislice.com/"
 };
 ```
 
@@ -31,7 +31,7 @@ GET /weeks/school/{school-slug}/menu-type/{meal-type}/{year}/{month}/{day}
 
 **Parameters:**
 - `school-slug`: Dining location (e.g., `jonathan-edwards-college`, `branford-college`)
-- `meal-type`: `breakfast`, `lunch`, `dinner`, or `additional-dinner-offerings`
+- `meal-type`: `breakfast`, `lunch`, or `dinner`
 - `year/month/day`: Date for the week to fetch
 
 **Example:**
@@ -137,7 +137,7 @@ const MEAL_TYPES = {
   },
   dinner: {
     label: "Dinner",
-    slugs: ["dinner", "additional-dinner-offerings"]  // Note: dinner has two slugs
+    slugs: ["dinner"]
   }
 };
 ```
@@ -200,11 +200,11 @@ async function fetchMenu(date: string, location: string, meal: string) {
   const [year, month, day] = date.split('-');
 
   const response = await fetch(
-    `https://yaledining.api.nutrislice.com/menu/api/weeks/school/${location}/menu-type/${meal}/${year}/${month}/${day}`,
+    `https://yalehospitality.api.nutrislice.com/menu/api/weeks/school/${location}/menu-type/${meal}/${year}/${month}/${day}`,
     {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Referer": "https://yaledining.nutrislice.com/"
+        "Referer": "https://yalehospitality.nutrislice.com/"
       }
     }
   );
@@ -226,11 +226,11 @@ async function fetchNutrition(menuItemId: number, date: string, locationId?: str
   if (locationId) params.append('location_id', locationId);
 
   const response = await fetch(
-    `https://yaledining.api.nutrislice.com/menu/api/menu-items/${menuItemId}/order-settings/?${params}`,
+    `https://yalehospitality.api.nutrislice.com/menu/api/menu-items/${menuItemId}/order-settings/?${params}`,
     {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Referer": "https://yaledining.nutrislice.com/"
+        "Referer": "https://yalehospitality.nutrislice.com/"
       }
     }
   );
@@ -294,7 +294,7 @@ type MenuResponse = {
 ## Notes
 
 - The API returns weekly data; filter client-side for the specific date
-- Dinner menus may come from multiple slugs (`dinner` + `additional-dinner-offerings`)
+- Dinner menus use the `dinner` slug only
 - Some items may not have nutrition data available
 - Location IDs can be resolved dynamically from the directory endpoint
 - The API is rate-limited; implement caching for production use

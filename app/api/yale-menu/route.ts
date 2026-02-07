@@ -5,7 +5,7 @@ const DINING_HALLS = [
   { slug: "jonathan-edwards-college", name: "Jonathan Edwards" },
   { slug: "branford-college", name: "Branford" },
   { slug: "berkeley-college", name: "Berkeley" },
-  { slug: "calhoun-college", name: "Hopper" },
+  { slug: "hopper-college", name: "Hopper" },
   { slug: "davenport-college", name: "Davenport" },
   { slug: "morse-college", name: "Morse" },
   { slug: "pierson-college", name: "Pierson" },
@@ -24,11 +24,11 @@ const MEAL_TYPES = [
   { slug: "dinner", label: "Dinner" },
 ]
 
-const API_BASE = "https://yaledining.api.nutrislice.com/menu/api"
+const API_BASE = "https://yalehospitality.api.nutrislice.com/menu/api"
 
 const headers = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-  "Referer": "https://yaledining.nutrislice.com/",
+  "Referer": "https://yalehospitality.nutrislice.com/",
 }
 
 interface MenuItem {
@@ -149,18 +149,6 @@ export async function GET(request: Request) {
 
     const menuPromises = mealsToFetch.map(async (mealType) => {
       const items = await fetchMenuForMeal(location, mealType.slug, date)
-
-      // For dinner, also fetch additional offerings
-      if (mealType.slug === "dinner") {
-        const additional = await fetchMenuForMeal(location, "additional-dinner-offerings", date)
-        // Add additional items, avoiding duplicates
-        const existingNames = new Set(items.map(i => i.name.toLowerCase()))
-        for (const item of additional) {
-          if (!existingNames.has(item.name.toLowerCase())) {
-            items.push(item)
-          }
-        }
-      }
 
       return {
         mealType: mealType.label,
