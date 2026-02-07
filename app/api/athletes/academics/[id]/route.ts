@@ -14,11 +14,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const body = await request.json()
 
     const result = await sql`
-      UPDATE academic_items 
-      SET 
+      UPDATE academic_items
+      SET
         completed = COALESCE(${body.completed ?? null}, completed),
         title = COALESCE(${body.title ?? null}, title),
+        type = COALESCE(${body.type ?? null}, type),
         priority = COALESCE(${body.priority ?? null}, priority),
+        due_date = COALESCE(${body.due_date ?? null}, due_date),
+        course_id = COALESCE(${body.course_id ?? null}, course_id),
         notes = COALESCE(${body.notes ?? null}, notes),
         updated_at = NOW()
       WHERE id = ${id} AND user_id = ${user.id}

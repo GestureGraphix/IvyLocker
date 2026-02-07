@@ -196,7 +196,7 @@ export function AcademicsContent() {
         </TabsList>
 
         <TabsContent value="items">
-          <AcademicItemList items={items} onUpdate={() => mutateItems()} />
+          <AcademicItemList items={items} courses={courses} onUpdate={() => mutateItems()} />
         </TabsContent>
 
         <TabsContent value="courses">

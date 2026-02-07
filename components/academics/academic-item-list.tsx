@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Check, MoreVertical, Pencil, Trash2, BookOpen, FileText, GraduationCap, ClipboardList } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { EditAcademicItemDialog } from "./edit-academic-item-dialog"
 
 interface AcademicItem {
   id: string
@@ -20,8 +21,15 @@ interface AcademicItem {
   notes: string
 }
 
+interface Course {
+  id: string
+  name: string
+  code: string
+}
+
 interface AcademicItemListProps {
   items: AcademicItem[]
+  courses: Course[]
   onUpdate: () => void
 }
 
@@ -38,8 +46,9 @@ const priorityColors = {
   low: "border-success text-success",
 }
 
-export function AcademicItemList({ items, onUpdate }: AcademicItemListProps) {
+export function AcademicItemList({ items, courses, onUpdate }: AcademicItemListProps) {
   const [filter, setFilter] = useState<"all" | "upcoming" | "completed">("upcoming")
+  const [editingItem, setEditingItem] = useState<AcademicItem | null>(null)
 
   const filteredItems = items.filter((item) => {
     if (filter === "completed") return item.completed
@@ -181,7 +190,7 @@ export function AcademicItemList({ items, onUpdate }: AcademicItemListProps) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setEditingItem(item)}>
                       <Pencil className="h-4 w-4 mr-2" />
                       Edit
                     </DropdownMenuItem>
@@ -204,6 +213,14 @@ export function AcademicItemList({ items, onUpdate }: AcademicItemListProps) {
           </GlassCard>
         )}
       </div>
+
+      <EditAcademicItemDialog
+        open={editingItem !== null}
+        onOpenChange={(open) => { if (!open) setEditingItem(null) }}
+        onSuccess={onUpdate}
+        courses={courses}
+        item={editingItem}
+      />
     </div>
   )
 }
