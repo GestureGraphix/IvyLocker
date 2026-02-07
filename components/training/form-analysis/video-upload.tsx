@@ -12,6 +12,7 @@ interface VideoUploadProps {
     url: string
     blobPath: string
     duration: number
+    localBlobUrl: string
   }) => void
   onError?: (error: string) => void
   maxSizeMB?: number
@@ -113,6 +114,7 @@ export function VideoUpload({
         url: data.url,
         blobPath: data.pathname,
         duration,
+        localBlobUrl: preview,
       })
 
       toast.success('Video uploaded successfully')

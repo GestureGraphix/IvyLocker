@@ -38,9 +38,9 @@ export function useMediPipePose(options: UseMediPipePoseOptions = {}) {
       const vision = await import('@mediapipe/tasks-vision')
       const { PoseLandmarker, FilesetResolver } = vision
 
-      // Initialize the FilesetResolver for WASM files
+      // Initialize the FilesetResolver for WASM files (pinned to match installed package version)
       const filesetResolver = await FilesetResolver.forVisionTasks(
-        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
+        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm'
       )
 
       // Create pose landmarker
@@ -129,12 +129,12 @@ export function useMediPipePose(options: UseMediPipePoseOptions = {}) {
 
       const results: PoseLandmarks[] = []
 
-      // Create hidden video element
+      // Create hidden video element (set crossOrigin before src to avoid loading issues)
       const video = document.createElement('video')
-      video.src = videoUrl
+      video.crossOrigin = 'anonymous'
       video.muted = true
       video.playsInline = true
-      video.crossOrigin = 'anonymous'
+      video.src = videoUrl
 
       // Wait for video metadata
       await new Promise<void>((resolve, reject) => {

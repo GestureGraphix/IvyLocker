@@ -30,6 +30,7 @@ interface VideoData {
   url: string
   blobPath: string
   duration: number
+  localBlobUrl: string
 }
 
 export function FormAnalysisDialog({
@@ -221,13 +222,15 @@ export function FormAnalysisDialog({
     return !!attemptVideo
   }
 
-  // Get reference video URL for processing
+  // Get reference video URL for processing (prefer local blob URL for reliability)
   const getReferenceVideoUrl = () => {
     if (referenceMode === 'existing' && selectedReferenceId) {
       const ref = existingReferences.find((r) => r.id === selectedReferenceId)
       return ref?.video_url || ''
     }
-    return referenceVideo?.url || ''
+    // Use local blob URL for freshly uploaded videos - avoids issues with
+    // Next.js not serving dynamically created files in public/uploads/
+    return referenceVideo?.localBlobUrl || referenceVideo?.url || ''
   }
 
   const getStepIndicator = () => {
@@ -424,7 +427,7 @@ export function FormAnalysisDialog({
 
             {processingStep === 'attempt' && attemptVideo && (
               <PoseDetector
-                videoUrl={attemptVideo.url}
+                videoUrl={attemptVideo.localBlobUrl || attemptVideo.url}
                 onComplete={handleAttemptLandmarksComplete}
                 onError={handleProcessingError}
               />
