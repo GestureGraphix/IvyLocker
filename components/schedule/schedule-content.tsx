@@ -224,45 +224,28 @@ export function ScheduleContent() {
     itemsByDate[formatDateKey(date)] = []
   })
 
-  // Debug logging
-  if (data) {
-    console.log('Schedule data received:', {
-      workouts: data.assignedWorkouts?.length,
-      sessions: data.sessions?.length,
-      academics: data.academics?.length,
-      dateRange: data.dateRange,
-      debug: data.debug
-    })
-    if (data.assignedWorkouts?.length > 0) {
-      console.log('Sample workout date:', data.assignedWorkouts[0].date)
-    }
-    console.log('Expected date keys:', Object.keys(itemsByDate))
-  }
-
-  if (data) {
-    // Add coach workouts
+  if (data && !data.error) {
+    // Add coach workouts (date from workout_date is already a pure date, no TZ issue)
     data.assignedWorkouts?.forEach((item: ScheduleItem) => {
       const dateKey = item.date
       if (itemsByDate[dateKey]) {
         itemsByDate[dateKey].push({ ...item, item_type: "coach_workout" })
-      } else {
-        console.log('Workout date not in range:', dateKey)
       }
     })
 
-    // Add self sessions
+    // Add self sessions - derive date from start_at in LOCAL timezone
     data.sessions?.forEach((item: ScheduleItem) => {
-      const dateKey = item.date
+      const dateKey = item.start_at ? formatDateKey(new Date(item.start_at)) : item.date
       if (itemsByDate[dateKey]) {
-        itemsByDate[dateKey].push({ ...item, item_type: "session" })
+        itemsByDate[dateKey].push({ ...item, date: dateKey, item_type: "session" })
       }
     })
 
-    // Add academics
+    // Add academics - derive date from due_date in LOCAL timezone
     data.academics?.forEach((item: ScheduleItem) => {
-      const dateKey = item.date
+      const dateKey = item.due_date ? formatDateKey(new Date(item.due_date)) : item.date
       if (itemsByDate[dateKey]) {
-        itemsByDate[dateKey].push({ ...item, item_type: "academic" })
+        itemsByDate[dateKey].push({ ...item, date: dateKey, item_type: "academic" })
       }
     })
   }
