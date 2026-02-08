@@ -27,7 +27,7 @@ interface ScheduleItem {
   completed: boolean
   type: string
   title: string
-  item_type: "coach_workout" | "session" | "academic"
+  item_type: "coach_workout" | "session" | "academic" | "course"
   // Workout specific
   start_time?: string
   end_time?: string
@@ -45,6 +45,8 @@ interface ScheduleItem {
   start_at?: string
   end_at?: string
   focus?: string
+  // Course specific
+  schedule_text?: string
 }
 
 interface Course {
@@ -52,9 +54,7 @@ interface Course {
   name: string
   code: string
   schedule: string | null
-  location: string | null
-  start_time: string | null
-  end_time: string | null
+  meeting_days: string[] | null
 }
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
@@ -97,6 +97,7 @@ const ITEM_COLORS: Record<string, string> = {
   coach_workout: "border-l-primary bg-primary/5",
   session: "border-l-warning bg-warning/5",
   academic: "border-l-accent bg-accent/5",
+  course: "border-l-emerald-500 bg-emerald-500/5",
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -109,6 +110,7 @@ const TYPE_COLORS: Record<string, string> = {
   exam: "bg-destructive/20 text-destructive",
   quiz: "bg-warning/20 text-warning",
   project: "bg-success/20 text-success",
+  course: "bg-emerald-500/20 text-emerald-400",
 }
 
 function ScheduleItemCard({ item }: { item: ScheduleItem }) {
@@ -125,6 +127,8 @@ function ScheduleItemCard({ item }: { item: ScheduleItem }) {
         if (item.type === "exam") return <AlertCircle className="h-3 w-3" />
         if (item.type === "quiz") return <FileText className="h-3 w-3" />
         return <BookOpen className="h-3 w-3" />
+      case "course":
+        return <GraduationCap className="h-3 w-3" />
       default:
         return <Calendar className="h-3 w-3" />
     }
@@ -138,6 +142,7 @@ function ScheduleItemCard({ item }: { item: ScheduleItem }) {
         minute: "2-digit",
       })
     }
+    if (item.schedule_text) return item.schedule_text
     if (item.due_date) return "Due"
     return null
   }
@@ -248,6 +253,33 @@ export function ScheduleContent() {
         itemsByDate[dateKey].push({ ...item, date: dateKey, item_type: "academic" })
       }
     })
+
+    // Add courses on their meeting days
+    const dayAbbrevToIndex: Record<string, number> = {
+      Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
+    }
+    data.courses?.forEach((course: Course) => {
+      if (!course.meeting_days || course.meeting_days.length === 0) return
+      weekDates.forEach((date) => {
+        const dayIndex = date.getDay()
+        if (course.meeting_days!.some((d) => dayAbbrevToIndex[d] === dayIndex)) {
+          const dateKey = formatDateKey(date)
+          if (itemsByDate[dateKey]) {
+            itemsByDate[dateKey].push({
+              id: course.id,
+              date: dateKey,
+              completed: false,
+              type: "course",
+              title: course.name,
+              item_type: "course" as const,
+              course_code: course.code,
+              course_name: course.name,
+              schedule_text: course.schedule || undefined,
+            } as ScheduleItem)
+          }
+        }
+      })
+    })
   }
 
   // Sort items within each day by time
@@ -321,6 +353,10 @@ export function ScheduleContent() {
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded border-l-2 border-l-accent bg-accent/20" />
               <span className="text-muted-foreground">Academic</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded border-l-2 border-l-emerald-500 bg-emerald-500/20" />
+              <span className="text-muted-foreground">Class</span>
             </div>
           </div>
         </div>

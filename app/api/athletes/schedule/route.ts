@@ -145,9 +145,7 @@ export async function GET(request: Request) {
           name,
           code,
           schedule,
-          location,
-          start_time,
-          end_time
+          meeting_days
         FROM courses
         WHERE user_id = ${user.id}
       `

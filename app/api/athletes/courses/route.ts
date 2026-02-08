@@ -31,11 +31,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { name, code, instructor, schedule } = await request.json()
+    const { name, code, instructor, schedule, meeting_days } = await request.json()
 
     const result = await sql`
-      INSERT INTO courses (user_id, name, code, instructor, schedule)
-      VALUES (${user.id}, ${name}, ${code}, ${instructor || null}, ${schedule || null})
+      INSERT INTO courses (user_id, name, code, instructor, schedule, meeting_days)
+      VALUES (${user.id}, ${name}, ${code}, ${instructor || null}, ${schedule || null}, ${meeting_days || null})
       RETURNING *
     `
 

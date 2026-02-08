@@ -2,7 +2,7 @@
 
 import { GlassCard } from "@/components/ui/glass-card"
 import { Button } from "@/components/ui/button"
-import { BookOpen, Trash2, Clock, User } from "lucide-react"
+import { BookOpen, Trash2, Clock, User, CalendarDays } from "lucide-react"
 
 interface Course {
   id: string
@@ -10,6 +10,7 @@ interface Course {
   code: string
   instructor: string
   schedule: string
+  meeting_days: string[] | null
 }
 
 interface CourseListProps {
@@ -61,14 +62,24 @@ export function CourseList({ courses, onUpdate }: CourseListProps) {
             </div>
 
             <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <User className="h-4 w-4" />
-                <span>{course.instructor}</span>
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Clock className="h-4 w-4" />
-                <span>{course.schedule}</span>
-              </div>
+              {course.instructor && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <User className="h-4 w-4" />
+                  <span>{course.instructor}</span>
+                </div>
+              )}
+              {course.meeting_days && course.meeting_days.length > 0 && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <CalendarDays className="h-4 w-4" />
+                  <span>{course.meeting_days.join(", ")}</span>
+                </div>
+              )}
+              {course.schedule && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Clock className="h-4 w-4" />
+                  <span>{course.schedule}</span>
+                </div>
+              )}
             </div>
           </div>
         </GlassCard>
