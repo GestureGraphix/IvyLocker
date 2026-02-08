@@ -31,7 +31,7 @@ export async function GET(request: Request) {
       SELECT * FROM sessions
       WHERE user_id = ${user.id}
         ${excludeCompleted ? sql`AND completed = false` : sql``}
-      ORDER BY start_at DESC
+      ORDER BY start_at ASC
     `
 
     // Get exercises and sets for all sessions
