@@ -25,7 +25,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     const body = await request.json()
-    const { date, start_time } = body
+    const { date, start_time, timezoneOffset = 0 } = body
 
     // Get template
     const templateResult = await sql`
@@ -69,7 +69,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const [hours, minutes] = (start_time || "09:00").split(':').map(Number)
 
     const startAt = new Date(sessionDate)
-    startAt.setHours(hours, minutes, 0, 0)
+    startAt.setUTCHours(hours, minutes, 0, 0)
+    startAt.setUTCMinutes(startAt.getUTCMinutes() + timezoneOffset)
 
     const endAt = new Date(startAt)
     endAt.setMinutes(endAt.getMinutes() + (template.duration_minutes || 60))

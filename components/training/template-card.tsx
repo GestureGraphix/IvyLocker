@@ -112,6 +112,7 @@ export function TemplateCard({ template, onUpdate, onSessionCreated }: TemplateC
         body: JSON.stringify({
           date: today,
           start_time: template.schedule?.start_time || "09:00",
+          timezoneOffset: new Date().getTimezoneOffset(),
         }),
       })
 
@@ -140,7 +141,7 @@ export function TemplateCard({ template, onUpdate, onSessionCreated }: TemplateC
       const res = await fetch(`/api/athletes/templates/${template.id}/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ weeks: 4 }),
+        body: JSON.stringify({ weeks: 4, timezoneOffset: new Date().getTimezoneOffset() }),
       })
 
       const data = await res.json()

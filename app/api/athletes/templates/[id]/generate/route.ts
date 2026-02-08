@@ -26,6 +26,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     const body = await request.json()
     const weeksAhead = body.weeks || 4 // Default to 4 weeks
+    const timezoneOffset = body.timezoneOffset || 0 // Minutes from UTC (e.g., 300 for EST)
 
     // Get template with schedule
     const templateResult = await sql`
@@ -130,9 +131,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const createdSessions = []
 
     for (const date of newDates) {
-      // Create start and end timestamps
+      // Create start and end timestamps in user's local timezone
       const startAt = new Date(date)
-      startAt.setHours(hours, minutes, 0, 0)
+      startAt.setUTCHours(hours, minutes, 0, 0)
+      startAt.setUTCMinutes(startAt.getUTCMinutes() + timezoneOffset)
 
       const endAt = new Date(startAt)
       endAt.setMinutes(endAt.getMinutes() + (template.duration_minutes || 60))
