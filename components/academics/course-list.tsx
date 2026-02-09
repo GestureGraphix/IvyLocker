@@ -1,8 +1,10 @@
 "use client"
 
+import { useState } from "react"
 import { GlassCard } from "@/components/ui/glass-card"
 import { Button } from "@/components/ui/button"
-import { BookOpen, Trash2, Clock, User, CalendarDays } from "lucide-react"
+import { BookOpen, Trash2, Pencil, Clock, User, CalendarDays } from "lucide-react"
+import { EditCourseDialog } from "./edit-course-dialog"
 
 interface Course {
   id: string
@@ -19,6 +21,8 @@ interface CourseListProps {
 }
 
 export function CourseList({ courses, onUpdate }: CourseListProps) {
+  const [editingCourse, setEditingCourse] = useState<Course | null>(null)
+
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this course? This will also delete all related assignments.")) return
 
@@ -41,49 +45,61 @@ export function CourseList({ courses, onUpdate }: CourseListProps) {
   }
 
   return (
-    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {courses.map((course) => (
-        <GlassCard key={course.id} className="relative group">
-          <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button variant="ghost" size="icon" onClick={() => handleDelete(course.id)}>
-              <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-            </Button>
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-primary/20">
-                <BookOpen className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-foreground">{course.name}</h3>
-                <p className="text-sm text-muted-foreground">{course.code}</p>
-              </div>
+    <>
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {courses.map((course) => (
+          <GlassCard key={course.id} className="relative group">
+            <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button variant="ghost" size="icon" onClick={() => setEditingCourse(course)}>
+                <Pencil className="h-4 w-4 text-muted-foreground hover:text-primary" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => handleDelete(course.id)}>
+                <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+              </Button>
             </div>
 
-            <div className="space-y-2 text-sm">
-              {course.instructor && (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <User className="h-4 w-4" />
-                  <span>{course.instructor}</span>
+            <div className="space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-primary/20">
+                  <BookOpen className="h-5 w-5 text-primary" />
                 </div>
-              )}
-              {course.meeting_days && course.meeting_days.length > 0 && (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <CalendarDays className="h-4 w-4" />
-                  <span>{course.meeting_days.join(", ")}</span>
+                <div>
+                  <h3 className="font-semibold text-foreground">{course.name}</h3>
+                  <p className="text-sm text-muted-foreground">{course.code}</p>
                 </div>
-              )}
-              {course.schedule && (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Clock className="h-4 w-4" />
-                  <span>{course.schedule}</span>
-                </div>
-              )}
+              </div>
+
+              <div className="space-y-2 text-sm">
+                {course.instructor && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <User className="h-4 w-4" />
+                    <span>{course.instructor}</span>
+                  </div>
+                )}
+                {course.meeting_days && course.meeting_days.length > 0 && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <CalendarDays className="h-4 w-4" />
+                    <span>{course.meeting_days.join(", ")}</span>
+                  </div>
+                )}
+                {course.schedule && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    <span>{course.schedule}</span>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </GlassCard>
-      ))}
-    </div>
+          </GlassCard>
+        ))}
+      </div>
+
+      <EditCourseDialog
+        open={!!editingCourse}
+        onOpenChange={(open) => { if (!open) setEditingCourse(null) }}
+        onSuccess={onUpdate}
+        course={editingCourse}
+      />
+    </>
   )
 }
