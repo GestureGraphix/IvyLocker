@@ -1,4 +1,4 @@
-import { cookies } from "next/headers"
+import { cookies, headers } from "next/headers"
 import { sql } from "./db"
 import { SignJWT, jwtVerify } from "jose"
 
@@ -36,8 +36,21 @@ export async function verifyToken(token: string): Promise<Session | null> {
   }
 }
 
-// Get current session from cookies
+// Get current session from cookies or Authorization: Bearer header (mobile)
 export async function getSession(): Promise<Session | null> {
+  // Check Authorization header first (mobile clients)
+  try {
+    const headerStore = await headers()
+    const authHeader = headerStore.get("authorization")
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.slice(7)
+      return verifyToken(token)
+    }
+  } catch {
+    // headers() may throw outside a request context
+  }
+
+  // Fall back to cookie (web clients)
   const cookieStore = await cookies()
   const token = cookieStore.get("auth-token")?.value
 

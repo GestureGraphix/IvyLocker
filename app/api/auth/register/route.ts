@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     const token = await createToken(user)
     await setAuthCookie(token)
 
-    return NextResponse.json({ user }, { status: 201 })
+    return NextResponse.json({ token, user }, { status: 201 })
   } catch (error) {
     console.error("Registration error:", error)
 
