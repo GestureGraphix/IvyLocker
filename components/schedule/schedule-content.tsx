@@ -94,23 +94,23 @@ function formatTime(time: string | null | undefined): string | null {
 }
 
 const ITEM_COLORS: Record<string, string> = {
-  coach_workout: "border-l-primary bg-primary/5",
-  session: "border-l-warning bg-warning/5",
-  academic: "border-l-accent bg-accent/5",
-  course: "border-l-emerald-500 bg-emerald-500/5",
+  coach_workout: "border-l-[#162e22] bg-ivy-pale",
+  session: "border-l-[#c9a84c] bg-gold-pale",
+  academic: "border-l-[#8a6500] bg-[#fdf9ef]",
+  course: "border-l-[#3a6b50] bg-ivy-pale",
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  practice: "bg-blue-500/20 text-blue-400",
-  lift: "bg-purple-500/20 text-purple-400",
-  strength: "bg-purple-500/20 text-purple-400",
-  conditioning: "bg-orange-500/20 text-orange-400",
-  competition: "bg-red-500/20 text-red-400",
-  assignment: "bg-accent/20 text-accent",
-  exam: "bg-destructive/20 text-destructive",
-  quiz: "bg-warning/20 text-warning",
-  project: "bg-success/20 text-success",
-  course: "bg-emerald-500/20 text-emerald-400",
+  practice: "bg-ivy-pale text-ivy-mid",
+  lift: "bg-ivy-pale text-ivy",
+  strength: "bg-ivy-pale text-ivy",
+  conditioning: "bg-gold-pale text-[#8a6500]",
+  competition: "bg-[#f9e8e8] text-[#b83232]",
+  assignment: "bg-gold-pale text-[#8a6500]",
+  exam: "bg-[#f9e8e8] text-[#b83232]",
+  quiz: "bg-gold-pale text-[#8a6500]",
+  project: "bg-ivy-pale text-ivy-mid",
+  course: "bg-ivy-pale text-ivy",
 }
 
 function ScheduleItemCard({ item }: { item: ScheduleItem }) {
@@ -309,11 +309,14 @@ export function ScheduleContent() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
-            <Calendar className="h-7 w-7 text-primary" />
+          <h1
+            className="flex items-center gap-2"
+            style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "32px", letterSpacing: "1px", color: "var(--ink)" }}
+          >
+            <Calendar className="h-6 w-6" style={{ color: "var(--ivy-mid)" }} />
             Schedule
           </h1>
-          <p className="text-muted-foreground">Your weekly calendar at a glance</p>
+          <p className="text-muted-foreground text-sm">Your weekly calendar at a glance</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={goToPreviousWeek}>
@@ -343,19 +346,19 @@ export function ScheduleContent() {
           </h2>
           <div className="flex items-center gap-4 text-sm">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded border-l-2 border-l-primary bg-primary/20" />
+              <div className="w-3 h-3 rounded border-l-2 border-l-[#162e22] bg-ivy-pale" />
               <span className="text-muted-foreground">Coach</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded border-l-2 border-l-warning bg-warning/20" />
+              <div className="w-3 h-3 rounded border-l-2 border-l-[#c9a84c] bg-gold-pale" />
               <span className="text-muted-foreground">Personal</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded border-l-2 border-l-accent bg-accent/20" />
+              <div className="w-3 h-3 rounded border-l-2 border-l-[#8a6500] bg-[#fdf9ef]" />
               <span className="text-muted-foreground">Academic</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded border-l-2 border-l-emerald-500 bg-emerald-500/20" />
+              <div className="w-3 h-3 rounded border-l-2 border-l-[#3a6b50] bg-ivy-pale" />
               <span className="text-muted-foreground">Class</span>
             </div>
           </div>
@@ -363,20 +366,20 @@ export function ScheduleContent() {
 
         {/* Stats Row */}
         <div className="grid grid-cols-4 gap-3 mb-4">
-          <div className="text-center p-2 rounded-lg bg-secondary/50">
+          <div className="text-center p-2 rounded-lg" style={{ background: "var(--cream-d)" }}>
             <p className="text-2xl font-bold text-foreground">{totalItems}</p>
             <p className="text-xs text-muted-foreground">Total Items</p>
           </div>
-          <div className="text-center p-2 rounded-lg bg-secondary/50">
-            <p className="text-2xl font-bold text-success">{completedItems}</p>
+          <div className="text-center p-2 rounded-lg" style={{ background: "var(--cream-d)" }}>
+            <p className="text-2xl font-bold" style={{ color: "var(--ivy-mid)" }}>{completedItems}</p>
             <p className="text-xs text-muted-foreground">Completed</p>
           </div>
-          <div className="text-center p-2 rounded-lg bg-secondary/50">
-            <p className="text-2xl font-bold text-primary">{workoutCount}</p>
+          <div className="text-center p-2 rounded-lg" style={{ background: "var(--cream-d)" }}>
+            <p className="text-2xl font-bold" style={{ color: "var(--ivy)" }}>{workoutCount}</p>
             <p className="text-xs text-muted-foreground">Workouts</p>
           </div>
-          <div className="text-center p-2 rounded-lg bg-secondary/50">
-            <p className="text-2xl font-bold text-accent">{academicCount}</p>
+          <div className="text-center p-2 rounded-lg" style={{ background: "var(--cream-d)" }}>
+            <p className="text-2xl font-bold" style={{ color: "#8a6500" }}>{academicCount}</p>
             <p className="text-xs text-muted-foreground">Academics</p>
           </div>
         </div>
@@ -405,7 +408,7 @@ export function ScheduleContent() {
                   className={cn(
                     "min-h-[160px] rounded-lg border transition-all",
                     isToday
-                      ? "border-primary bg-primary/5 ring-1 ring-primary"
+                      ? "border-[#3a6b50] bg-ivy-pale ring-1 ring-[#3a6b50]"
                       : "border-border/50 bg-secondary/20",
                     isPast && !isToday && "opacity-60"
                   )}
@@ -414,14 +417,14 @@ export function ScheduleContent() {
                   <div
                     className={cn(
                       "p-2 text-center border-b",
-                      isToday ? "border-primary/30" : "border-border/30"
+                      isToday ? "border-[#3a6b50]/30" : "border-border/30"
                     )}
                   >
                     <p className="text-xs text-muted-foreground">{DAYS[index]}</p>
                     <p
                       className={cn(
                         "text-lg font-semibold",
-                        isToday ? "text-primary" : "text-foreground"
+                        isToday ? "text-ivy-mid" : "text-foreground"
                       )}
                     >
                       {date.getDate()}
@@ -451,7 +454,7 @@ export function ScheduleContent() {
       {isCurrentWeek && itemsByDate[today]?.length > 0 && (
         <GlassCard className="p-4">
           <h3 className="font-semibold mb-3 flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+            <div className="h-2 w-2 rounded-full animate-pulse" style={{ background: "var(--ivy)" }} />
             Today's Focus
           </h3>
           <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">

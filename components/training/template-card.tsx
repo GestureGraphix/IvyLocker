@@ -71,16 +71,16 @@ export function TemplateCard({ template, onUpdate, onSessionCreated }: TemplateC
   const [isGenerating, setIsGenerating] = useState(false)
 
   const typeColors = {
-    strength: "bg-warning/20 text-warning border-warning/30",
-    conditioning: "bg-success/20 text-success border-success/30",
-    practice: "bg-primary/20 text-primary border-primary/30",
-    competition: "bg-accent/20 text-accent border-accent/30",
+    strength: "bg-gold-pale text-[#8a6500] border-gold/30",
+    conditioning: "bg-ivy-pale text-ivy-mid border-ivy-light/30",
+    practice: "bg-ivy-pale text-ivy border-ivy/20",
+    competition: "bg-[#dbeafe] text-[#1d4ed8] border-[#93c5fd]",
   }
 
   const intensityColors = {
-    low: "border-success text-success",
-    medium: "border-warning text-warning",
-    high: "border-destructive text-destructive",
+    low: "border-ivy-light text-ivy-mid bg-ivy-pale",
+    medium: "border-gold text-[#8a6500] bg-gold-pale",
+    high: "border-[#b83232] text-[#b83232] bg-[#f9e8e8]",
   }
 
   const handleDelete = async () => {
@@ -210,8 +210,8 @@ export function TemplateCard({ template, onUpdate, onSessionCreated }: TemplateC
           {/* Schedule info */}
           {template.schedule?.enabled && template.schedule.weekdays.length > 0 && (
             <div className="flex items-center gap-2 text-sm">
-              <Calendar className="h-4 w-4 text-primary" />
-              <span className="text-primary font-medium">
+              <Calendar className="h-4 w-4 text-ivy-mid" />
+              <span className="text-ivy-mid font-medium">
                 {template.schedule.weekdays.map(d => WEEKDAY_LABELS[d]).join(", ")}
               </span>
               <span className="text-muted-foreground">at {template.schedule.start_time}</span>

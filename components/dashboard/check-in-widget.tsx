@@ -2,11 +2,10 @@
 
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
-import { GlassCard } from "@/components/ui/glass-card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
-import { Brain, Heart, Sparkles, Loader2 } from "lucide-react"
+import { Brain, Heart, CheckCircle2, Loader2 } from "lucide-react"
 
 export function CheckInWidget() {
   const [mentalState, setMentalState] = useState<number | null>(null)
@@ -17,7 +16,6 @@ export function CheckInWidget() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Fetch today's check-in on mount
   useEffect(() => {
     async function fetchTodayCheckIn() {
       try {
@@ -66,26 +64,35 @@ export function CheckInWidget() {
 
   if (isLoading) {
     return (
-      <GlassCard>
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      <Card>
+        <div className="flex items-center justify-center py-6">
+          <Loader2 className="h-5 w-5 animate-spin" style={{ color: "var(--ivy-mid)" }} />
         </div>
-      </GlassCard>
+      </Card>
     )
   }
 
   if (hasCheckedIn && !isExpanded) {
     return (
-      <GlassCard glow="success" className="cursor-pointer" onClick={() => setIsExpanded(true)}>
+      <Card
+        className="cursor-pointer hover:border-ivy-mid transition-colors"
+        onClick={() => setIsExpanded(true)}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-success/20">
-              <Sparkles className="h-5 w-5 text-success" />
-            </div>
+            <CheckCircle2 className="h-5 w-5" style={{ color: "var(--ivy-mid)" }} />
             <div>
-              <p className="font-medium text-foreground">Daily Check-in Complete</p>
-              <p className="text-sm text-muted-foreground">
-                Mental: {mentalState}/10 • Physical: {physicalState}/10
+              <p className="font-medium text-[14px]" style={{ color: "var(--ink)" }}>
+                Daily Check-in Complete
+              </p>
+              <p
+                style={{
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: "10px",
+                  color: "var(--muted)",
+                }}
+              >
+                Mental: {mentalState}/10 · Physical: {physicalState}/10
               </p>
             </div>
           </div>
@@ -93,27 +100,39 @@ export function CheckInWidget() {
             Edit
           </Button>
         </div>
-      </GlassCard>
+      </Card>
     )
   }
 
   return (
-    <GlassCard glow="primary">
+    <Card>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            Daily Check-in
-          </h3>
-          <span className="text-sm text-muted-foreground">
+          <CardTitle>Daily Check-in</CardTitle>
+          <span
+            style={{
+              fontFamily: "'DM Mono', monospace",
+              fontSize: "10px",
+              color: "var(--muted)",
+            }}
+          >
             {new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
           </span>
         </div>
 
         {/* Mental State */}
         <div className="space-y-2">
-          <label className="text-sm font-medium flex items-center gap-2">
-            <Brain className="h-4 w-4 text-primary" />
+          <label
+            className="flex items-center gap-1.5"
+            style={{
+              fontFamily: "'DM Mono', monospace",
+              fontSize: "9px",
+              letterSpacing: "1px",
+              textTransform: "uppercase",
+              color: "var(--soft)",
+            }}
+          >
+            <Brain className="h-3.5 w-3.5" style={{ color: "var(--ivy)" }} />
             Mental State
           </label>
           <div className="flex gap-1">
@@ -122,11 +141,13 @@ export function CheckInWidget() {
                 key={num}
                 onClick={() => setMentalState(num)}
                 className={cn(
-                  "flex-1 py-2 rounded-lg text-sm font-medium transition-all",
-                  mentalState === num
-                    ? "gradient-primary text-white glow-primary"
-                    : "bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground",
+                  "flex-1 py-2 text-[12px] font-medium transition-all rounded-sm",
                 )}
+                style={{
+                  background: mentalState === num ? "var(--ivy)" : "var(--cream-d)",
+                  color: mentalState === num ? "var(--cream)" : "var(--soft)",
+                  border: mentalState === num ? "1px solid var(--ivy)" : "1px solid var(--cream-dd)",
+                }}
               >
                 {num}
               </button>
@@ -136,8 +157,17 @@ export function CheckInWidget() {
 
         {/* Physical State */}
         <div className="space-y-2">
-          <label className="text-sm font-medium flex items-center gap-2">
-            <Heart className="h-4 w-4 text-accent" />
+          <label
+            className="flex items-center gap-1.5"
+            style={{
+              fontFamily: "'DM Mono', monospace",
+              fontSize: "9px",
+              letterSpacing: "1px",
+              textTransform: "uppercase",
+              color: "var(--soft)",
+            }}
+          >
+            <Heart className="h-3.5 w-3.5" style={{ color: "var(--gold)" }} />
             Physical State
           </label>
           <div className="flex gap-1">
@@ -146,11 +176,13 @@ export function CheckInWidget() {
                 key={num}
                 onClick={() => setPhysicalState(num)}
                 className={cn(
-                  "flex-1 py-2 rounded-lg text-sm font-medium transition-all",
-                  physicalState === num
-                    ? "bg-accent text-white glow-accent"
-                    : "bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground",
+                  "flex-1 py-2 text-[12px] font-medium transition-all rounded-sm",
                 )}
+                style={{
+                  background: physicalState === num ? "var(--gold)" : "var(--cream-d)",
+                  color: physicalState === num ? "var(--black, #0c0c0c)" : "var(--soft)",
+                  border: physicalState === num ? "1px solid var(--gold)" : "1px solid var(--cream-dd)",
+                }}
               >
                 {num}
               </button>
@@ -159,13 +191,23 @@ export function CheckInWidget() {
         </div>
 
         {/* Notes */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-muted-foreground">Notes (optional)</label>
+        <div className="space-y-1.5">
+          <label
+            style={{
+              fontFamily: "'DM Mono', monospace",
+              fontSize: "9px",
+              letterSpacing: "1px",
+              textTransform: "uppercase",
+              color: "var(--muted)",
+            }}
+          >
+            Notes (optional)
+          </label>
           <Textarea
             placeholder="How are you feeling today? Any specific areas of concern?"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="bg-secondary/50 border-border/50 resize-none"
+            className="resize-none bg-white border-rule text-foreground placeholder:text-muted-foreground"
             rows={3}
           />
         </div>
@@ -173,13 +215,10 @@ export function CheckInWidget() {
         <Button
           onClick={handleSubmit}
           disabled={!mentalState || !physicalState || isSubmitting}
-          className="w-full gradient-primary hover:opacity-90 glow-primary"
+          className="w-full"
         >
           {isSubmitting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            </>
+            <><Loader2 className="h-4 w-4 animate-spin" />Saving...</>
           ) : hasCheckedIn ? (
             "Update Check-in"
           ) : (
@@ -187,6 +226,34 @@ export function CheckInWidget() {
           )}
         </Button>
       </div>
-    </GlassCard>
+    </Card>
+  )
+}
+
+function Card({ children, className, onClick }: { children: React.ReactNode; className?: string; onClick?: () => void }) {
+  return (
+    <div
+      className={cn("bg-white rounded-lg overflow-hidden", className)}
+      style={{ border: "1px solid var(--rule)" }}
+      onClick={onClick}
+    >
+      <div className="p-5">{children}</div>
+    </div>
+  )
+}
+
+function CardTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <p
+      className="uppercase"
+      style={{
+        fontFamily: "'DM Mono', monospace",
+        fontSize: "9px",
+        letterSpacing: "2px",
+        color: "var(--muted)",
+      }}
+    >
+      {children}
+    </p>
   )
 }

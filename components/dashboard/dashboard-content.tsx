@@ -1,12 +1,10 @@
 "use client"
 
-import { GlassCard } from "@/components/ui/glass-card"
-import { StatCard } from "@/components/ui/stat-card"
 import { ProgressBar } from "@/components/ui/progress-bar"
 import { CheckInWidget } from "./check-in-widget"
 import { DailyRecommendationCard } from "./daily-recommendation-card"
 import { UpcomingItems } from "./upcoming-items"
-import { Droplets, Utensils, Dumbbell, Brain, TrendingUp } from "lucide-react"
+import { LockerHeader } from "@/components/layout/locker-header"
 import { DashboardSkeleton } from "@/components/ui/skeletons"
 import useSWR from "swr"
 
@@ -17,10 +15,8 @@ interface DashboardContentProps {
 }
 
 export function DashboardContent({ userName = "Athlete" }: DashboardContentProps) {
-  // Get local date for API calls
-  const localDate = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`
+  const localDate = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}-${String(new Date().getDate()).padStart(2, "0")}`
 
-  // Fetch data from the same endpoints as fuel page for consistency
   const { data: userData } = useSWR("/api/me", fetcher)
   const { data: mealsData, isLoading: mealsLoading } = useSWR("/api/athletes/meal-logs", fetcher)
   const { data: hydrationData, isLoading: hydrationLoading } = useSWR(`/api/athletes/hydration-logs?date=${localDate}`, fetcher)
@@ -30,7 +26,6 @@ export function DashboardContent({ userName = "Athlete" }: DashboardContentProps
 
   const isLoading = mealsLoading || hydrationLoading
 
-  // Calculate today's meal totals (same logic as fuel page)
   const meals = mealsData?.meals || []
   const todayDateStr = new Date().toDateString()
   const todayMeals = meals.filter((m: { date_time: string }) =>
@@ -45,10 +40,8 @@ export function DashboardContent({ userName = "Athlete" }: DashboardContentProps
     { calories: 0, protein: 0 }
   )
 
-  // Get today's hydration total directly from API
   const todayHydration = hydrationData?.todayTotal || 0
 
-  // Get goals from user profile
   const userProfile = userData?.user
   const goals = {
     calories: Number(userProfile?.calorie_goal) || 2500,
@@ -56,20 +49,17 @@ export function DashboardContent({ userName = "Athlete" }: DashboardContentProps
     hydration: Number(userProfile?.hydration_goal_oz) || 100,
   }
 
-  // Calculate sessions for today
   const sessions = sessionsData?.sessions || []
   const todaySessions = sessions.filter((s: { start_at: string }) =>
     new Date(s.start_at).toDateString() === todayDateStr
   )
   const completedSessions = todaySessions.filter((s: { completed: boolean }) => s.completed).length
 
-  // Wellness score from check-in
   const checkIn = checkInData?.checkIn
   const wellnessScore = checkIn
     ? ((Number(checkIn.mental_state) + Number(checkIn.physical_state)) / 2).toFixed(1)
     : null
 
-  // Upcoming items
   const upcomingSessions = todaySessions
     .filter((s: { completed: boolean }) => !s.completed)
     .slice(0, 5)
@@ -100,89 +90,233 @@ export function DashboardContent({ userName = "Athlete" }: DashboardContentProps
       priority: a.priority,
     }))
 
-  const firstName = userName.split(" ")[0]
-
-  // Get time-based greeting
-  const hour = new Date().getHours()
-  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening"
+  const userSport = userProfile?.sport || "Athletics"
 
   if (isLoading) {
     return <DashboardSkeleton />
   }
 
   return (
-    <div className="p-4 md:p-8 space-y-6">
-      {/* Header */}
-      <div className="space-y-1">
-        <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-          {greeting}, <span className="gradient-text">{firstName}</span>
-        </h1>
-        <p className="text-muted-foreground">Here's your performance overview for today</p>
-      </div>
-
-      {/* Daily Check-in */}
-      <CheckInWidget />
-
-      {/* AI Daily Recommendations */}
-      <DailyRecommendationCard />
-
-      {/* Today's Progress Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard
-          label="Hydration"
-          value={`${todayHydration} oz`}
-          icon={Droplets}
-          variant="primary"
-        />
-        <StatCard label="Meals Logged" value={todayMeals.length} icon={Utensils} variant="success" />
-        <StatCard
-          label="Training"
-          value={`${completedSessions}/${todaySessions.length}`}
-          icon={Dumbbell}
-          variant="warning"
-        />
-        <StatCard label="Wellness Score" value={wellnessScore || "—"} icon={Brain} />
-      </div>
-
-      {/* Progress Bars */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <GlassCard>
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Droplets className="h-5 w-5 text-primary" />
-            Hydration Progress
-          </h3>
-          <ProgressBar
-            value={todayHydration}
-            max={goals.hydration}
-            label="Today's intake"
-            variant="primary"
-            size="lg"
-          />
-          <p className="mt-3 text-sm text-muted-foreground">
-            {todayHydration >= goals.hydration
-              ? "Great job! You've hit your hydration goal!"
-              : `${goals.hydration - todayHydration} oz remaining to hit your goal`}
-          </p>
-        </GlassCard>
-
-        <GlassCard>
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-success" />
-            Nutrition Summary
-          </h3>
-          <div className="space-y-3">
-            <ProgressBar value={mealTotals.calories} max={goals.calories} label="Calories" variant="success" size="md" />
-            <ProgressBar value={mealTotals.protein} max={goals.protein} label="Protein (g)" variant="primary" size="md" />
-          </div>
-        </GlassCard>
-      </div>
-
-      {/* Upcoming Items */}
-      <UpcomingItems
-        workouts={upcomingSessions}
-        academics={upcomingAcademics}
-        isLoading={false}
+    <div>
+      {/* Locker Hero Header */}
+      <LockerHeader
+        userName={userName}
+        sport={userSport}
+        stats={[
+          {
+            label: "Sessions Today",
+            value: `${completedSessions}/${todaySessions.length || 0}`,
+            color: "#f7f2ea",
+          },
+          {
+            label: "Hydration",
+            value: todayHydration,
+            unit: "oz",
+            sub: `goal ${goals.hydration}`,
+            color: todayHydration >= goals.hydration ? "#52b788" : "#f7f2ea",
+          },
+          {
+            label: "Wellness",
+            value: wellnessScore || "—",
+            unit: wellnessScore ? "/10" : "",
+            color: wellnessScore ? "#c9a84c" : "rgba(255,255,255,0.4)",
+          },
+          {
+            label: "Meals",
+            value: todayMeals.length,
+            sub: `${mealTotals.calories} kcal`,
+            color: "#f7f2ea",
+          },
+        ]}
       />
+
+      <div className="p-6 md:p-7 space-y-5">
+        {/* AI Coach Note */}
+        <DailyRecommendationCard />
+
+        {/* Data Strip — 4-col stats */}
+        <div
+          className="grid grid-cols-2 md:grid-cols-4 bg-white overflow-hidden"
+          style={{ border: "1px solid var(--rule)", borderRadius: "8px" }}
+        >
+          <DataCell
+            label="Hydration"
+            value={todayHydration}
+            unit="oz"
+            delta={todayHydration >= goals.hydration ? "goal reached" : `${goals.hydration - todayHydration} remaining`}
+            deltaType={todayHydration >= goals.hydration ? "up" : "neutral"}
+            progress={todayHydration / goals.hydration}
+            accentColor="var(--ivy-light)"
+          />
+          <DataCell
+            label="Calories"
+            value={mealTotals.calories}
+            unit="kcal"
+            delta={`of ${goals.calories} goal`}
+            deltaType="neutral"
+            progress={mealTotals.calories / goals.calories}
+            accentColor="var(--gold)"
+          />
+          <DataCell
+            label="Protein"
+            value={mealTotals.protein}
+            unit="g"
+            delta={`of ${goals.protein}g goal`}
+            deltaType={mealTotals.protein >= goals.protein ? "up" : "neutral"}
+            progress={mealTotals.protein / goals.protein}
+            accentColor="var(--blue, #2563eb)"
+          />
+          <DataCell
+            label="Wellness"
+            value={wellnessScore || "—"}
+            unit={wellnessScore ? "/10" : ""}
+            delta="daily check-in"
+            deltaType={wellnessScore && parseFloat(wellnessScore) >= 7 ? "up" : "neutral"}
+            progress={wellnessScore ? parseFloat(wellnessScore) / 10 : 0}
+            accentColor="var(--red, #b83232)"
+          />
+        </div>
+
+        {/* Main 2-col grid */}
+        <div className="grid md:grid-cols-[1fr_340px] gap-5">
+          {/* Left column */}
+          <div className="space-y-5">
+            {/* Daily Check-in */}
+            <CheckInWidget />
+
+            {/* Progress */}
+            <div
+              className="bg-white overflow-hidden"
+              style={{ border: "1px solid var(--rule)", borderRadius: "8px" }}
+            >
+              <div
+                className="flex items-center justify-between px-[18px] py-3"
+                style={{ borderBottom: "1px solid var(--rule)" }}
+              >
+                <span
+                  className="uppercase text-muted-foreground"
+                  style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "2px" }}
+                >
+                  Nutrition Progress
+                </span>
+              </div>
+              <div className="p-[18px] space-y-4">
+                <ProgressBar value={mealTotals.calories} max={goals.calories} label="Calories" variant="primary" size="md" />
+                <ProgressBar value={mealTotals.protein} max={goals.protein} label="Protein (g)" variant="success" size="md" />
+                <ProgressBar value={todayHydration} max={goals.hydration} label="Hydration (oz)" variant="warning" size="md" />
+              </div>
+            </div>
+          </div>
+
+          {/* Right column */}
+          <div className="space-y-5">
+            {/* Upcoming items */}
+            <UpcomingItems
+              workouts={upcomingSessions}
+              academics={upcomingAcademics}
+              isLoading={false}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DataCell({
+  label,
+  value,
+  unit,
+  delta,
+  deltaType,
+  progress,
+  accentColor,
+}: {
+  label: string
+  value: string | number
+  unit?: string
+  delta?: string
+  deltaType?: "up" | "down" | "neutral"
+  progress?: number
+  accentColor?: string
+}) {
+  const deltaColor = {
+    up: "var(--ivy-mid)",
+    down: "var(--red, #b83232)",
+    neutral: "var(--muted)",
+  }[deltaType || "neutral"]
+
+  return (
+    <div
+      className="relative px-5 py-[18px]"
+      style={{ borderRight: "1px solid var(--rule)" }}
+    >
+      {/* Left accent bar */}
+      <div
+        className="absolute left-0 top-0 bottom-0 w-[3px]"
+        style={{ background: accentColor }}
+      />
+      <p
+        className="uppercase mb-2"
+        style={{
+          fontFamily: "'DM Mono', monospace",
+          fontSize: "8px",
+          letterSpacing: "2px",
+          color: "var(--muted)",
+        }}
+      >
+        {label}
+      </p>
+      <div className="flex items-baseline gap-1">
+        <span
+          style={{
+            fontFamily: "'Bebas Neue', sans-serif",
+            fontSize: "44px",
+            lineHeight: 1,
+            letterSpacing: "0.5px",
+            color: "var(--ink)",
+          }}
+        >
+          {value}
+        </span>
+        {unit && (
+          <span
+            style={{
+              fontFamily: "'DM Mono', monospace",
+              fontSize: "11px",
+              color: "var(--muted)",
+            }}
+          >
+            {unit}
+          </span>
+        )}
+      </div>
+      {delta && (
+        <p
+          className="mt-1"
+          style={{
+            fontFamily: "'DM Mono', monospace",
+            fontSize: "10px",
+            color: deltaColor,
+          }}
+        >
+          {delta}
+        </p>
+      )}
+      {progress !== undefined && (
+        <div
+          className="h-[2px] mt-2.5 rounded-sm overflow-hidden"
+          style={{ background: "var(--cream-d)" }}
+        >
+          <div
+            className="h-full rounded-sm"
+            style={{
+              width: `${Math.min(progress * 100, 100)}%`,
+              background: accentColor,
+            }}
+          />
+        </div>
+      )}
     </div>
   )
 }
@@ -192,15 +326,9 @@ function formatDueDate(date: Date): string {
   today.setHours(0, 0, 0, 0)
   const tomorrow = new Date(today)
   tomorrow.setDate(tomorrow.getDate() + 1)
-
   const targetDate = new Date(date)
   targetDate.setHours(0, 0, 0, 0)
-
-  if (targetDate.getTime() === today.getTime()) {
-    return "Today"
-  } else if (targetDate.getTime() === tomorrow.getTime()) {
-    return "Tomorrow"
-  } else {
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
-  }
+  if (targetDate.getTime() === today.getTime()) return "Today"
+  if (targetDate.getTime() === tomorrow.getTime()) return "Tomorrow"
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
 }

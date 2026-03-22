@@ -72,11 +72,14 @@ export function TrainingContent() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
-            <Dumbbell className="h-7 w-7 text-warning" />
+          <h1
+            className="flex items-center gap-2"
+            style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "32px", letterSpacing: "1px", color: "var(--ink)" }}
+          >
+            <Dumbbell className="h-6 w-6" style={{ color: "var(--ivy-mid)" }} />
             Training
           </h1>
-          <p className="text-muted-foreground">Schedule, track, and analyze your workouts</p>
+          <p className="text-muted-foreground text-sm">Schedule, track, and analyze your workouts</p>
         </div>
         <div className="flex gap-2">
           <Link href="/training/history">
@@ -94,7 +97,7 @@ export function TrainingContent() {
             <LayoutTemplate className="h-4 w-4 mr-2" />
             New Template
           </Button>
-          <Button onClick={() => setIsAddDialogOpen(true)} className="gradient-primary glow-primary">
+          <Button onClick={() => setIsAddDialogOpen(true)} className="gradient-primary">
             <Plus className="h-4 w-4 mr-2" />
             New Session
           </Button>
@@ -102,40 +105,33 @@ export function TrainingContent() {
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-3 gap-4">
-        <GlassCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-warning/20">
-              <Calendar className="h-5 w-5 text-warning" />
-            </div>
+      <div
+        className="grid grid-cols-3 bg-white overflow-hidden"
+        style={{ border: "1px solid var(--rule)", borderRadius: "8px" }}
+      >
+        {[
+          { icon: Calendar, label: "Today", value: todaySessions.length, color: "var(--gold)" },
+          { icon: Trophy, label: "This Week", value: completedThisWeek, color: "var(--ivy-mid)" },
+          { icon: Dumbbell, label: "Scheduled", value: sessions.length, color: "var(--ivy)" },
+        ].map(({ icon: Icon, label, value, color }, i) => (
+          <div
+            key={label}
+            className="flex items-center gap-3 p-4"
+            style={{ borderRight: i < 2 ? "1px solid var(--rule)" : "none" }}
+          >
+            <Icon className="h-4 w-4 shrink-0" style={{ color, opacity: 0.7 }} />
             <div>
-              <p className="text-2xl font-bold text-foreground">{todaySessions.length}</p>
-              <p className="text-sm text-muted-foreground">Today</p>
+              <p
+                style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "28px", color: "var(--ink)", lineHeight: 1 }}
+              >
+                {value}
+              </p>
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "8px", letterSpacing: "1px", textTransform: "uppercase", color: "var(--muted)" }}>
+                {label}
+              </p>
             </div>
           </div>
-        </GlassCard>
-        <GlassCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-success/20">
-              <Trophy className="h-5 w-5 text-success" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{completedThisWeek}</p>
-              <p className="text-sm text-muted-foreground">This Week</p>
-            </div>
-          </div>
-        </GlassCard>
-        <GlassCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/20">
-              <Dumbbell className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{sessions.length}</p>
-              <p className="text-sm text-muted-foreground">Total</p>
-            </div>
-          </div>
-        </GlassCard>
+        ))}
       </div>
 
       {/* Coach Assigned Workouts Section */}
@@ -144,15 +140,16 @@ export function TrainingContent() {
           <CollapsibleTrigger asChild>
             <Button
               variant="outline"
-              className="w-full justify-between bg-primary/10 border-primary/30 hover:bg-primary/20"
+              className="w-full justify-between"
+              style={{ background: "var(--ivy-pale)", borderColor: "rgba(22,46,34,0.2)" }}
             >
               <span className="flex items-center gap-2">
-                <ClipboardList className="h-4 w-4 text-primary" />
-                <span className="text-primary font-medium">
+                <ClipboardList className="h-4 w-4" style={{ color: "var(--ivy-mid)" }} />
+                <span style={{ color: "var(--ivy)", fontWeight: 500 }}>
                   Coach Assigned Workouts ({assignedWorkouts.length} remaining)
                 </span>
               </span>
-              <ChevronDown className={cn("h-4 w-4 text-primary transition-transform", coachWorkoutsOpen && "rotate-180")} />
+              <ChevronDown className={cn("h-4 w-4 transition-transform", coachWorkoutsOpen && "rotate-180")} style={{ color: "var(--ivy-mid)" }} />
             </Button>
           </CollapsibleTrigger>
 
@@ -220,7 +217,7 @@ export function TrainingContent() {
           <CollapsibleTrigger asChild>
             <Button
               variant="outline"
-              className="w-full justify-between bg-secondary/30 border-border/50 hover:bg-secondary/50"
+              className="w-full justify-between"
             >
               <span className="flex items-center gap-2">
                 <LayoutTemplate className="h-4 w-4" />
@@ -299,8 +296,8 @@ export function TrainingContent() {
             className={cn(
               "px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap",
               filter === f.value
-                ? "gradient-primary text-white glow-primary"
-                : "bg-secondary text-muted-foreground hover:text-foreground",
+                ? "bg-ivy text-cream border border-ivy"
+                : "bg-secondary text-muted-foreground hover:text-foreground border border-border",
             )}
           >
             {f.label}
@@ -317,7 +314,7 @@ export function TrainingContent() {
             <p className="text-muted-foreground mb-4">
               {filter === "all" ? "Get started by adding your first workout" : `No ${filter} sessions scheduled`}
             </p>
-            <Button onClick={() => setIsAddDialogOpen(true)} className="gradient-primary glow-primary">
+            <Button onClick={() => setIsAddDialogOpen(true)} className="gradient-primary">
               <Plus className="h-4 w-4 mr-2" />
               Add Session
             </Button>

@@ -76,13 +76,13 @@ type HistoryItem = (CompletedWorkout | CompletedSession) & { sortDate: string }
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 const SESSION_COLORS: Record<string, string> = {
-  practice: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  lift: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  strength: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  conditioning: "bg-orange-500/20 text-orange-400 border-orange-500/30",
-  recovery: "bg-green-500/20 text-green-400 border-green-500/30",
-  competition: "bg-red-500/20 text-red-400 border-red-500/30",
-  optional: "bg-gray-500/20 text-gray-400 border-gray-500/30",
+  practice: "bg-ivy-pale text-ivy-mid border-ivy-light/30",
+  lift: "bg-ivy-pale text-ivy border-ivy/20",
+  strength: "bg-ivy-pale text-ivy border-ivy/20",
+  conditioning: "bg-gold-pale text-[#8a6500] border-gold/30",
+  recovery: "bg-ivy-pale text-ivy-mid border-ivy-light/30",
+  competition: "bg-[#f9e8e8] text-[#b83232] border-[#b83232]/30",
+  optional: "bg-[#ece5d8] text-[#6b6055] border-[#d5cec4]",
 }
 
 const getSessionIcon = (type: string) => {
@@ -124,8 +124,8 @@ function CoachWorkoutLogCard({ workout }: { workout: CompletedWorkout }) {
   return (
     <div className="flex items-start gap-3 py-3 border-b border-border/50 last:border-0">
       <div className="pt-0.5">
-        <div className="h-6 w-6 rounded-full bg-success/20 flex items-center justify-center">
-          <Check className="h-3 w-3 text-success" />
+        <div className="h-6 w-6 rounded-full bg-ivy-pale flex items-center justify-center">
+          <Check className="h-3 w-3 text-ivy-mid" />
         </div>
       </div>
 
@@ -135,7 +135,7 @@ function CoachWorkoutLogCard({ workout }: { workout: CompletedWorkout }) {
             {getSessionIcon(workout.session_type)}
             <span className="ml-1 capitalize">{workout.session_type}</span>
           </Badge>
-          <Badge variant="outline" className="text-xs text-primary border-primary/50">
+          <Badge variant="training" className="text-xs">
             <ClipboardList className="h-3 w-3 mr-1" />
             Coach
           </Badge>
@@ -228,8 +228,8 @@ function SelfSessionLogCard({ session }: { session: CompletedSession }) {
   return (
     <div className="flex items-start gap-3 py-3 border-b border-border/50 last:border-0">
       <div className="pt-0.5">
-        <div className="h-6 w-6 rounded-full bg-success/20 flex items-center justify-center">
-          <Check className="h-3 w-3 text-success" />
+        <div className="h-6 w-6 rounded-full bg-ivy-pale flex items-center justify-center">
+          <Check className="h-3 w-3 text-ivy-mid" />
         </div>
       </div>
 
@@ -383,11 +383,14 @@ export function WorkoutHistory() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
-            <History className="h-7 w-7 text-success" />
+          <h1
+            className="flex items-center gap-2"
+            style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "32px", letterSpacing: "1px", color: "var(--ink)" }}
+          >
+            <History className="h-6 w-6" style={{ color: "var(--ivy-mid)" }} />
             Workout History
           </h1>
-          <p className="text-muted-foreground">Your completed workouts</p>
+          <p className="text-muted-foreground text-sm">Your completed workouts</p>
         </div>
       </div>
 
@@ -395,8 +398,8 @@ export function WorkoutHistory() {
       <div className="grid grid-cols-2 gap-4">
         <GlassCard className="p-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-success/20">
-              <Check className="h-5 w-5 text-success" />
+            <div className="p-2 rounded-lg bg-ivy-pale">
+              <Check className="h-5 w-5" style={{ color: "var(--ivy-mid)" }} />
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{thisWeekCompleted}</p>
@@ -406,8 +409,8 @@ export function WorkoutHistory() {
         </GlassCard>
         <GlassCard className="p-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/20">
-              <Trophy className="h-5 w-5 text-primary" />
+            <div className="p-2 rounded-lg bg-gold-pale">
+              <Trophy className="h-5 w-5" style={{ color: "#8a6500" }} />
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{totalCompleted}</p>
@@ -470,7 +473,7 @@ export function WorkoutHistory() {
                     <Calendar className="h-4 w-4" />
                     {dateLabel}
                   </h3>
-                  <Badge variant="outline" className="border-success/50 text-success">
+                  <Badge variant="outline" className="border-ivy-light/40 text-ivy-mid">
                     {groupedItems[date].length} completed
                   </Badge>
                 </div>

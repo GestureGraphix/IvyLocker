@@ -2,7 +2,6 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
 import {
   LayoutDashboard,
   Dumbbell,
@@ -12,123 +11,277 @@ import {
   User,
   Users,
   LogOut,
-  ChevronLeft,
-  ChevronRight,
   CalendarDays,
 } from "lucide-react"
-import { useState } from "react"
 import { useAuth } from "@/hooks/use-auth"
 
-const navItems = [
+const performanceItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/schedule", label: "Schedule", icon: CalendarDays },
   { href: "/training", label: "Training", icon: Dumbbell },
   { href: "/fuel", label: "Fuel", icon: Utensils },
   { href: "/mobility", label: "Mobility", icon: Activity },
-  { href: "/academics", label: "Academics", icon: GraduationCap },
-  { href: "/account", label: "Account", icon: User },
 ]
 
-const coachNavItem = { href: "/coach", label: "Coach Portal", icon: Users }
+const academicsItems = [
+  { href: "/academics", label: "Academics", icon: GraduationCap },
+  { href: "/schedule", label: "Schedule", icon: CalendarDays },
+]
+
+const accountItems = [{ href: "/account", label: "Account", icon: User }]
+const coachItem = { href: "/coach", label: "Coach Portal", icon: Users }
 
 interface SidebarProps {
   userRole?: "ATHLETE" | "COACH"
   userName?: string
 }
 
+function NavSection({
+  label,
+  items,
+  pathname,
+}: {
+  label: string
+  items: { href: string; label: string; icon: React.ElementType }[]
+  pathname: string
+}) {
+  return (
+    <div className="mb-1">
+      <p
+        className="px-[18px] pt-3 pb-1 uppercase"
+        style={{
+          fontFamily: "'DM Mono', monospace",
+          fontSize: "8px",
+          letterSpacing: "2px",
+          color: "rgba(255,255,255,0.18)",
+        }}
+      >
+        {label}
+      </p>
+      {items.map((item) => {
+        const isActive = pathname === item.href
+        const Icon = item.icon
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="flex items-center gap-[9px] px-[18px] py-2 text-[12px] border-l-2 transition-all duration-[180ms]"
+            style={{
+              color: isActive ? "#f7f2ea" : "rgba(255,255,255,0.38)",
+              background: isActive ? "rgba(255,255,255,0.06)" : "transparent",
+              borderLeftColor: isActive ? "#c9a84c" : "transparent",
+              fontWeight: isActive ? 500 : 400,
+              letterSpacing: "0.2px",
+            }}
+            onMouseEnter={(e) => {
+              if (!isActive) {
+                e.currentTarget.style.color = "rgba(255,255,255,0.70)"
+                e.currentTarget.style.background = "rgba(255,255,255,0.03)"
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isActive) {
+                e.currentTarget.style.color = "rgba(255,255,255,0.38)"
+                e.currentTarget.style.background = "transparent"
+              }
+            }}
+          >
+            <Icon
+              className="shrink-0"
+              style={{
+                width: "14px",
+                height: "14px",
+                opacity: isActive ? 1 : 0.7,
+              }}
+            />
+            <span>{item.label}</span>
+          </Link>
+        )
+      })}
+    </div>
+  )
+}
+
 export function Sidebar({ userRole, userName }: SidebarProps) {
   const pathname = usePathname()
-  const [collapsed, setCollapsed] = useState(false)
   const { user, logout } = useAuth()
 
   const displayName = userName || user?.name || "Athlete"
   const displayRole = userRole || user?.role || "ATHLETE"
-  const allNavItems = displayRole === "COACH" ? [...navItems, coachNavItem] : navItems
+  const isCoach = displayRole === "COACH"
+
+  const nameParts = displayName.trim().split(" ")
+  const surname = nameParts[nameParts.length - 1].toUpperCase()
+  const firstName = nameParts[0]
+
+  const allAccountItems = isCoach ? [...accountItems, coachItem] : accountItems
 
   return (
     <aside
-      className={cn(
-        "fixed left-0 top-0 z-40 h-screen bg-sidebar border-r border-sidebar-border transition-all duration-300 ease-in-out",
-        collapsed ? "w-16" : "w-64",
-      )}
+      className="fixed left-0 top-0 z-40 h-screen flex flex-col overflow-hidden"
+      style={{
+        width: "200px",
+        background: "#162e22",
+        backgroundImage:
+          "repeating-linear-gradient(-55deg, transparent, transparent 40px, rgba(255,255,255,0.018) 40px, rgba(255,255,255,0.018) 41px)",
+      }}
     >
-      {/* Logo */}
-      <div className="flex h-16 items-center justify-between px-4 border-b border-sidebar-border">
-        {!collapsed && (
-          <Link href="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center glow-primary">
-              <span className="text-white font-bold text-sm">L</span>
-            </div>
-            <span className="text-lg font-bold gradient-text">Locker</span>
-          </Link>
-        )}
-        {collapsed && (
-          <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center mx-auto glow-primary">
-            <span className="text-white font-bold text-sm">L</span>
-          </div>
-        )}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className={cn("p-1.5 rounded-md hover:bg-sidebar-accent transition-colors", collapsed && "mx-auto mt-2")}
-        >
-          {collapsed ? (
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <ChevronLeft className="h-4 w-4 text-muted-foreground" />
-          )}
-        </button>
+      {/* Wordmark */}
+      <div
+        className="px-[18px] py-4 flex-shrink-0"
+        style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+      >
+        <Link href="/" className="block">
+          <span
+            className="block leading-none"
+            style={{
+              fontFamily: "'Bebas Neue', sans-serif",
+              fontSize: "16px",
+              letterSpacing: "4px",
+              color: "#f7f2ea",
+            }}
+          >
+            LOCKER
+          </span>
+          <span
+            className="block mt-0.5"
+            style={{
+              fontFamily: "'DM Mono', monospace",
+              fontSize: "8px",
+              letterSpacing: "2px",
+              textTransform: "uppercase",
+              color: isCoach ? "#7dd3fc" : "#c9a84c",
+            }}
+          >
+            {isCoach ? "Coach" : "Athlete"}
+          </span>
+        </Link>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 px-2 py-4 space-y-1">
-        {allNavItems.map((item) => {
-          const isActive = pathname === item.href
-          const Icon = item.icon
+      {/* Identity block */}
+      <div
+        className="relative px-[18px] py-4 overflow-hidden flex-shrink-0"
+        style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+      >
+        {/* Ghost number */}
+        <span
+          aria-hidden
+          className="absolute right-2.5 top-2 select-none pointer-events-none leading-none"
+          style={{
+            fontFamily: "'Bebas Neue', sans-serif",
+            fontSize: "64px",
+            color: "rgba(255,255,255,0.06)",
+            letterSpacing: "-2px",
+          }}
+        >
+          27
+        </span>
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative",
-                isActive
-                  ? "bg-sidebar-accent text-sidebar-primary-foreground"
-                  : "text-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/50",
-              )}
-            >
-              {isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-full gradient-primary glow-primary" />
-              )}
-              <Icon
-                className={cn(
-                  "h-5 w-5 shrink-0 transition-colors",
-                  isActive ? "text-primary" : "group-hover:text-primary",
-                )}
-              />
-              {!collapsed && <span className={cn("font-medium", isActive && "text-foreground")}>{item.label}</span>}
-            </Link>
-          )
-        })}
+        <p
+          className="relative leading-tight"
+          style={{
+            fontFamily: "'Bebas Neue', sans-serif",
+            fontSize: "18px",
+            letterSpacing: "1.5px",
+            color: "#f7f2ea",
+          }}
+        >
+          {surname}
+        </p>
+        <p
+          className="relative mt-0.5"
+          style={{
+            fontFamily: "'DM Mono', monospace",
+            fontSize: "9px",
+            letterSpacing: "1px",
+            textTransform: "uppercase",
+            color: "rgba(255,255,255,0.35)",
+          }}
+        >
+          {firstName}
+        </p>
+
+        <div className="relative mt-2.5">
+          <p
+            className="mb-1"
+            style={{
+              fontFamily: "'DM Mono', monospace",
+              fontSize: "8px",
+              letterSpacing: "1.5px",
+              textTransform: "uppercase",
+              color: "rgba(255,255,255,0.20)",
+            }}
+          >
+            Wellness
+          </p>
+          <div
+            className="h-[2px] rounded-sm overflow-hidden"
+            style={{ background: "rgba(255,255,255,0.08)" }}
+          >
+            <div
+              className="h-full rounded-sm"
+              style={{ width: "72%", background: "#c9a84c" }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto py-1" style={{ scrollbarWidth: "none" }}>
+        <NavSection label="Performance" items={performanceItems} pathname={pathname} />
+        <NavSection label="Academics" items={academicsItems} pathname={pathname} />
+        <NavSection label="Account" items={allAccountItems} pathname={pathname} />
       </nav>
 
-      {/* User section */}
-      <div className="border-t border-sidebar-border p-4">
-        <div className={cn("flex items-center gap-3", collapsed && "justify-center")}>
-          <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shrink-0">
-            <span className="text-white font-semibold text-sm">{displayName.charAt(0).toUpperCase()}</span>
-          </div>
-          {!collapsed && (
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">{displayName}</p>
-              <p className="text-xs text-muted-foreground">{displayRole}</p>
-            </div>
-          )}
-          {!collapsed && (
-            <button onClick={logout} className="p-1.5 rounded-md hover:bg-sidebar-accent transition-colors">
-              <LogOut className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-            </button>
-          )}
+      {/* Footer */}
+      <div
+        className="p-3 flex-shrink-0"
+        style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+      >
+        <div
+          className="flex rounded overflow-hidden mb-2"
+          style={{
+            background: "rgba(255,255,255,0.05)",
+            border: "1px solid rgba(255,255,255,0.06)",
+          }}
+        >
+          <button
+            className="flex-1 py-1.5 rounded transition-all"
+            style={{
+              fontFamily: "'DM Mono', monospace",
+              fontSize: "9px",
+              letterSpacing: "1px",
+              textTransform: "uppercase",
+              background: !isCoach ? "rgba(255,255,255,0.10)" : "transparent",
+              color: !isCoach ? "#f7f2ea" : "rgba(255,255,255,0.25)",
+            }}
+          >
+            Athlete
+          </button>
+          <button
+            className="flex-1 py-1.5 rounded transition-all"
+            style={{
+              fontFamily: "'DM Mono', monospace",
+              fontSize: "9px",
+              letterSpacing: "1px",
+              textTransform: "uppercase",
+              background: isCoach ? "rgba(255,255,255,0.10)" : "transparent",
+              color: isCoach ? "#f7f2ea" : "rgba(255,255,255,0.25)",
+            }}
+          >
+            Coach
+          </button>
         </div>
+
+        <button
+          onClick={logout}
+          className="w-full flex items-center gap-2 px-2 py-1.5 rounded transition-colors text-[11px]"
+          style={{ color: "rgba(255,255,255,0.25)" }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.55)")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.25)")}
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          <span>Sign out</span>
+        </button>
       </div>
     </aside>
   )

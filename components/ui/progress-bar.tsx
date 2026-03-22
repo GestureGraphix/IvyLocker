@@ -36,35 +36,48 @@ export function ProgressBar({
     }
   }, [percentage, animated])
 
-  const variantStyles = {
-    default: "bg-foreground",
-    primary: "gradient-primary glow-primary",
-    success: "bg-success glow-success",
-    warning: "bg-warning",
+  const fillStyles = {
+    default: { background: "var(--ink)" },
+    primary: { background: "var(--ivy-mid)" },
+    success: { background: "var(--ivy-light)" },
+    warning: { background: "var(--gold)" },
   }
 
   const sizeStyles = {
-    sm: "h-1.5",
-    md: "h-2.5",
-    lg: "h-4",
+    sm: "h-[2px]",
+    md: "h-[3px]",
+    lg: "h-[4px]",
   }
 
   return (
     <div className={cn("space-y-1.5", className)}>
       {(label || showValue) && (
-        <div className="flex items-center justify-between text-sm">
-          {label && <span className="text-muted-foreground">{label}</span>}
+        <div className="flex items-center justify-between">
+          {label && (
+            <span
+              className="uppercase tracking-wider text-muted-foreground"
+              style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "1px" }}
+            >
+              {label}
+            </span>
+          )}
           {showValue && (
-            <span className="font-medium text-foreground">
+            <span
+              className="text-foreground"
+              style={{ fontFamily: "'DM Mono', monospace", fontSize: "10px" }}
+            >
               {value} / {max}
             </span>
           )}
         </div>
       )}
-      <div className={cn("w-full rounded-full bg-secondary overflow-hidden", sizeStyles[size])}>
+      <div
+        className={cn("w-full rounded-sm overflow-hidden", sizeStyles[size])}
+        style={{ background: "var(--cream-d)" }}
+      >
         <div
-          className={cn("h-full rounded-full transition-all duration-700 ease-out", variantStyles[variant])}
-          style={{ width: `${displayValue}%` }}
+          className="h-full rounded-sm transition-all duration-700 ease-out"
+          style={{ width: `${displayValue}%`, ...fillStyles[variant] }}
         />
       </div>
     </div>

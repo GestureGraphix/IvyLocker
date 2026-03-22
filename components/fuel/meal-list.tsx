@@ -30,10 +30,10 @@ const mealTypeIcons = {
 }
 
 const mealTypeColors = {
-  breakfast: "bg-warning/20 text-warning",
-  lunch: "bg-success/20 text-success",
-  dinner: "bg-primary/20 text-primary",
-  snack: "bg-accent/20 text-accent",
+  breakfast: "bg-gold-pale text-[#8a6500]",
+  lunch: "bg-ivy-pale text-ivy-mid",
+  dinner: "bg-ivy-pale text-ivy",
+  snack: "bg-gold-pale text-[#8a6500]",
 }
 
 export function MealList({ meals, onUpdate }: MealListProps) {

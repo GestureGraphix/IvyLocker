@@ -99,18 +99,21 @@ export function AcademicsContent() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
-            <GraduationCap className="h-7 w-7 text-primary" />
+          <h1
+            className="flex items-center gap-2"
+            style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "32px", letterSpacing: "1px", color: "var(--ink)" }}
+          >
+            <GraduationCap className="h-6 w-6" style={{ color: "var(--ivy-mid)" }} />
             Academics
           </h1>
-          <p className="text-muted-foreground">Track your courses, assignments, and exams</p>
+          <p className="text-muted-foreground text-sm">Track your courses, assignments, and exams</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setIsCourseDialogOpen(true)} variant="outline" className="border-primary/50">
-            <BookOpen className="h-4 w-4 mr-2 text-primary" />
+          <Button onClick={() => setIsCourseDialogOpen(true)} variant="outline" className="border-border/50">
+            <BookOpen className="h-4 w-4 mr-2" />
             Add Course
           </Button>
-          <Button onClick={() => setIsItemDialogOpen(true)} className="gradient-primary glow-primary">
+          <Button onClick={() => setIsItemDialogOpen(true)} className="gradient-primary">
             <Plus className="h-4 w-4 mr-2" />
             Add Item
           </Button>
@@ -121,8 +124,8 @@ export function AcademicsContent() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <GlassCard className="p-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/20">
-              <Calendar className="h-5 w-5 text-primary" />
+            <div className="p-2 rounded-lg bg-ivy-pale">
+              <Calendar className="h-5 w-5" style={{ color: "var(--ivy-mid)" }} />
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{upcomingItems.length}</p>
@@ -133,8 +136,8 @@ export function AcademicsContent() {
 
         <GlassCard className="p-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-destructive/20">
-              <AlertCircle className="h-5 w-5 text-destructive" />
+            <div className="p-2 rounded-lg" style={{ background: "#f9e8e8" }}>
+              <AlertCircle className="h-5 w-5" style={{ color: "#b83232" }} />
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{overdueItems.length}</p>
@@ -145,8 +148,8 @@ export function AcademicsContent() {
 
         <GlassCard className="p-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-warning/20">
-              <AlertCircle className="h-5 w-5 text-warning" />
+            <div className="p-2 rounded-lg bg-gold-pale">
+              <AlertCircle className="h-5 w-5" style={{ color: "#8a6500" }} />
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{highPriorityCount}</p>
@@ -157,8 +160,8 @@ export function AcademicsContent() {
 
         <GlassCard className="p-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-success/20">
-              <CheckCircle className="h-5 w-5 text-success" />
+            <div className="p-2 rounded-lg bg-ivy-pale">
+              <CheckCircle className="h-5 w-5" style={{ color: "var(--ivy-mid)" }} />
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{completedItems.length}</p>
@@ -170,7 +173,7 @@ export function AcademicsContent() {
 
       {/* Overdue Alert */}
       {overdueItems.length > 0 && (
-        <GlassCard className="border-destructive/50 bg-destructive/5">
+        <GlassCard style={{ borderColor: "rgba(184,50,50,0.3)", background: "#fdf4f4" }}>
           <div className="flex items-center gap-3">
             <AlertCircle className="h-5 w-5 text-destructive" />
             <div>
@@ -185,7 +188,7 @@ export function AcademicsContent() {
 
       {/* Tabs */}
       <Tabs defaultValue="items" className="space-y-4">
-        <TabsList className="bg-secondary/50">
+        <TabsList>
           <TabsTrigger value="items">Assignments & Exams</TabsTrigger>
           <TabsTrigger value="courses">
             Courses

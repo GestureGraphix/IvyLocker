@@ -283,8 +283,11 @@ export function PlanBuilder() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
-            <Calendar className="h-7 w-7 text-primary" />
+          <h1
+            className="flex items-center gap-2"
+            style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "32px", letterSpacing: "1px", color: "var(--cream)" }}
+          >
+            <Calendar className="h-6 w-6" style={{ color: "var(--gold)" }} />
             Create Weekly Plan
           </h1>
           <p className="text-muted-foreground">

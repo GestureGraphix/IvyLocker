@@ -3,73 +3,91 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Complete redesign with premium dark theme per PRD specs */
+/* ══════════════════════════════════════════
+   LIGHT EDITORIAL THEME — IVY LOCKER
+   Cream + Ivy Green + Gold
+══════════════════════════════════════════ */
 :root {
-  /* Dark theme by default - premium sports app feel */
-  --background: oklch(0.13 0.02 250);
-  --foreground: oklch(0.97 0 0);
-  --card: oklch(0.16 0.02 250);
-  --card-foreground: oklch(0.97 0 0);
-  --popover: oklch(0.16 0.02 250);
-  --popover-foreground: oklch(0.97 0 0);
+  /* Surface */
+  --background: #f7f2ea;
+  --foreground: #1a1714;
+  --card: #ffffff;
+  --card-foreground: #1a1714;
+  --popover: #ffffff;
+  --popover-foreground: #1a1714;
 
-  /* Primary - Yale Blue */
-  --primary: oklch(0.45 0.14 250);
-  --primary-foreground: oklch(0.99 0 0);
+  /* Primary — Ivy Green */
+  --primary: #162e22;
+  --primary-foreground: #f7f2ea;
 
-  /* Secondary - Dark slate */
-  --secondary: oklch(0.2 0.02 250);
-  --secondary-foreground: oklch(0.97 0 0);
+  /* Secondary — warm cream-dark */
+  --secondary: #ece5d8;
+  --secondary-foreground: #1a1714;
 
-  /* Muted for subtle elements */
-  --muted: oklch(0.22 0.02 250);
-  --muted-foreground: oklch(0.65 0.02 250);
+  /* Muted */
+  --muted: #ddd4c4;
+  --muted-foreground: #a09080;
 
-  /* Accent - Ivy Green */
-  --accent: oklch(0.5 0.16 160);
-  --accent-foreground: oklch(0.99 0 0);
+  /* Accent — Gold */
+  --accent: #c9a84c;
+  --accent-foreground: #0c0c0c;
 
-  /* Status colors */
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.99 0 0);
-  --success: oklch(0.62 0.194 145);
-  --success-foreground: oklch(0.99 0 0);
-  --warning: oklch(0.75 0.183 55);
-  --warning-foreground: oklch(0.15 0 0);
+  /* Status */
+  --destructive: #b83232;
+  --destructive-foreground: #ffffff;
+  --success: #2d6a4f;
+  --success-foreground: #ffffff;
+  --warning: #c9a84c;
+  --warning-foreground: #0c0c0c;
 
-  /* Borders & inputs */
-  --border: oklch(0.28 0.02 250);
-  --input: oklch(0.2 0.02 250);
-  --ring: oklch(0.45 0.14 250);
+  /* Borders */
+  --border: #d5cec4;
+  --input: #d5cec4;
+  --ring: #2d6a4f;
 
-  /* Charts - Yale Blue & Ivy Green palette */
-  --chart-1: oklch(0.45 0.14 250);
-  --chart-2: oklch(0.5 0.16 160);
-  --chart-3: oklch(0.62 0.194 145);
-  --chart-4: oklch(0.75 0.183 55);
-  --chart-5: oklch(0.55 0.12 220);
+  /* Charts */
+  --chart-1: #162e22;
+  --chart-2: #c9a84c;
+  --chart-3: #2d6a4f;
+  --chart-4: #52b788;
+  --chart-5: #b83232;
 
-  --radius: 0.75rem;
+  --radius: 0.375rem;
 
-  /* Sidebar - slightly darker */
-  --sidebar: oklch(0.11 0.02 250);
-  --sidebar-foreground: oklch(0.97 0 0);
-  --sidebar-primary: oklch(0.45 0.14 250);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.18 0.02 250);
-  --sidebar-accent-foreground: oklch(0.97 0 0);
-  --sidebar-border: oklch(0.22 0.02 250);
-  --sidebar-ring: oklch(0.45 0.14 250);
+  /* Sidebar */
+  --sidebar: #162e22;
+  --sidebar-foreground: #f7f2ea;
+  --sidebar-primary: #c9a84c;
+  --sidebar-primary-foreground: #0c0c0c;
+  --sidebar-accent: rgba(255, 255, 255, 0.06);
+  --sidebar-accent-foreground: #f7f2ea;
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --sidebar-ring: #c9a84c;
 
-  /* Custom glow effects - Yale Blue & Ivy Green */
-  --glow-primary: oklch(0.45 0.14 250 / 0.3);
-  --glow-accent: oklch(0.5 0.16 160 / 0.3);
-  --glow-success: oklch(0.62 0.194 145 / 0.3);
+  /* ── Design tokens (from mockup) ── */
+  --ivy: #162e22;
+  --ivy-mid: #2d6a4f;
+  --ivy-light: #52b788;
+  --ivy-pale: #d8f0e4;
+  --gold: #c9a84c;
+  --gold-pale: #fdf3dc;
+  --cream: #f7f2ea;
+  --cream-d: #ece5d8;
+  --cream-dd: #ddd4c4;
+  --parchment: #f2ead8;
+  --ink: #1a1714;
+  --soft: #6b6055;
+  --rule: #d5cec4;
+  --coach-bg: #111713;
+  --coach-card: #1a1f1c;
+  --coach-border: #2a3330;
 }
 
 @theme inline {
-  --font-sans: "Inter", "Geist", "Geist Fallback", system-ui, sans-serif;
-  --font-mono: "Geist Mono", "Geist Mono Fallback", monospace;
+  --font-sans: "DM Sans", system-ui, sans-serif;
+  --font-mono: "DM Mono", monospace;
+  --font-display: "Bebas Neue", sans-serif;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -110,9 +128,20 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --color-glow-primary: var(--glow-primary);
-  --color-glow-accent: var(--glow-accent);
-  --color-glow-success: var(--glow-success);
+
+  /* Design token Tailwind aliases */
+  --color-ivy: var(--ivy);
+  --color-ivy-mid: var(--ivy-mid);
+  --color-ivy-light: var(--ivy-light);
+  --color-ivy-pale: var(--ivy-pale);
+  --color-gold: var(--gold);
+  --color-gold-pale: var(--gold-pale);
+  --color-cream: var(--cream);
+  --color-parchment: var(--parchment);
+  --color-rule: var(--rule);
+  --color-soft: var(--soft);
+  --color-coach-bg: var(--coach-bg);
+  --color-coach-card: var(--coach-card);
 }
 
 @layer base {
@@ -121,50 +150,91 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: "DM Sans", sans-serif;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
   }
+  ::-webkit-scrollbar { width: 3px; height: 3px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--cream-dd); border-radius: 2px; }
 }
 
-/* Custom utility classes for the premium dark theme */
 @layer utilities {
+  /* Flat card — replaces glass-card */
   .glass-card {
-    @apply bg-card/50 backdrop-blur-xl border border-border/50 shadow-xl;
+    @apply bg-card border border-border shadow-sm;
   }
 
-  .glow-primary {
-    box-shadow: 0 0 20px var(--glow-primary);
-  }
-
-  .glow-accent {
-    box-shadow: 0 0 20px var(--glow-accent);
-  }
-
-  .glow-success {
-    box-shadow: 0 0 20px var(--glow-success);
-  }
-
+  /* gradient-primary now just means ivy bg (used by many existing components) */
   .gradient-primary {
-    background: linear-gradient(135deg, var(--primary), var(--accent));
+    background: var(--ivy);
+    color: var(--cream);
   }
 
+  /* gradient-text now uses ivy color */
   .gradient-text {
-    background: linear-gradient(135deg, var(--primary), var(--accent));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--ivy);
+    -webkit-text-fill-color: var(--ivy);
+    background: none;
   }
 
+  /* Glow utilities → no-ops (kept for compat) */
+  .glow-primary {}
+  .glow-accent {}
+  .glow-success {}
+
+  /* Parchment note card */
+  .card-parchment {
+    background: var(--parchment);
+    border: 1px solid var(--cream-dd);
+    border-radius: 2px;
+  }
+
+  /* DM Mono uppercase label */
+  .label-mono {
+    font-family: "DM Mono", monospace;
+    font-size: 8px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+
+  /* Light theme shimmer */
   .shimmer {
-    background: linear-gradient(90deg, var(--muted) 0%, var(--secondary) 50%, var(--muted) 100%);
+    background: linear-gradient(
+      90deg,
+      var(--cream-d) 0%,
+      var(--cream-dd) 50%,
+      var(--cream-d) 100%
+    );
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
   }
 
   @keyframes shimmer {
-    0% {
-      background-position: 200% 0;
-    }
-    100% {
-      background-position: -200% 0;
-    }
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* Coach portal dark theme override */
+  .coach-theme {
+    --background: var(--coach-bg);
+    --foreground: var(--cream);
+    --card: var(--coach-card);
+    --card-foreground: var(--cream);
+    --border: var(--coach-border, #2a3330);
+    --muted-foreground: rgba(247, 242, 234, 0.5);
+    --secondary: rgba(255, 255, 255, 0.05);
+    --secondary-foreground: var(--cream);
+    /* Remap primary to gold for visibility on dark bg */
+    --primary: var(--gold);
+    --primary-foreground: #0c0c0c;
+    background: var(--coach-bg);
+    color: var(--cream);
+    min-height: 100vh;
+  }
+  .coach-theme .gradient-primary {
+    background: var(--gold);
+    color: #0c0c0c;
   }
 }

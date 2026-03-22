@@ -26,12 +26,12 @@ interface ExerciseLibraryProps {
 const bodyGroups = ["All", "Back", "Hips", "Shoulders", "Ankles", "Knees", "Full Body"]
 
 const bodyGroupColors: Record<string, string> = {
-  Back: "bg-primary/20 text-primary border-primary/30",
-  Hips: "bg-accent/20 text-accent border-accent/30",
-  Shoulders: "bg-warning/20 text-warning border-warning/30",
-  Ankles: "bg-success/20 text-success border-success/30",
-  Knees: "bg-destructive/20 text-destructive border-destructive/30",
-  "Full Body": "bg-chart-2/20 text-chart-2 border-chart-2/30",
+  Back: "bg-ivy-pale text-ivy-mid border-ivy-light/30",
+  Hips: "bg-gold-pale text-[#8a6500] border-gold/30",
+  Shoulders: "bg-gold-pale text-[#8a6500] border-gold/30",
+  Ankles: "bg-ivy-pale text-ivy-mid border-ivy-light/30",
+  Knees: "bg-[#f9e8e8] text-[#b83232] border-[#b83232]/30",
+  "Full Body": "bg-ivy-pale text-ivy border-ivy/20",
 }
 
 export function ExerciseLibrary({ exercises, onLogExercise }: ExerciseLibraryProps) {
@@ -50,8 +50,8 @@ export function ExerciseLibrary({ exercises, onLogExercise }: ExerciseLibraryPro
             className={cn(
               "px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap",
               filter === group
-                ? "gradient-primary text-white glow-primary"
-                : "bg-secondary text-muted-foreground hover:text-foreground",
+                ? "bg-ivy text-cream border border-ivy"
+                : "bg-secondary text-muted-foreground hover:text-foreground border border-border",
             )}
           >
             {group}
@@ -76,9 +76,9 @@ export function ExerciseLibrary({ exercises, onLogExercise }: ExerciseLibraryPro
                     href={exercise.youtube_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-2 rounded-lg bg-destructive/20 hover:bg-destructive/30 transition-colors"
+                    className="p-2 rounded-lg bg-ivy-pale hover:bg-ivy-pale/80 transition-colors"
                   >
-                    <Play className="h-4 w-4 text-destructive" />
+                    <Play className="h-4 w-4 text-ivy-mid" />
                   </a>
                 )}
               </div>
@@ -100,7 +100,7 @@ export function ExerciseLibrary({ exercises, onLogExercise }: ExerciseLibraryPro
                 <Button
                   onClick={() => onLogExercise(exercise)}
                   size="sm"
-                  className="flex-1 gradient-primary glow-primary"
+                  className="flex-1 gradient-primary"
                 >
                   <Plus className="h-4 w-4 mr-1" />
                   Log

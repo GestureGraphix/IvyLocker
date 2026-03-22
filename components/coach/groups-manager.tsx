@@ -102,8 +102,11 @@ export function GroupsManager() {
             <Link href="/coach" className="text-muted-foreground hover:text-foreground">
               <ArrowLeft className="h-5 w-5" />
             </Link>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
-              <Users className="h-7 w-7 text-primary" />
+            <h1
+              className="flex items-center gap-2"
+              style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "32px", letterSpacing: "1px", color: "var(--cream)" }}
+            >
+              <Users className="h-6 w-6" style={{ color: "var(--gold)" }} />
               Athlete Groups
             </h1>
           </div>
@@ -120,15 +123,15 @@ export function GroupsManager() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <GlassCard className="text-center">
-          <div className="text-3xl font-bold text-primary">{groups.length}</div>
+          <div className="text-3xl font-bold" style={{ color: "var(--gold)" }}>{groups.length}</div>
           <div className="text-sm text-muted-foreground">Groups</div>
         </GlassCard>
         <GlassCard className="text-center">
-          <div className="text-3xl font-bold text-success">{totalAthletes}</div>
+          <div className="text-3xl font-bold" style={{ color: "var(--ivy-light)" }}>{totalAthletes}</div>
           <div className="text-sm text-muted-foreground">Athletes Assigned</div>
         </GlassCard>
         <GlassCard className="text-center hidden md:block">
-          <div className="text-3xl font-bold text-warning">
+          <div className="text-3xl font-bold" style={{ color: "var(--gold)" }}>
             {groups.filter((g) => g.member_count === 0).length}
           </div>
           <div className="text-sm text-muted-foreground">Empty Groups</div>

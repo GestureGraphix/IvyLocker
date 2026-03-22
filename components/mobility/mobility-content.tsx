@@ -158,18 +158,21 @@ export function MobilityContent() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
-            <Activity className="h-7 w-7 text-accent" />
+          <h1
+            className="flex items-center gap-2"
+            style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "32px", letterSpacing: "1px", color: "var(--ink)" }}
+          >
+            <Activity className="h-6 w-6" style={{ color: "var(--ivy-mid)" }} />
             Mobility & Recovery
           </h1>
-          <p className="text-muted-foreground">Track your stretching and mobility work</p>
+          <p className="text-muted-foreground text-sm">Track your stretching and mobility work</p>
         </div>
         <Button
           onClick={() => {
             setSelectedExercise(null)
             setIsLogDialogOpen(true)
           }}
-          className="gradient-primary glow-primary"
+          className="gradient-primary"
         >
           <Plus className="h-4 w-4 mr-2" />
           Log Session
@@ -180,8 +183,8 @@ export function MobilityContent() {
       <div className="grid grid-cols-3 gap-4">
         <GlassCard className="p-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-accent/20">
-              <Clock className="h-5 w-5 text-accent" />
+            <div className="p-2 rounded-lg bg-gold-pale">
+              <Clock className="h-5 w-5" style={{ color: "#8a6500" }} />
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{todayMinutes}</p>
@@ -192,8 +195,8 @@ export function MobilityContent() {
 
         <GlassCard className="p-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/20">
-              <Calendar className="h-5 w-5 text-primary" />
+            <div className="p-2 rounded-lg bg-ivy-pale">
+              <Calendar className="h-5 w-5" style={{ color: "var(--ivy-mid)" }} />
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{weekMinutes}</p>
@@ -204,8 +207,8 @@ export function MobilityContent() {
 
         <GlassCard className="p-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-success/20">
-              <Target className="h-5 w-5 text-success" />
+            <div className="p-2 rounded-lg bg-ivy-pale">
+              <Target className="h-5 w-5" style={{ color: "var(--ivy-mid)" }} />
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{bodyGroups.length}</p>
@@ -217,7 +220,7 @@ export function MobilityContent() {
 
       {/* Tabs */}
       <Tabs defaultValue="library" className="space-y-4">
-        <TabsList className="bg-secondary/50">
+        <TabsList>
           <TabsTrigger value="library">Exercise Library</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>

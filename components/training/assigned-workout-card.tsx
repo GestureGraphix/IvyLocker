@@ -62,12 +62,12 @@ const SESSION_ICONS: Record<string, React.ReactNode> = {
 }
 
 const SESSION_COLORS: Record<string, string> = {
-  practice: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  lift: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  conditioning: "bg-orange-500/20 text-orange-400 border-orange-500/30",
-  recovery: "bg-green-500/20 text-green-400 border-green-500/30",
-  competition: "bg-red-500/20 text-red-400 border-red-500/30",
-  optional: "bg-gray-500/20 text-gray-400 border-gray-500/30",
+  practice: "bg-ivy-pale text-ivy-mid border-ivy-light/30",
+  lift: "bg-ivy-pale text-ivy border-ivy/20",
+  conditioning: "bg-gold-pale text-[#8a6500] border-gold/30",
+  recovery: "bg-ivy-pale text-ivy-mid border-ivy-light/30",
+  competition: "bg-[#f9e8e8] text-[#b83232] border-[#b83232]/30",
+  optional: "bg-[#ece5d8] text-[#6b6055] border-[#d5cec4]",
 }
 
 export function AssignedWorkoutCard({ workout, onUpdate, showDate = false }: AssignedWorkoutCardProps) {
@@ -161,7 +161,7 @@ export function AssignedWorkoutCard({ workout, onUpdate, showDate = false }: Ass
                   </Badge>
                 )}
                 {workout.completed && (
-                  <Badge className="bg-success/20 text-success border-success/30 text-xs">
+                  <Badge variant="training" className="text-xs">
                     <Check className="h-3 w-3 mr-1" />
                     Done
                   </Badge>

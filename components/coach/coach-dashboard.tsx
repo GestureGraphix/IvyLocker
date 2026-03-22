@@ -87,8 +87,11 @@ export function CoachDashboard() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
-              <Users className="h-7 w-7 text-primary" />
+            <h1
+              className="flex items-center gap-2"
+              style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "32px", letterSpacing: "1px", color: "var(--cream)" }}
+            >
+              <Users className="h-6 w-6" style={{ color: "var(--gold)" }} />
               Coach Portal
             </h1>
             <p className="text-muted-foreground">Manage your athletes and assign workouts</p>
@@ -123,21 +126,21 @@ export function CoachDashboard() {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <GlassCard className="text-center">
-          <div className="text-3xl font-bold text-primary">{athletes.length}</div>
+          <div className="text-3xl font-bold" style={{ color: "var(--gold)" }}>{athletes.length}</div>
           <div className="text-sm text-muted-foreground">Total Athletes</div>
         </GlassCard>
         <GlassCard className="text-center">
-          <div className="text-3xl font-bold text-success">{athletesWithCheckin}</div>
+          <div className="text-3xl font-bold" style={{ color: "var(--ivy-light)" }}>{athletesWithCheckin}</div>
           <div className="text-sm text-muted-foreground">Checked In Today</div>
         </GlassCard>
         <GlassCard className="text-center">
-          <div className="text-3xl font-bold text-warning">
+          <div className="text-3xl font-bold" style={{ color: "var(--gold)" }}>
             {averageWellness !== null ? `${averageWellness}/10` : "—"}
           </div>
           <div className="text-sm text-muted-foreground">Avg Wellness</div>
         </GlassCard>
         <GlassCard className="text-center">
-          <div className="text-3xl font-bold text-accent">
+          <div className="text-3xl font-bold" style={{ color: "var(--cream)" }}>
             {athletes.reduce((sum, a) => sum + a.upcoming_sessions, 0)}
           </div>
           <div className="text-sm text-muted-foreground">Sessions This Week</div>
@@ -152,7 +155,7 @@ export function CoachDashboard() {
             placeholder="Search athletes..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-secondary/50"
+            className="pl-10"
           />
         </div>
         <div className="flex gap-2 items-center">

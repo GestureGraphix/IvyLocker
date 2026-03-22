@@ -152,7 +152,7 @@ export function AthleteCard({ athlete, selected, onSelect, onRemove }: AthleteCa
           <div className="text-xs text-muted-foreground">Wellness</div>
         </div>
         <div>
-          <div className="text-lg font-bold text-primary">{athlete.upcoming_sessions}</div>
+          <div className="text-lg font-bold" style={{ color: "var(--gold)" }}>{athlete.upcoming_sessions}</div>
           <div className="text-xs text-muted-foreground">Sessions</div>
         </div>
         <div>
@@ -180,7 +180,7 @@ export function AthleteCard({ athlete, selected, onSelect, onRemove }: AthleteCa
       {/* View Details Link */}
       <Link
         href={`/coach/athletes/${athlete.id}`}
-        className="mt-3 block text-center text-sm text-primary hover:underline"
+        className="mt-3 block text-center text-sm hover:underline" style={{ color: "var(--gold)" }}
         onClick={(e) => e.stopPropagation()}
       >
         View Full Dashboard →

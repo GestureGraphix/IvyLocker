@@ -22,12 +22,12 @@ interface MobilityHistoryProps {
 }
 
 const bodyGroupColors: Record<string, string> = {
-  Back: "bg-primary/20 text-primary",
-  Hips: "bg-accent/20 text-accent",
-  Shoulders: "bg-warning/20 text-warning",
-  Ankles: "bg-success/20 text-success",
-  Knees: "bg-destructive/20 text-destructive",
-  "Full Body": "bg-chart-2/20 text-chart-2",
+  Back: "bg-ivy-pale text-ivy-mid",
+  Hips: "bg-gold-pale text-[#8a6500]",
+  Shoulders: "bg-gold-pale text-[#8a6500]",
+  Ankles: "bg-ivy-pale text-ivy-mid",
+  Knees: "bg-[#f9e8e8] text-[#b83232]",
+  "Full Body": "bg-ivy-pale text-ivy",
 }
 
 export function MobilityHistory({ logs, onUpdate }: MobilityHistoryProps) {
@@ -76,7 +76,7 @@ export function MobilityHistory({ logs, onUpdate }: MobilityHistoryProps) {
                   ? "Today"
                   : new Date(date).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
               </h3>
-              <Badge variant="outline" className="border-accent/50 text-accent">
+              <Badge variant="outline" className="border-gold/40 text-[#8a6500]">
                 {dayTotal} min total
               </Badge>
             </div>

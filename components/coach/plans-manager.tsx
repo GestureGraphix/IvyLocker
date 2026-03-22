@@ -34,9 +34,9 @@ interface Plan {
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 const STATUS_STYLES: Record<string, string> = {
-  draft: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-  published: "bg-green-500/20 text-green-400 border-green-500/30",
-  archived: "bg-gray-500/20 text-gray-400 border-gray-500/30",
+  draft: "bg-gold-pale text-[#8a6500] border-gold/30",
+  published: "bg-ivy-pale text-ivy-mid border-ivy-light/30",
+  archived: "bg-[#2a3330] text-[rgba(247,242,234,0.5)] border-[#3a4440]",
 }
 
 export function PlansManager() {
@@ -136,8 +136,11 @@ export function PlansManager() {
             <Link href="/coach" className="text-muted-foreground hover:text-foreground">
               <ArrowLeft className="h-5 w-5" />
             </Link>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
-              <Calendar className="h-7 w-7 text-primary" />
+            <h1
+              className="flex items-center gap-2"
+              style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "32px", letterSpacing: "1px", color: "var(--cream)" }}
+            >
+              <Calendar className="h-6 w-6" style={{ color: "var(--gold)" }} />
               Weekly Plans
             </h1>
           </div>
@@ -156,15 +159,15 @@ export function PlansManager() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <GlassCard className="text-center">
-          <div className="text-3xl font-bold text-primary">{plans.length}</div>
+          <div className="text-3xl font-bold" style={{ color: "var(--gold)" }}>{plans.length}</div>
           <div className="text-sm text-muted-foreground">Total Plans</div>
         </GlassCard>
         <GlassCard className="text-center">
-          <div className="text-3xl font-bold text-yellow-400">{draftCount}</div>
+          <div className="text-3xl font-bold" style={{ color: "var(--gold)" }}>{draftCount}</div>
           <div className="text-sm text-muted-foreground">Drafts</div>
         </GlassCard>
         <GlassCard className="text-center hidden md:block">
-          <div className="text-3xl font-bold text-success">{publishedCount}</div>
+          <div className="text-3xl font-bold" style={{ color: "var(--ivy-light)" }}>{publishedCount}</div>
           <div className="text-sm text-muted-foreground">Published</div>
         </GlassCard>
       </div>

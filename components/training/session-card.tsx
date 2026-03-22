@@ -56,16 +56,16 @@ export function SessionCard({ session, onUpdate }: SessionCardProps) {
   const duration = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60))
 
   const typeColors = {
-    strength: "bg-warning/20 text-warning border-warning/30",
-    conditioning: "bg-success/20 text-success border-success/30",
-    practice: "bg-primary/20 text-primary border-primary/30",
-    competition: "bg-accent/20 text-accent border-accent/30",
+    strength:     "bg-gold-pale text-[#8a6500] border-gold/30",
+    conditioning: "bg-ivy-pale text-ivy-mid border-ivy-light/30",
+    practice:     "bg-ivy-pale text-ivy border-ivy/20",
+    competition:  "bg-[#dbeafe] text-[#1d4ed8] border-[#93c5fd]",
   }
 
   const intensityColors = {
-    low: "border-success text-success",
-    medium: "border-warning text-warning",
-    high: "border-destructive text-destructive",
+    low:    "border-ivy-light text-ivy-mid bg-ivy-pale",
+    medium: "border-gold text-[#8a6500] bg-gold-pale",
+    high:   "border-[#b83232] text-[#b83232] bg-[#f9e8e8]",
   }
 
   const handleToggleComplete = async () => {
@@ -175,7 +175,7 @@ export function SessionCard({ session, onUpdate }: SessionCardProps) {
                 {session.intensity}
               </Badge>
               {session.assigned_by && (
-                <Badge variant="secondary" className="bg-accent/20 text-accent border-accent/30">
+                <Badge variant="training">
                   <UserCheck className="h-3 w-3 mr-1" />
                   Coach Assigned
                 </Badge>
@@ -194,7 +194,7 @@ export function SessionCard({ session, onUpdate }: SessionCardProps) {
             {session.focus && <p className="text-sm text-muted-foreground">Focus: {session.focus}</p>}
 
             {session.notes && (
-              <p className="text-sm text-foreground/80 bg-secondary/50 px-3 py-2 rounded-lg">{session.notes}</p>
+              <p className="text-sm text-foreground px-3 py-2 rounded-sm" style={{ background: "var(--cream-d)" }}>{session.notes}</p>
             )}
 
             {/* Exercises Section */}
@@ -221,7 +221,7 @@ export function SessionCard({ session, onUpdate }: SessionCardProps) {
 
                 <CollapsibleContent className="pt-2 space-y-3">
                   {localExercises.map((exercise, exerciseIndex) => (
-                    <div key={exercise.id || exerciseIndex} className="bg-secondary/30 rounded-lg p-3 space-y-2">
+                    <div key={exercise.id || exerciseIndex} className="rounded-sm p-3 space-y-2" style={{ background: "var(--cream)", border: "1px solid var(--cream-dd)" }}>
                       <div className="flex items-center justify-between">
                         <span className="font-medium text-sm">{exercise.name}</span>
                         {exercise.notes && (
@@ -241,8 +241,8 @@ export function SessionCard({ session, onUpdate }: SessionCardProps) {
                             <div
                               key={set.id || setIndex}
                               className={cn(
-                                "grid grid-cols-[auto_1fr_1fr_1fr] gap-2 items-center text-sm py-1 px-1 rounded",
-                                set.completed && "bg-success/10"
+                                "grid grid-cols-[auto_1fr_1fr_1fr] gap-2 items-center text-sm py-1 px-1 rounded-sm",
+                                set.completed && "bg-ivy-pale"
                               )}
                             >
                               <Checkbox

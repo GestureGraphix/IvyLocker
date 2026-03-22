@@ -190,7 +190,7 @@ export function YaleDiningMenu({ onLogMeal }: YaleDiningMenuProps) {
           <Button variant="outline" size="icon" onClick={handlePrevDay} className="h-10 w-10">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <div className="px-4 py-2 bg-secondary/50 rounded-lg text-center min-w-[140px]">
+          <div className="px-4 py-2 rounded-lg text-center min-w-[140px]" style={{ background: "var(--cream-d)" }}>
             <span className="font-medium">{formatDisplayDate(selectedDate)}</span>
           </div>
           <Button variant="outline" size="icon" onClick={handleNextDay} className="h-10 w-10">
@@ -200,7 +200,7 @@ export function YaleDiningMenu({ onLogMeal }: YaleDiningMenuProps) {
 
         {/* Location Selector */}
         <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-          <SelectTrigger className="w-full sm:w-[200px] bg-secondary/50 border-border/50">
+          <SelectTrigger className="w-full sm:w-[200px] border-border/50">
             <SelectValue placeholder="Select dining hall" />
           </SelectTrigger>
           <SelectContent>
@@ -219,7 +219,7 @@ export function YaleDiningMenu({ onLogMeal }: YaleDiningMenuProps) {
             placeholder="Search menu..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-secondary/50 border-border/50"
+            className="pl-9"
           />
         </div>
       </div>
@@ -228,7 +228,7 @@ export function YaleDiningMenu({ onLogMeal }: YaleDiningMenuProps) {
       {isLoading && (
         <GlassCard className="p-8">
           <div className="flex flex-col items-center justify-center gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <Loader2 className="h-8 w-8 animate-spin text-ivy-mid" />
             <p className="text-muted-foreground">Loading menu...</p>
           </div>
         </GlassCard>
@@ -341,14 +341,14 @@ export function YaleDiningMenu({ onLogMeal }: YaleDiningMenuProps) {
                                 key={item.menuItemId}
                                 className={cn(
                                   "flex items-center justify-between gap-3 p-3 rounded-lg transition-colors",
-                                  "bg-secondary/30 hover:bg-secondary/50",
-                                  isLogged && "bg-success/10 border border-success/20"
+                                  "hover:bg-secondary/50",
+                                  isLogged && "bg-ivy-pale border border-ivy-light/30"
                                 )}
                               >
                                 <div className="flex-1 min-w-0">
                                   <p className="font-medium text-foreground truncate">{item.name}</p>
                                   <div className="flex flex-wrap gap-2 mt-1 text-xs text-muted-foreground">
-                                    <span className="text-success font-medium">{item.calories} cal</span>
+                                    <span className="text-ivy-mid font-medium">{item.calories} cal</span>
                                     <span>P: {item.proteinG}g</span>
                                     <span>C: {item.carbsG}g</span>
                                     <span>F: {item.fatG}g</span>
@@ -362,8 +362,8 @@ export function YaleDiningMenu({ onLogMeal }: YaleDiningMenuProps) {
                                   disabled={isLogging}
                                   className={cn(
                                     "h-9 min-w-[80px]",
-                                    !isLogged && "gradient-primary glow-primary",
-                                    isLogged && "border-success text-success"
+                                    !isLogged && "gradient-primary",
+                                    isLogged && "border-ivy-light text-ivy-mid"
                                   )}
                                 >
                                   {isLogging ? (

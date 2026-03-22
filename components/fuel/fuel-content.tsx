@@ -84,18 +84,21 @@ export function FuelContent() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
-            <Utensils className="h-7 w-7 text-success" />
+          <h1
+            className="flex items-center gap-2"
+            style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "32px", letterSpacing: "1px", color: "var(--ink)" }}
+          >
+            <Utensils className="h-6 w-6" style={{ color: "var(--ivy-mid)" }} />
             Fuel
           </h1>
-          <p className="text-muted-foreground">Track your nutrition and hydration</p>
+          <p className="text-muted-foreground text-sm">Track your nutrition and hydration</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setIsHydrationDialogOpen(true)} variant="outline" className="border-primary/50">
-            <Droplets className="h-4 w-4 mr-2 text-primary" />
+          <Button onClick={() => setIsHydrationDialogOpen(true)} variant="outline" className="border-border/50">
+            <Droplets className="h-4 w-4 mr-2" style={{ color: "var(--ivy-mid)" }} />
             Log Water
           </Button>
-          <Button onClick={() => setIsMealDialogOpen(true)} className="gradient-primary glow-primary">
+          <Button onClick={() => setIsMealDialogOpen(true)} className="gradient-primary">
             <Plus className="h-4 w-4 mr-2" />
             Log Meal
           </Button>
@@ -106,8 +109,8 @@ export function FuelContent() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <GlassCard className="p-4">
           <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 rounded-lg bg-success/20">
-              <Flame className="h-5 w-5 text-success" />
+            <div className="p-2 rounded-lg bg-ivy-pale">
+              <Flame className="h-5 w-5" style={{ color: "var(--ivy-mid)" }} />
             </div>
             <span className="text-sm text-muted-foreground">Calories</span>
           </div>
@@ -125,8 +128,8 @@ export function FuelContent() {
 
         <GlassCard className="p-4">
           <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 rounded-lg bg-primary/20">
-              <Beef className="h-5 w-5 text-primary" />
+            <div className="p-2 rounded-lg bg-ivy-pale">
+              <Beef className="h-5 w-5" style={{ color: "var(--ivy)" }} />
             </div>
             <span className="text-sm text-muted-foreground">Protein</span>
           </div>
@@ -144,8 +147,8 @@ export function FuelContent() {
 
         <GlassCard className="p-4">
           <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 rounded-lg bg-warning/20">
-              <span className="text-warning font-bold text-sm">C</span>
+            <div className="p-2 rounded-lg bg-gold-pale">
+              <span className="font-bold text-sm" style={{ color: "#8a6500" }}>C</span>
             </div>
             <span className="text-sm text-muted-foreground">Carbs</span>
           </div>
@@ -154,8 +157,8 @@ export function FuelContent() {
 
         <GlassCard className="p-4">
           <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 rounded-lg bg-accent/20">
-              <span className="text-accent font-bold text-sm">F</span>
+            <div className="p-2 rounded-lg" style={{ background: "var(--cream-d)" }}>
+              <span className="font-bold text-sm text-muted-foreground">F</span>
             </div>
             <span className="text-sm text-muted-foreground">Fat</span>
           </div>
@@ -167,7 +170,7 @@ export function FuelContent() {
       <GlassCard>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Droplets className="h-5 w-5 text-primary" />
+            <Droplets className="h-5 w-5" style={{ color: "var(--ivy-mid)" }} />
             Hydration Progress
           </h3>
           <Button variant="ghost" size="sm" onClick={() => setIsHydrationDialogOpen(true)}>
@@ -191,7 +194,7 @@ export function FuelContent() {
 
       {/* Tabs for Meals, Yale Dining, and Hydration History */}
       <Tabs defaultValue="yale-dining" className="space-y-4">
-        <TabsList className="bg-secondary/50">
+        <TabsList>
           <TabsTrigger value="yale-dining" className="flex items-center gap-1.5">
             <Building2 className="h-4 w-4" />
             <span className="hidden sm:inline">Yale Dining</span>

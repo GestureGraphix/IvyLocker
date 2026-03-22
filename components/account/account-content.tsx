@@ -145,11 +145,14 @@ export function AccountContent() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
-            <User className="h-7 w-7 text-primary" />
+          <h1
+            className="flex items-center gap-2"
+            style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "32px", letterSpacing: "1px", color: "var(--ink)" }}
+          >
+            <User className="h-6 w-6" style={{ color: "var(--ivy-mid)" }} />
             Account Settings
           </h1>
-          <p className="text-muted-foreground">Manage your profile and preferences</p>
+          <p className="text-muted-foreground text-sm">Manage your profile and preferences</p>
         </div>
         <Button variant="destructive" onClick={logout}>
           Sign Out
@@ -160,7 +163,7 @@ export function AccountContent() {
         {/* Personal Information */}
         <GlassCard>
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <User className="h-5 w-5 text-primary" />
+            <User className="h-5 w-5" style={{ color: "var(--ivy-mid)" }} />
             Personal Information
           </h2>
           <div className="grid md:grid-cols-2 gap-4">
@@ -170,7 +173,7 @@ export function AccountContent() {
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="bg-secondary/50 border-border/50"
+                className=""
               />
             </div>
             <div className="space-y-2">
@@ -182,7 +185,7 @@ export function AccountContent() {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="bg-secondary/50 border-border/50 pl-10"
+                  className="pl-10"
                   disabled
                 />
               </div>
@@ -195,7 +198,7 @@ export function AccountContent() {
                   id="phone"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="bg-secondary/50 border-border/50 pl-10"
+                  className="pl-10"
                   placeholder="(555) 123-4567"
                 />
               </div>
@@ -208,7 +211,7 @@ export function AccountContent() {
                   id="location"
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  className="bg-secondary/50 border-border/50 pl-10"
+                  className="pl-10"
                   placeholder="City, State"
                 />
               </div>
@@ -219,7 +222,7 @@ export function AccountContent() {
         {/* Athletic Profile */}
         <GlassCard>
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Target className="h-5 w-5 text-warning" />
+            <Target className="h-5 w-5" style={{ color: "#8a6500" }} />
             Athletic Profile
           </h2>
           <div className="grid md:grid-cols-3 gap-4">
@@ -229,7 +232,7 @@ export function AccountContent() {
                 id="sport"
                 value={formData.sport}
                 onChange={(e) => setFormData({ ...formData, sport: e.target.value })}
-                className="bg-secondary/50 border-border/50"
+                className=""
                 placeholder="e.g., Basketball"
               />
             </div>
@@ -239,7 +242,7 @@ export function AccountContent() {
                 id="team"
                 value={formData.team}
                 onChange={(e) => setFormData({ ...formData, team: e.target.value })}
-                className="bg-secondary/50 border-border/50"
+                className=""
                 placeholder="e.g., Varsity"
               />
             </div>
@@ -249,7 +252,7 @@ export function AccountContent() {
                 id="position"
                 value={formData.position}
                 onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                className="bg-secondary/50 border-border/50"
+                className=""
                 placeholder="e.g., Point Guard"
               />
             </div>
@@ -260,7 +263,7 @@ export function AccountContent() {
                 type="number"
                 value={formData.height_cm}
                 onChange={(e) => setFormData({ ...formData, height_cm: e.target.value })}
-                className="bg-secondary/50 border-border/50"
+                className=""
               />
             </div>
             <div className="space-y-2">
@@ -270,7 +273,7 @@ export function AccountContent() {
                 type="number"
                 value={formData.weight_kg}
                 onChange={(e) => setFormData({ ...formData, weight_kg: e.target.value })}
-                className="bg-secondary/50 border-border/50"
+                className=""
               />
             </div>
           </div>
@@ -279,7 +282,7 @@ export function AccountContent() {
         {/* Academic Info */}
         <GlassCard>
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <GraduationCap className="h-5 w-5 text-success" />
+            <GraduationCap className="h-5 w-5" style={{ color: "var(--ivy-mid)" }} />
             Academic Information
           </h2>
           <div className="grid md:grid-cols-2 gap-4">
@@ -289,7 +292,7 @@ export function AccountContent() {
                 id="university"
                 value={formData.university}
                 onChange={(e) => setFormData({ ...formData, university: e.target.value })}
-                className="bg-secondary/50 border-border/50"
+                className=""
                 placeholder="e.g., Yale University"
               />
             </div>
@@ -302,7 +305,7 @@ export function AccountContent() {
                 max="2030"
                 value={formData.graduation_year}
                 onChange={(e) => setFormData({ ...formData, graduation_year: e.target.value })}
-                className="bg-secondary/50 border-border/50"
+                className=""
                 placeholder="2026"
               />
             </div>
@@ -312,13 +315,13 @@ export function AccountContent() {
         {/* Nutrition Goals */}
         <GlassCard>
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Flame className="h-5 w-5 text-accent" />
+            <Flame className="h-5 w-5" style={{ color: "var(--ivy-mid)" }} />
             Nutrition Goals
           </h2>
           <div className="grid md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="hydration" className="flex items-center gap-2">
-                <Droplets className="h-4 w-4 text-primary" />
+                <Droplets className="h-4 w-4" style={{ color: "var(--ivy-mid)" }} />
                 Daily Hydration (oz)
               </Label>
               <Input
@@ -326,12 +329,12 @@ export function AccountContent() {
                 type="number"
                 value={formData.hydration_goal_oz}
                 onChange={(e) => setFormData({ ...formData, hydration_goal_oz: e.target.value })}
-                className="bg-secondary/50 border-border/50"
+                className=""
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="calories" className="flex items-center gap-2">
-                <Flame className="h-4 w-4 text-warning" />
+                <Flame className="h-4 w-4" style={{ color: "#8a6500" }} />
                 Daily Calories
               </Label>
               <Input
@@ -339,12 +342,12 @@ export function AccountContent() {
                 type="number"
                 value={formData.calorie_goal}
                 onChange={(e) => setFormData({ ...formData, calorie_goal: e.target.value })}
-                className="bg-secondary/50 border-border/50"
+                className=""
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="protein" className="flex items-center gap-2">
-                <Beef className="h-4 w-4 text-success" />
+                <Beef className="h-4 w-4" style={{ color: "var(--ivy-mid)" }} />
                 Daily Protein (g)
               </Label>
               <Input
@@ -352,7 +355,7 @@ export function AccountContent() {
                 type="number"
                 value={formData.protein_goal_grams}
                 onChange={(e) => setFormData({ ...formData, protein_goal_grams: e.target.value })}
-                className="bg-secondary/50 border-border/50"
+                className=""
               />
             </div>
           </div>
@@ -360,7 +363,7 @@ export function AccountContent() {
 
         {/* Save Button */}
         <div className="flex justify-end">
-          <Button type="submit" disabled={isLoading} className="gradient-primary glow-primary px-8">
+          <Button type="submit" disabled={isLoading} className="gradient-primary px-8">
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -392,7 +395,7 @@ export function AccountContent() {
                   type={showCurrentPassword ? "text" : "password"}
                   value={passwordData.currentPassword}
                   onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                  className="bg-secondary/50 border-border/50 pr-10"
+                  className="pr-10"
                   required
                 />
                 <button
@@ -412,7 +415,7 @@ export function AccountContent() {
                   type={showNewPassword ? "text" : "password"}
                   value={passwordData.newPassword}
                   onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                  className="bg-secondary/50 border-border/50 pr-10"
+                  className="pr-10"
                   required
                   minLength={8}
                 />
@@ -432,7 +435,7 @@ export function AccountContent() {
                 type="password"
                 value={passwordData.confirmPassword}
                 onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                className="bg-secondary/50 border-border/50"
+                className=""
                 required
                 minLength={8}
               />

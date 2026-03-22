@@ -60,8 +60,8 @@ export function CourseList({ courses, onUpdate }: CourseListProps) {
 
             <div className="space-y-3">
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-primary/20">
-                  <BookOpen className="h-5 w-5 text-primary" />
+                <div className="p-2 rounded-lg bg-ivy-pale">
+                  <BookOpen className="h-5 w-5" style={{ color: "var(--ivy-mid)" }} />
                 </div>
                 <div>
                   <h3 className="font-semibold text-foreground">{course.name}</h3>

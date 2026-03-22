@@ -41,9 +41,9 @@ const typeIcons = {
 }
 
 const priorityColors = {
-  high: "border-destructive text-destructive",
-  medium: "border-warning text-warning",
-  low: "border-success text-success",
+  high: "border-[#b83232] text-[#b83232] bg-[#f9e8e8]",
+  medium: "border-gold text-[#8a6500] bg-gold-pale",
+  low: "border-ivy-light text-ivy-mid bg-ivy-pale",
 }
 
 export function AcademicItemList({ items, courses, onUpdate }: AcademicItemListProps) {
@@ -119,8 +119,8 @@ export function AcademicItemList({ items, courses, onUpdate }: AcademicItemListP
             className={cn(
               "px-3 py-1.5 rounded-lg text-sm font-medium transition-all capitalize",
               filter === f
-                ? "gradient-primary text-white glow-primary"
-                : "bg-secondary text-muted-foreground hover:text-foreground",
+                ? "bg-ivy text-cream border border-ivy"
+                : "bg-secondary text-muted-foreground hover:text-foreground border border-border",
             )}
           >
             {f}

@@ -14,13 +14,13 @@ interface MainLayoutProps {
 export function MainLayout({ children, userRole = "ATHLETE", userName = "Athlete" }: MainLayoutProps) {
   return (
     <div className="min-h-screen bg-background">
-      {/* Desktop Sidebar */}
+      {/* Desktop Sidebar — fixed 200px */}
       <div className="hidden md:block">
         <Sidebar userRole={userRole} userName={userName} />
       </div>
 
       {/* Main content */}
-      <main className="md:pl-64 pb-20 md:pb-0 transition-all duration-300">
+      <main className="md:pl-[200px] pb-20 md:pb-0">
         <div className="min-h-screen">{children}</div>
       </main>
 

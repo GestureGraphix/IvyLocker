@@ -73,7 +73,7 @@ export function HydrationTracker({ logs, onUpdate }: HydrationTrackerProps) {
                   ? "Today"
                   : new Date(date).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
               </h3>
-              <Badge variant="outline" className="border-primary/50 text-primary">
+              <Badge variant="outline" className="border-ivy-light/40 text-ivy-mid">
                 {dayTotal} oz total
               </Badge>
             </div>
@@ -91,7 +91,7 @@ export function HydrationTracker({ logs, onUpdate }: HydrationTrackerProps) {
                       )}
                     >
                       <div className="flex items-center gap-3">
-                        <Droplets className="h-4 w-4 text-primary" />
+                        <Droplets className="h-4 w-4" style={{ color: "var(--ivy-mid)" }} />
                         <span className="font-medium text-foreground">{log.ounces} oz</span>
                         <Badge variant="secondary" className="text-xs">
                           {log.source}
