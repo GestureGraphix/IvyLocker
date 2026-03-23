@@ -2,6 +2,28 @@ import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
 import { sql } from "@/lib/db"
 
+export async function GET() {
+  try {
+    const user = await getCurrentUser()
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+    const result = await sql`
+      SELECT u.name, u.email, u.role,
+        ap.sport, ap.team, ap.position, ap.university, ap.graduation_year,
+        ap.height_cm, ap.weight_kg, ap.hydration_goal_oz, ap.calorie_goal,
+        ap.protein_goal_grams, ap.phone
+      FROM users u
+      LEFT JOIN athlete_profiles ap ON ap.user_id = u.id
+      WHERE u.id = ${user.id}
+    `
+
+    return NextResponse.json({ profile: result[0] || {} })
+  } catch (error) {
+    console.error("Get profile error:", error)
+    return NextResponse.json({ error: "Failed to get profile" }, { status: 500 })
+  }
+}
+
 export async function PATCH(request: Request) {
   try {
     const user = await getCurrentUser()
