@@ -9,7 +9,6 @@ const DINING_HALLS = [
   { id: 7,  name: "Dunster & Mather" },
   { id: 14, name: "Eliot & Kirkland" },
   { id: 16, name: "Leverett House" },
-  { id: 15, name: "Lowell & Winthrop" },
   { id: 8,  name: "Quincy House" },
 ]
 
