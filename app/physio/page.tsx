@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/lib/auth"
 import { PhysioPortal } from "@/components/physio/physio-portal"
+import { MainLayout } from "@/components/layout/main-layout"
 import { redirect } from "next/navigation"
 
 export default async function PhysioPage() {
@@ -7,5 +8,9 @@ export default async function PhysioPage() {
 
   if (!user || user.role !== "PHYSIO") redirect("/")
 
-  return <PhysioPortal />
+  return (
+    <MainLayout userName={user.name} userRole="PHYSIO">
+      <PhysioPortal />
+    </MainLayout>
+  )
 }
