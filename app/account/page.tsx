@@ -8,6 +8,7 @@ export default async function AccountPage() {
   const user = await getCurrentUser()
 
   if (user?.role === "COACH") redirect("/coach")
+  if (user?.role === "PHYSIO") redirect("/physio")
 
   let profile: Record<string, any> = {}
   if (user) {

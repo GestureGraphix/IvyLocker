@@ -7,6 +7,7 @@ export default async function TrainingPage() {
   const user = await getCurrentUser()
 
   if (user?.role === "COACH") redirect("/coach")
+  if (user?.role === "PHYSIO") redirect("/physio")
 
   return (
     <MainLayout userName={user?.name || "Demo Athlete"} userRole={user?.role || "ATHLETE"}>
