@@ -13,7 +13,7 @@ export async function GET() {
     const today = new Date().toISOString().split("T")[0]
 
     const result = await sql`
-      SELECT id, date, mental_state, physical_state, notes, created_at
+      SELECT id, date, mental_state, physical_state, notes, soreness_areas, created_at
       FROM check_in_logs
       WHERE user_id = ${user.id}
         AND date = ${today}

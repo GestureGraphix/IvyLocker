@@ -1,15 +1,18 @@
 "use client"
 
+import type React from "react"
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { Brain, Heart, CheckCircle2, Loader2 } from "lucide-react"
+import { BodyMap } from "./body-map"
 
 export function CheckInWidget() {
   const [mentalState, setMentalState] = useState<number | null>(null)
   const [physicalState, setPhysicalState] = useState<number | null>(null)
+  const [sorenessAreas, setSorenessAreas] = useState<string[]>([])
   const [notes, setNotes] = useState("")
   const [isExpanded, setIsExpanded] = useState(true)
   const [hasCheckedIn, setHasCheckedIn] = useState(false)
@@ -25,6 +28,7 @@ export function CheckInWidget() {
           if (data.checkIn) {
             setMentalState(data.checkIn.mental_state)
             setPhysicalState(data.checkIn.physical_state)
+            setSorenessAreas(data.checkIn.soreness_areas || [])
             setNotes(data.checkIn.notes || "")
             setHasCheckedIn(true)
             setIsExpanded(false)
@@ -45,7 +49,7 @@ export function CheckInWidget() {
       const res = await fetch("/api/athletes/check-in", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mentalState, physicalState, notes }),
+        body: JSON.stringify({ mentalState, physicalState, sorenessAreas, notes }),
       })
       if (res.ok) {
         setHasCheckedIn(true)
@@ -93,6 +97,7 @@ export function CheckInWidget() {
                 }}
               >
                 Mental: {mentalState}/10 · Physical: {physicalState}/10
+                {sorenessAreas.length > 0 && ` · ${sorenessAreas.length} sore area${sorenessAreas.length !== 1 ? "s" : ""}`}
               </p>
             </div>
           </div>
@@ -140,9 +145,7 @@ export function CheckInWidget() {
               <button
                 key={num}
                 onClick={() => setMentalState(num)}
-                className={cn(
-                  "flex-1 py-2 text-[12px] font-medium transition-all rounded-sm",
-                )}
+                className={cn("flex-1 py-2 text-[12px] font-medium transition-all rounded-sm")}
                 style={{
                   background: mentalState === num ? "var(--ivy)" : "var(--cream-d)",
                   color: mentalState === num ? "var(--cream)" : "var(--soft)",
@@ -175,9 +178,7 @@ export function CheckInWidget() {
               <button
                 key={num}
                 onClick={() => setPhysicalState(num)}
-                className={cn(
-                  "flex-1 py-2 text-[12px] font-medium transition-all rounded-sm",
-                )}
+                className={cn("flex-1 py-2 text-[12px] font-medium transition-all rounded-sm")}
                 style={{
                   background: physicalState === num ? "var(--gold)" : "var(--cream-d)",
                   color: physicalState === num ? "var(--black, #0c0c0c)" : "var(--soft)",
@@ -188,6 +189,74 @@ export function CheckInWidget() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Soreness Body Map */}
+        <div className="space-y-2">
+          <label
+            style={{
+              fontFamily: "'DM Mono', monospace",
+              fontSize: "9px",
+              letterSpacing: "1px",
+              textTransform: "uppercase",
+              color: "var(--soft)",
+              display: "block",
+            }}
+          >
+            Soreness — tap areas that feel sore
+          </label>
+
+          <div
+            className="rounded-lg p-4"
+            style={{ background: "var(--cream-d, #f7f4ef)", border: "1px solid var(--cream-dd, #e8e2d9)" }}
+          >
+            <BodyMap selected={sorenessAreas} onChange={setSorenessAreas} />
+          </div>
+
+          {sorenessAreas.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {sorenessAreas.map(id => {
+                const allZones = [
+                  { id: "head", label: "Head" }, { id: "neck", label: "Neck" },
+                  { id: "l-shoulder", label: "L Shoulder" }, { id: "r-shoulder", label: "R Shoulder" },
+                  { id: "chest", label: "Chest" }, { id: "l-bicep", label: "L Bicep" },
+                  { id: "r-bicep", label: "R Bicep" }, { id: "core", label: "Core" },
+                  { id: "l-forearm", label: "L Forearm" }, { id: "r-forearm", label: "R Forearm" },
+                  { id: "l-hip", label: "L Hip" }, { id: "r-hip", label: "R Hip" },
+                  { id: "l-quad", label: "L Quad" }, { id: "r-quad", label: "R Quad" },
+                  { id: "l-knee", label: "L Knee" }, { id: "r-knee", label: "R Knee" },
+                  { id: "l-shin", label: "L Shin" }, { id: "r-shin", label: "R Shin" },
+                  { id: "b-head", label: "Head" }, { id: "b-neck", label: "Neck" },
+                  { id: "l-trap", label: "L Trap" }, { id: "r-trap", label: "R Trap" },
+                  { id: "l-shoulder-b", label: "L Shoulder" }, { id: "r-shoulder-b", label: "R Shoulder" },
+                  { id: "upper-back", label: "Upper Back" }, { id: "l-lat", label: "L Lat" },
+                  { id: "r-lat", label: "R Lat" }, { id: "lower-back", label: "Lower Back" },
+                  { id: "l-glute", label: "L Glute" }, { id: "r-glute", label: "R Glute" },
+                  { id: "l-hamstring", label: "L Hamstring" }, { id: "r-hamstring", label: "R Hamstring" },
+                  { id: "l-knee-b", label: "L Knee" }, { id: "r-knee-b", label: "R Knee" },
+                  { id: "l-calf", label: "L Calf" }, { id: "r-calf", label: "R Calf" },
+                ]
+                const zone = allZones.find(z => z.id === id)
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setSorenessAreas(prev => prev.filter(s => s !== id))}
+                    className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-opacity hover:opacity-70"
+                    style={{
+                      background: "rgba(239,68,68,0.12)",
+                      color: "#ef4444",
+                      border: "1px solid rgba(239,68,68,0.25)",
+                      fontFamily: "'DM Mono', monospace",
+                      fontSize: "9px",
+                      letterSpacing: "0.3px",
+                    }}
+                  >
+                    {zone?.label ?? id} ×
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* Notes */}

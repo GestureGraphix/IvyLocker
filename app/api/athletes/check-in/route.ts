@@ -10,7 +10,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { mentalState, physicalState, notes } = await request.json()
+    const { mentalState, physicalState, notes, sorenessAreas } = await request.json()
 
     if (!mentalState || !physicalState) {
       return NextResponse.json(
@@ -27,18 +27,20 @@ export async function POST(request: Request) {
     }
 
     const today = new Date().toISOString().split("T")[0]
+    const soreness = JSON.stringify(sorenessAreas || [])
 
     // Upsert - update if exists, insert if not
     const result = await sql`
-      INSERT INTO check_in_logs (user_id, date, mental_state, physical_state, notes)
-      VALUES (${user.id}, ${today}, ${mentalState}, ${physicalState}, ${notes || null})
+      INSERT INTO check_in_logs (user_id, date, mental_state, physical_state, notes, soreness_areas)
+      VALUES (${user.id}, ${today}, ${mentalState}, ${physicalState}, ${notes || null}, ${soreness}::jsonb)
       ON CONFLICT (user_id, date)
       DO UPDATE SET
         mental_state = ${mentalState},
         physical_state = ${physicalState},
         notes = ${notes || null},
+        soreness_areas = ${soreness}::jsonb,
         created_at = NOW()
-      RETURNING id, date, mental_state, physical_state, notes, created_at
+      RETURNING id, date, mental_state, physical_state, notes, soreness_areas, created_at
     `
 
     return NextResponse.json({ checkIn: result[0] }, { status: 201 })
