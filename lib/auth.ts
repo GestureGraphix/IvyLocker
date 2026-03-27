@@ -8,7 +8,7 @@ export interface User {
   id: string
   email: string
   name: string
-  role: "ATHLETE" | "COACH"
+  role: "ATHLETE" | "COACH" | "PHYSIO"
 }
 
 export interface Session {
@@ -109,7 +109,7 @@ export async function getUserByEmail(email: string) {
 }
 
 // Create new user
-export async function createUser(email: string, name: string, password: string, role: "ATHLETE" | "COACH" = "ATHLETE") {
+export async function createUser(email: string, name: string, password: string, role: "ATHLETE" | "COACH" | "PHYSIO" = "ATHLETE") {
   const passwordHash = await hashPassword(password)
 
   const result = await sql`

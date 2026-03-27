@@ -7,11 +7,11 @@ import { MobileNav } from "./mobile-nav"
 
 interface MainLayoutProps {
   children: React.ReactNode
-  userRole?: "ATHLETE" | "COACH"
+  userRole?: "ATHLETE" | "COACH" | "PHYSIO"
   userName?: string
 }
 
-export function MainLayout({ children, userRole = "ATHLETE", userName = "Athlete" }: MainLayoutProps) {
+export function MainLayout({ children, userRole = "ATHLETE", userName = "User" }: MainLayoutProps) {
   return (
     <div className="min-h-screen bg-background">
       {/* Desktop Sidebar — fixed 200px */}

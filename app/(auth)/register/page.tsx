@@ -17,7 +17,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const [role, setRole] = useState<"ATHLETE" | "COACH">("ATHLETE")
+  const [role, setRole] = useState<"ATHLETE" | "COACH" | "PHYSIO">("ATHLETE")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
@@ -160,8 +160,8 @@ export default function RegisterPage() {
             {/* Role Selection */}
             <div className="space-y-1.5">
               <Label>I am a...</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {(["ATHLETE", "COACH"] as const).map((r) => (
+              <div className="grid grid-cols-3 gap-2">
+                {(["ATHLETE", "COACH", "PHYSIO"] as const).map((r) => (
                   <button
                     key={r}
                     type="button"

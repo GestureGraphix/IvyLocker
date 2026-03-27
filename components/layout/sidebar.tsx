@@ -12,6 +12,7 @@ import {
   Users,
   LogOut,
   CalendarDays,
+  Stethoscope,
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 
@@ -29,9 +30,10 @@ const academicsItems = [
 
 const accountItems = [{ href: "/account", label: "Account", icon: User }]
 const coachItem = { href: "/coach", label: "Coach Portal", icon: Users }
+const physioItem = { href: "/physio", label: "Physio Portal", icon: Stethoscope }
 
 interface SidebarProps {
-  userRole?: "ATHLETE" | "COACH"
+  userRole?: "ATHLETE" | "COACH" | "PHYSIO"
   userName?: string
 }
 
@@ -108,12 +110,17 @@ export function Sidebar({ userRole, userName }: SidebarProps) {
   const displayName = userName || user?.name || "Athlete"
   const displayRole = userRole || user?.role || "ATHLETE"
   const isCoach = displayRole === "COACH"
+  const isPhysio = displayRole === "PHYSIO"
 
   const nameParts = displayName.trim().split(" ")
   const surname = nameParts[nameParts.length - 1].toUpperCase()
   const firstName = nameParts[0]
 
-  const allAccountItems = isCoach ? [...accountItems, coachItem] : accountItems
+  const allAccountItems = isCoach
+    ? [...accountItems, coachItem]
+    : isPhysio
+    ? [...accountItems, physioItem]
+    : accountItems
 
   return (
     <aside
@@ -150,10 +157,10 @@ export function Sidebar({ userRole, userName }: SidebarProps) {
               fontSize: "8px",
               letterSpacing: "2px",
               textTransform: "uppercase",
-              color: isCoach ? "#7dd3fc" : "var(--uni-accent)",
+              color: isCoach ? "#7dd3fc" : isPhysio ? "#a78bfa" : "var(--uni-accent)",
             }}
           >
-            {isCoach ? "Coach" : "Athlete"}
+            {isCoach ? "Coach" : isPhysio ? "Physio" : "Athlete"}
           </span>
         </Link>
       </div>
@@ -243,34 +250,39 @@ export function Sidebar({ userRole, userName }: SidebarProps) {
           style={{
             background: "rgba(255,255,255,0.05)",
             border: "1px solid rgba(255,255,255,0.06)",
+            fontFamily: "'DM Mono', monospace",
+            fontSize: "9px",
+            letterSpacing: "1px",
+            textTransform: "uppercase",
           }}
         >
-          <button
-            className="flex-1 py-1.5 rounded transition-all"
+          <div
+            className="flex-1 py-1.5 text-center"
             style={{
-              fontFamily: "'DM Mono', monospace",
-              fontSize: "9px",
-              letterSpacing: "1px",
-              textTransform: "uppercase",
-              background: !isCoach ? "rgba(255,255,255,0.10)" : "transparent",
-              color: !isCoach ? "#f7f2ea" : "rgba(255,255,255,0.25)",
+              background: !isCoach && !isPhysio ? "rgba(255,255,255,0.10)" : "transparent",
+              color: !isCoach && !isPhysio ? "#f7f2ea" : "rgba(255,255,255,0.25)",
             }}
           >
             Athlete
-          </button>
-          <button
-            className="flex-1 py-1.5 rounded transition-all"
+          </div>
+          <div
+            className="flex-1 py-1.5 text-center"
             style={{
-              fontFamily: "'DM Mono', monospace",
-              fontSize: "9px",
-              letterSpacing: "1px",
-              textTransform: "uppercase",
               background: isCoach ? "rgba(255,255,255,0.10)" : "transparent",
               color: isCoach ? "#f7f2ea" : "rgba(255,255,255,0.25)",
             }}
           >
             Coach
-          </button>
+          </div>
+          <div
+            className="flex-1 py-1.5 text-center"
+            style={{
+              background: isPhysio ? "rgba(255,255,255,0.10)" : "transparent",
+              color: isPhysio ? "#f7f2ea" : "rgba(255,255,255,0.25)",
+            }}
+          >
+            Physio
+          </div>
         </div>
 
         <button

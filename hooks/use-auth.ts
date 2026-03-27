@@ -8,7 +8,7 @@ interface User {
   id: string
   email: string
   name: string
-  role: "ATHLETE" | "COACH"
+  role: "ATHLETE" | "COACH" | "PHYSIO"
   sport?: string
   level?: string
   team?: string
@@ -65,7 +65,7 @@ export function useAuth() {
   )
 
   const register = useCallback(
-    async (email: string, name: string, password: string, role: "ATHLETE" | "COACH" = "ATHLETE") => {
+    async (email: string, name: string, password: string, role: "ATHLETE" | "COACH" | "PHYSIO" = "ATHLETE") => {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
