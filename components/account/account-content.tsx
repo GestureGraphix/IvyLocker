@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { toast } from "sonner"
 import useSWR from "swr"
 import { GlassCard } from "@/components/ui/glass-card"
@@ -20,6 +20,7 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json())
 export function AccountContent() {
   const { user, logout, mutate: mutateAuth } = useAuth()
   const { data: profileData, mutate: mutateProfile } = useSWR("/api/athletes/profile", fetcher)
+  const populatedRef = useRef(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
@@ -64,9 +65,12 @@ export function AccountContent() {
     applyUniversityTheme(value)
   }
 
-  // Populate form once both user (name/email) and profile data are available
+  // Populate form exactly once per mount when both sources are ready
   useEffect(() => {
-    if (!user) return
+    if (populatedRef.current) return
+    if (!user || profileData === undefined) return
+
+    populatedRef.current = true
     const p = profileData?.profile || {}
     setFormData({
       name: user.name || "",
@@ -108,6 +112,7 @@ export function AccountContent() {
       })
 
       if (res.ok) {
+        populatedRef.current = false
         await mutateAuth()
         await mutateProfile()
         toast.success("Profile updated successfully")
