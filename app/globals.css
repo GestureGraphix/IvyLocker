@@ -8,6 +8,13 @@
    Cream + Ivy Green + Gold
 ══════════════════════════════════════════ */
 :root {
+  /* University theme — overridden dynamically by UniversityThemeProvider */
+  --uni-primary: #162e22;
+  --uni-accent: #c9a84c;
+  --uni-mid: #2d6a4f;
+  --uni-light: #52b788;
+  --uni-pale: #d8f0e4;
+
   /* Surface */
   --background: #f7f2ea;
   --foreground: #1a1714;
@@ -16,8 +23,8 @@
   --popover: #ffffff;
   --popover-foreground: #1a1714;
 
-  /* Primary — Ivy Green */
-  --primary: #162e22;
+  /* Primary — driven by university */
+  --primary: var(--uni-primary);
   --primary-foreground: #f7f2ea;
 
   /* Secondary — warm cream-dark */
@@ -55,9 +62,9 @@
   --radius: 0.375rem;
 
   /* Sidebar */
-  --sidebar: #162e22;
+  --sidebar: var(--uni-primary);
   --sidebar-foreground: #f7f2ea;
-  --sidebar-primary: #c9a84c;
+  --sidebar-primary: var(--uni-accent);
   --sidebar-primary-foreground: #0c0c0c;
   --sidebar-accent: rgba(255, 255, 255, 0.06);
   --sidebar-accent-foreground: #f7f2ea;
@@ -65,10 +72,10 @@
   --sidebar-ring: #c9a84c;
 
   /* ── Design tokens (from mockup) ── */
-  --ivy: #162e22;
-  --ivy-mid: #2d6a4f;
-  --ivy-light: #52b788;
-  --ivy-pale: #d8f0e4;
+  --ivy: var(--uni-primary);
+  --ivy-mid: var(--uni-mid);
+  --ivy-light: var(--uni-light);
+  --ivy-pale: var(--uni-pale);
   --gold: #c9a84c;
   --gold-pale: #fdf3dc;
   --cream: #f7f2ea;

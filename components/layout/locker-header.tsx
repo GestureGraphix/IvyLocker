@@ -25,7 +25,7 @@ export function LockerHeader({
     <div
       className="relative overflow-hidden flex-shrink-0"
       style={{
-        background: "#162e22",
+        background: "var(--uni-primary)",
         backgroundImage:
           "repeating-linear-gradient(-60deg, transparent, transparent 60px, rgba(255,255,255,0.015) 60px, rgba(255,255,255,0.015) 61px)",
         minHeight: "128px",
@@ -98,7 +98,7 @@ export function LockerHeader({
           {event && (
             <p
               className="mt-1 font-medium"
-              style={{ fontSize: "11px", color: "#c9a84c" }}
+              style={{ fontSize: "11px", color: "var(--uni-accent)" }}
             >
               {event}
             </p>

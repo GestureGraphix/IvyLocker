@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata, Viewport } from "next"
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/sonner"
+import { UniversityThemeProvider } from "@/components/university-theme-provider"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -41,7 +42,9 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased">
-        {children}
+        <UniversityThemeProvider>
+          {children}
+        </UniversityThemeProvider>
         <Toaster position="top-right" richColors closeButton />
         <Analytics />
       </body>

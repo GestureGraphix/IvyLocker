@@ -8,8 +8,12 @@ import { GlassCard } from "@/components/ui/glass-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/hooks/use-auth"
+import { UNIVERSITY_THEMES, getUniversityTheme } from "@/lib/university-themes"
 import { User, Mail, Phone, MapPin, GraduationCap, Target, Droplets, Flame, Beef, Save, Loader2, Lock, Eye, EyeOff } from "lucide-react"
+
+const UNIVERSITIES = Object.keys(UNIVERSITY_THEMES)
 
 export function AccountContent() {
   const { user, logout, mutate } = useAuth()
@@ -40,6 +44,21 @@ export function AccountContent() {
     calorie_goal: "2500",
     protein_goal_grams: "150",
   })
+
+  const applyUniversityTheme = (university: string) => {
+    const theme = getUniversityTheme(university)
+    const root = document.documentElement
+    root.style.setProperty("--uni-primary", theme.primary)
+    root.style.setProperty("--uni-accent", theme.accent)
+    root.style.setProperty("--uni-mid", theme.mid)
+    root.style.setProperty("--uni-light", theme.light)
+    root.style.setProperty("--uni-pale", theme.pale)
+  }
+
+  const handleUniversityChange = (value: string) => {
+    setFormData({ ...formData, university: value })
+    applyUniversityTheme(value)
+  }
 
   // Populate form when user data loads
   useEffect(() => {
@@ -287,14 +306,36 @@ export function AccountContent() {
           </h2>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="university">University</Label>
-              <Input
-                id="university"
-                value={formData.university}
-                onChange={(e) => setFormData({ ...formData, university: e.target.value })}
-                className=""
-                placeholder="e.g., Yale University"
-              />
+              <Label>University</Label>
+              <Select value={formData.university} onValueChange={handleUniversityChange}>
+                <SelectTrigger className="w-full">
+                  <div className="flex items-center gap-2">
+                    {formData.university && (
+                      <span
+                        className="inline-block w-3 h-3 rounded-full flex-shrink-0"
+                        style={{ background: getUniversityTheme(formData.university).primary }}
+                      />
+                    )}
+                    <SelectValue placeholder="Select your university" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  {UNIVERSITIES.map((uni) => {
+                    const theme = getUniversityTheme(uni)
+                    return (
+                      <SelectItem key={uni} value={uni}>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="inline-block w-3 h-3 rounded-full flex-shrink-0"
+                            style={{ background: theme.primary }}
+                          />
+                          {uni}
+                        </div>
+                      </SelectItem>
+                    )
+                  })}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="grad_year">Graduation Year</Label>
