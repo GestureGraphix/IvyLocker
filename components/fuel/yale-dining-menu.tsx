@@ -5,7 +5,7 @@ import { GlassCard } from "@/components/ui/glass-card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { Loader2, Plus, ChevronLeft, ChevronRight, ChevronDown, Search, Utensils, Check } from "lucide-react"
+import { Loader2, Plus, ChevronLeft, ChevronRight, ChevronDown, Search, Utensils, Check, Star } from "lucide-react"
 import { cn } from "@/lib/utils"
 import useSWR from "swr"
 import { toast } from "sonner"
@@ -48,6 +48,16 @@ interface YaleDiningMenuProps {
   }) => Promise<void>
 }
 
+interface MealFavorite {
+  id: string
+  item_name: string
+  location_slug: string
+  calories: number
+  protein_grams: number
+  carbs_grams: number
+  fat_grams: number
+}
+
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 function formatDate(date: Date): string {
@@ -77,6 +87,9 @@ export function YaleDiningMenu({ onLogMeal }: YaleDiningMenuProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [loggingItem, setLoggingItem] = useState<number | null>(null)
   const [loggedItems, setLoggedItems] = useState<Set<number>>(new Set())
+  // favorites: item_name → favorite id
+  const [favorites, setFavorites] = useState<Map<string, string>>(new Map())
+  const [togglingFavorite, setTogglingFavorite] = useState<string | null>(null)
 
   // Collapsible state - meals and sections
   const [expandedMeals, setExpandedMeals] = useState<Set<string>>(new Set([getCurrentMeal()]))
@@ -90,6 +103,59 @@ export function YaleDiningMenu({ onLogMeal }: YaleDiningMenuProps) {
       dedupingInterval: 60000, // 1 minute
     }
   )
+
+  const { data: favoritesData } = useSWR<{ favorites: MealFavorite[] }>(
+    "/api/athletes/meal-favorites",
+    fetcher,
+    { revalidateOnFocus: false }
+  )
+
+  useEffect(() => {
+    if (favoritesData?.favorites) {
+      const map = new Map<string, string>()
+      for (const fav of favoritesData.favorites) {
+        map.set(fav.item_name, fav.id)
+      }
+      setFavorites(map)
+    }
+  }, [favoritesData])
+
+  const handleToggleFavorite = async (item: MenuItem) => {
+    const existingId = favorites.get(item.name)
+    setTogglingFavorite(item.name)
+
+    try {
+      if (existingId) {
+        await fetch(`/api/athletes/meal-favorites/${existingId}`, { method: "DELETE" })
+        setFavorites(prev => {
+          const next = new Map(prev)
+          next.delete(item.name)
+          return next
+        })
+      } else {
+        const res = await fetch("/api/athletes/meal-favorites", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            item_name: item.name,
+            location_slug: selectedLocation,
+            calories: item.calories,
+            protein_grams: item.proteinG,
+            carbs_grams: item.carbsG,
+            fat_grams: item.fatG,
+          }),
+        })
+        const json = await res.json()
+        if (json.favorite) {
+          setFavorites(prev => new Map(prev).set(item.name, json.favorite.id))
+        }
+      }
+    } catch {
+      toast.error("Failed to update favorite")
+    } finally {
+      setTogglingFavorite(null)
+    }
+  }
 
   // Auto-expand current meal when data loads
   useEffect(() => {
@@ -335,6 +401,8 @@ export function YaleDiningMenu({ onLogMeal }: YaleDiningMenuProps) {
                           {sectionItems.map((item) => {
                             const isLogging = loggingItem === item.menuItemId
                             const isLogged = loggedItems.has(item.menuItemId)
+                            const isFavorited = favorites.has(item.name)
+                            const isTogglingFav = togglingFavorite === item.name
 
                             return (
                               <div
@@ -355,31 +423,48 @@ export function YaleDiningMenu({ onLogMeal }: YaleDiningMenuProps) {
                                   </div>
                                 </div>
 
-                                <Button
-                                  size="sm"
-                                  variant={isLogged ? "outline" : "default"}
-                                  onClick={() => handleLogItem(item, meal.mealType)}
-                                  disabled={isLogging}
-                                  className={cn(
-                                    "h-9 min-w-[80px]",
-                                    !isLogged && "gradient-primary",
-                                    isLogged && "border-ivy-light text-ivy-mid"
-                                  )}
-                                >
-                                  {isLogging ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : isLogged ? (
-                                    <>
-                                      <Check className="h-4 w-4 mr-1" />
-                                      Added
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Plus className="h-4 w-4 mr-1" />
-                                      Log
-                                    </>
-                                  )}
-                                </Button>
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={() => handleToggleFavorite(item)}
+                                    disabled={isTogglingFav}
+                                    className={cn(
+                                      "h-9 w-9 flex items-center justify-center rounded-lg transition-colors",
+                                      "hover:bg-secondary/60",
+                                      isFavorited ? "text-warning" : "text-muted-foreground"
+                                    )}
+                                    aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
+                                  >
+                                    <Star
+                                      className={cn("h-4 w-4", isFavorited && "fill-current")}
+                                    />
+                                  </button>
+
+                                  <Button
+                                    size="sm"
+                                    variant={isLogged ? "outline" : "default"}
+                                    onClick={() => handleLogItem(item, meal.mealType)}
+                                    disabled={isLogging}
+                                    className={cn(
+                                      "h-9 min-w-[80px]",
+                                      !isLogged && "gradient-primary",
+                                      isLogged && "border-ivy-light text-ivy-mid"
+                                    )}
+                                  >
+                                    {isLogging ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : isLogged ? (
+                                      <>
+                                        <Check className="h-4 w-4 mr-1" />
+                                        Added
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Plus className="h-4 w-4 mr-1" />
+                                        Log
+                                      </>
+                                    )}
+                                  </Button>
+                                </div>
                               </div>
                             )
                           })}
