@@ -42,24 +42,32 @@ export async function PATCH(request: Request) {
       `
     }
 
-    // Update athlete profile
+    // Upsert athlete profile (creates row if it doesn't exist yet)
     await sql`
-      UPDATE athlete_profiles SET
-        sport = COALESCE(${body.sport ?? null}, sport),
-        team = COALESCE(${body.team ?? null}, team),
-        position = COALESCE(${body.position ?? null}, position),
-        jersey_number = COALESCE(${body.jersey_number ?? null}, jersey_number),
-        phone = COALESCE(${body.phone ?? null}, phone),
-        location = COALESCE(${body.location ?? null}, location),
-        university = COALESCE(${body.university ?? null}, university),
-        graduation_year = COALESCE(${body.graduation_year ?? null}, graduation_year),
-        height_cm = COALESCE(${body.height_cm ?? null}, height_cm),
-        weight_kg = COALESCE(${body.weight_kg ?? null}, weight_kg),
-        hydration_goal_oz = COALESCE(${body.hydration_goal_oz ?? null}, hydration_goal_oz),
-        calorie_goal = COALESCE(${body.calorie_goal ?? null}, calorie_goal),
-        protein_goal_grams = COALESCE(${body.protein_goal_grams ?? null}, protein_goal_grams),
+      INSERT INTO athlete_profiles (user_id, sport, team, position, jersey_number, phone, location, university, graduation_year, height_cm, weight_kg, hydration_goal_oz, calorie_goal, protein_goal_grams)
+      VALUES (
+        ${user.id},
+        ${body.sport ?? null}, ${body.team ?? null}, ${body.position ?? null},
+        ${body.jersey_number ?? null}, ${body.phone ?? null}, ${body.location ?? null},
+        ${body.university ?? null}, ${body.graduation_year ?? null},
+        ${body.height_cm ?? null}, ${body.weight_kg ?? null},
+        ${body.hydration_goal_oz ?? 100}, ${body.calorie_goal ?? 2500}, ${body.protein_goal_grams ?? 150}
+      )
+      ON CONFLICT (user_id) DO UPDATE SET
+        sport = COALESCE(EXCLUDED.sport, athlete_profiles.sport),
+        team = COALESCE(EXCLUDED.team, athlete_profiles.team),
+        position = COALESCE(EXCLUDED.position, athlete_profiles.position),
+        jersey_number = COALESCE(EXCLUDED.jersey_number, athlete_profiles.jersey_number),
+        phone = COALESCE(EXCLUDED.phone, athlete_profiles.phone),
+        location = COALESCE(EXCLUDED.location, athlete_profiles.location),
+        university = COALESCE(EXCLUDED.university, athlete_profiles.university),
+        graduation_year = COALESCE(EXCLUDED.graduation_year, athlete_profiles.graduation_year),
+        height_cm = COALESCE(EXCLUDED.height_cm, athlete_profiles.height_cm),
+        weight_kg = COALESCE(EXCLUDED.weight_kg, athlete_profiles.weight_kg),
+        hydration_goal_oz = COALESCE(EXCLUDED.hydration_goal_oz, athlete_profiles.hydration_goal_oz),
+        calorie_goal = COALESCE(EXCLUDED.calorie_goal, athlete_profiles.calorie_goal),
+        protein_goal_grams = COALESCE(EXCLUDED.protein_goal_grams, athlete_profiles.protein_goal_grams),
         updated_at = NOW()
-      WHERE user_id = ${user.id}
     `
 
     return NextResponse.json({ success: true })
