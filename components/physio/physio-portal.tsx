@@ -2,16 +2,8 @@
 
 import { useState } from "react"
 import useSWR from "swr"
-import {
-  Stethoscope, Users, Calendar, ClipboardList, LogOut,
-  UserPlus, Trash2, Loader2, ChevronLeft, ChevronRight,
-  Plus, X, Check, ChevronDown,
-} from "lucide-react"
+import { LogOut, X, Check, Loader2, Trash2, ChevronLeft, ChevronRight } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
-import { GlassCard } from "@/components/ui/glass-card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -59,18 +51,66 @@ interface PhysioAssignment {
   created_at: string
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// ─── Constants & helpers ──────────────────────────────────────────────────────
 
-const PURPLE = "#a78bfa"
-const ORANGE = "#f97316"
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
-const MONTH_NAMES = [
-  "January","February","March","April","May","June",
-  "July","August","September","October","November","December",
-]
+const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"]
 const DAY_LABELS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
 
-// ─── Root Component ───────────────────────────────────────────────────────────
+const C = {
+  bg: "#f7f2ea",
+  fg: "#1a1714",
+  muted: "#a09080",
+  rule: "#d5cec4",
+  soft: "#ece5d8",
+  red: "#b83232",
+  gold: "#c9a84c",
+  green: "#2d6a4f",
+} as const
+
+const MONO: React.CSSProperties = { fontFamily: "'DM Mono', monospace" }
+const BEBAS: React.CSSProperties = { fontFamily: "'Bebas Neue', sans-serif" }
+
+function athleteStatus(athleteId: string, assignments: PhysioAssignment[]): "flagged" | "protocol" | "cleared" {
+  const active = assignments.filter((a) => a.athlete_id === athleteId && a.status === "active")
+  if (active.some((a) => a.type === "rehab")) return "flagged"
+  if (active.some((a) => a.type === "prehab")) return "protocol"
+  return "cleared"
+}
+
+function statusColor(s: "flagged" | "protocol" | "cleared") {
+  return s === "flagged" ? C.red : s === "protocol" ? C.gold : C.green
+}
+
+function statusLabel(s: "flagged" | "protocol" | "cleared") {
+  return s === "flagged" ? "FLAGGED" : s === "protocol" ? "PROTOCOL" : "CLEARED"
+}
+
+function calcProgress(a: PhysioAssignment): number {
+  if (!a.duration_weeks) return 0
+  const total = a.duration_weeks * 7 * 24 * 60 * 60 * 1000
+  return Math.min(1, Math.max(0, (Date.now() - new Date(a.created_at).getTime()) / total))
+}
+
+function fmtDate(d: Date, opts?: Intl.DateTimeFormatOptions) {
+  return d.toLocaleDateString("en-US", opts ?? { month: "short", day: "numeric" })
+}
+
+// ─── Shared mini-components ───────────────────────────────────────────────────
+
+function MonoLabel({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <p style={{ ...MONO, fontSize: "9px", letterSpacing: "2px", color: C.muted, ...style }}>
+      {children}
+    </p>
+  )
+}
+
+function Rule({ style }: { style?: React.CSSProperties }) {
+  return <div style={{ borderTop: `1px solid ${C.rule}`, ...style }} />
+}
+
+// ─── Root ─────────────────────────────────────────────────────────────────────
 
 export function PhysioPortal() {
   const { logout } = useAuth()
@@ -80,120 +120,122 @@ export function PhysioPortal() {
     return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`
   })
 
-  const { data: ad, mutate: mutateAthletes } = useSWR<{ athletes: PhysioAthlete[] }>(
-    "/api/physio/athletes", fetcher
-  )
-  const { data: md, mutate: mutateMeetings } = useSWR<{ meetings: PhysioMeeting[] }>(
-    `/api/physio/meetings?month=${displayMonth}`, fetcher
-  )
-  const { data: asd, mutate: mutateAssignments } = useSWR<{ assignments: PhysioAssignment[] }>(
-    "/api/physio/assignments", fetcher
-  )
+  const { data: ad, mutate: mutateAthletes } = useSWR<{ athletes: PhysioAthlete[] }>("/api/physio/athletes", fetcher)
+  const { data: md, mutate: mutateMeetings } = useSWR<{ meetings: PhysioMeeting[] }>(`/api/physio/meetings?month=${displayMonth}`, fetcher)
+  const { data: asd, mutate: mutateAssignments } = useSWR<{ assignments: PhysioAssignment[] }>("/api/physio/assignments", fetcher)
 
   const athletes = ad?.athletes ?? []
   const meetings = md?.meetings ?? []
   const assignments = asd?.assignments ?? []
 
-  const totalActive = assignments.filter((a) => a.status === "active").length
-  const upcomingMeetings = meetings.filter(
-    (m) => m.status === "scheduled" && new Date(m.scheduled_at) >= new Date()
-  ).length
+  const flagged = athletes.filter((a) => athleteStatus(a.id, assignments) === "flagged").length
+  const protocols = assignments.filter((a) => a.status === "active").length
+  const upcoming = meetings.filter((m) => m.status === "scheduled" && new Date(m.scheduled_at) >= new Date()).length
 
-  const TABS = [
-    { key: "roster" as const, label: "Roster", Icon: Users },
-    { key: "calendar" as const, label: "Calendar", Icon: Calendar },
-    { key: "assignments" as const, label: "Assignments", Icon: ClipboardList },
-  ]
+  const today = new Date()
+  const dateStr = today.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }).toUpperCase().replace(",", " ·")
+
+  const TABS = ["roster", "calendar", "assignments"] as const
 
   return (
-    <div className="p-4 md:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1
-            className="flex items-center gap-2"
-            style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "32px", letterSpacing: "1px", color: "var(--cream)" }}
-          >
-            <Stethoscope className="h-6 w-6" style={{ color: PURPLE }} />
-            Physio Portal
-          </h1>
-          <p className="text-muted-foreground text-sm">Manage athletes, schedule meetings, and assign protocols</p>
+    <div style={{ background: C.bg, minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+
+      {/* ── Top nav ── */}
+      <header style={{
+        display: "flex", alignItems: "stretch",
+        borderBottom: `1px solid ${C.rule}`, height: "52px",
+        paddingLeft: "28px", paddingRight: "28px",
+      }}>
+        {/* Brand */}
+        <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", paddingRight: "32px", borderRight: `1px solid ${C.rule}`, gap: "2px", flexShrink: 0 }}>
+          <span style={{ ...BEBAS, fontSize: "16px", letterSpacing: "3px", color: C.fg, lineHeight: 1 }}>LOCKER</span>
+          <span style={{ ...MONO, fontSize: "8px", letterSpacing: "2px", color: C.muted, lineHeight: 1 }}>PHYSIO</span>
         </div>
-        <Button variant="ghost" size="icon" onClick={logout} title="Sign out">
-          <LogOut className="h-4 w-4" />
-        </Button>
-      </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <GlassCard className="text-center">
-          <div className="text-3xl font-bold" style={{ color: PURPLE }}>{athletes.length}</div>
-          <div className="text-sm text-muted-foreground">Athletes</div>
-        </GlassCard>
-        <GlassCard className="text-center">
-          <div className="text-3xl font-bold" style={{ color: ORANGE }}>{totalActive}</div>
-          <div className="text-sm text-muted-foreground">Active Protocols</div>
-        </GlassCard>
-        <GlassCard className="text-center">
-          <div className="text-3xl font-bold" style={{ color: PURPLE }}>{upcomingMeetings}</div>
-          <div className="text-sm text-muted-foreground">Upcoming Meetings</div>
-        </GlassCard>
-        <GlassCard className="text-center">
-          <div className="text-3xl font-bold" style={{ color: "var(--cream)" }}>
-            {assignments.filter((a) => a.status === "completed").length}
-          </div>
-          <div className="text-sm text-muted-foreground">Completed</div>
-        </GlassCard>
-      </div>
+        {/* Tabs */}
+        <div style={{ display: "flex", flex: 1, paddingLeft: "8px" }}>
+          {TABS.map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              style={{
+                ...MONO, fontSize: "10px", letterSpacing: "2px", textTransform: "uppercase",
+                color: tab === t ? C.fg : C.muted,
+                background: "none", border: "none",
+                borderBottom: `2px solid ${tab === t ? C.fg : "transparent"}`,
+                padding: "0 20px", cursor: "pointer", transition: "color 0.15s",
+              }}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-border">
-        {TABS.map(({ key, label, Icon }) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm transition-colors"
-            style={{
-              color: tab === key ? "var(--cream)" : "var(--muted-foreground)",
-              borderBottom: `2px solid ${tab === key ? PURPLE : "transparent"}`,
-              fontWeight: tab === key ? 500 : 400,
-            }}
-          >
-            <Icon className="h-4 w-4" />
-            {label}
+        {/* Date + logout */}
+        <div style={{ display: "flex", alignItems: "center", gap: "20px", flexShrink: 0 }}>
+          <span style={{ ...MONO, fontSize: "10px", letterSpacing: "2px", color: C.muted }}>{dateStr}</span>
+          <button onClick={logout} style={{ color: C.muted, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center" }}>
+            <LogOut size={13} />
           </button>
-        ))}
-      </div>
+        </div>
+      </header>
 
-      {/* Tab content */}
-      {tab === "roster" && <RosterTab athletes={athletes} onUpdate={mutateAthletes} />}
-      {tab === "calendar" && (
-        <CalendarTab
-          athletes={athletes}
-          meetings={meetings}
-          displayMonth={displayMonth}
-          onMonthChange={setDisplayMonth}
-          onUpdate={mutateMeetings}
-        />
-      )}
-      {tab === "assignments" && (
-        <AssignmentsTab
-          athletes={athletes}
-          assignments={assignments}
-          onUpdate={mutateAssignments}
-        />
-      )}
+      {/* ── Content ── */}
+      <div style={{ flex: 1 }}>
+        {tab === "roster" && (
+          <RosterTab
+            athletes={athletes}
+            assignments={assignments}
+            meetings={meetings}
+            onUpdateAthletes={mutateAthletes}
+            onUpdateMeetings={mutateMeetings}
+            onUpdateAssignments={mutateAssignments}
+            stats={{ athletes: athletes.length, flagged, protocols, upcoming }}
+          />
+        )}
+        {tab === "calendar" && (
+          <CalendarTab
+            athletes={athletes}
+            meetings={meetings}
+            displayMonth={displayMonth}
+            onMonthChange={setDisplayMonth}
+            onUpdate={mutateMeetings}
+          />
+        )}
+        {tab === "assignments" && (
+          <AssignmentsTab
+            athletes={athletes}
+            assignments={assignments}
+            onUpdate={mutateAssignments}
+          />
+        )}
+      </div>
     </div>
   )
 }
 
 // ─── Roster Tab ───────────────────────────────────────────────────────────────
 
-function RosterTab({ athletes, onUpdate }: { athletes: PhysioAthlete[]; onUpdate: () => void }) {
+function RosterTab({
+  athletes, assignments, meetings,
+  onUpdateAthletes, onUpdateMeetings, onUpdateAssignments,
+  stats,
+}: {
+  athletes: PhysioAthlete[]
+  assignments: PhysioAssignment[]
+  meetings: PhysioMeeting[]
+  onUpdateAthletes: () => void
+  onUpdateMeetings: () => void
+  onUpdateAssignments: () => void
+  stats: { athletes: number; flagged: number; protocols: number; upcoming: number }
+}) {
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [email, setEmail] = useState("")
   const [adding, setAdding] = useState(false)
   const [addError, setAddError] = useState("")
   const [removing, setRemoving] = useState<string | null>(null)
+
+  const selected = athletes.find((a) => a.id === selectedId) ?? null
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
@@ -208,7 +250,7 @@ function RosterTab({ athletes, onUpdate }: { athletes: PhysioAthlete[]; onUpdate
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to add athlete")
       setEmail("")
-      onUpdate()
+      onUpdateAthletes()
     } catch (err) {
       setAddError(err instanceof Error ? err.message : "Failed to add")
     } finally {
@@ -220,79 +262,396 @@ function RosterTab({ athletes, onUpdate }: { athletes: PhysioAthlete[]; onUpdate
     setRemoving(id)
     try {
       await fetch(`/api/physio/athletes?athleteId=${id}`, { method: "DELETE" })
-      onUpdate()
+      if (selectedId === id) setSelectedId(null)
+      onUpdateAthletes()
     } finally {
       setRemoving(null)
     }
   }
 
-  return (
-    <div className="space-y-4">
-      {/* Add athlete */}
-      <GlassCard>
-        <p className="text-sm font-medium mb-3" style={{ color: "var(--cream)" }}>Add Athlete</p>
-        <form onSubmit={handleAdd} className="flex gap-2">
-          <Input
-            type="email"
-            placeholder="athlete@university.edu"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="flex-1"
-          />
-          <Button type="submit" disabled={adding}>
-            {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4 mr-2" />}
-            {!adding && "Add"}
-          </Button>
-        </form>
-        {addError && <p className="mt-2 text-sm text-destructive">{addError}</p>}
-      </GlassCard>
+  const statBlocks = [
+    { label: "ATHLETES", value: stats.athletes, sub: "on roster", color: C.fg },
+    { label: "FLAGGED",  value: stats.flagged,  sub: "needs review", color: C.red },
+    { label: "PROTOCOLS",value: stats.protocols, sub: "active", color: C.gold },
+    { label: "MEETINGS", value: stats.upcoming,  sub: "upcoming", color: C.green },
+  ]
 
-      {/* Athletes list */}
-      {athletes.length === 0 ? (
-        <GlassCard className="text-center py-12">
-          <Users className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-          <p className="text-muted-foreground">No athletes yet. Add one above by email.</p>
-        </GlassCard>
-      ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {athletes.map((a) => (
-            <GlassCard key={a.id} className="flex items-center justify-between gap-3 p-4">
-              <div className="flex items-center gap-3 min-w-0">
+  return (
+    <div style={{ display: "flex", height: "calc(100vh - 52px)" }}>
+
+      {/* ── Left sidebar — stats ── */}
+      <aside style={{ width: "190px", borderRight: `1px solid ${C.rule}`, flexShrink: 0, overflowY: "auto" }}>
+        {statBlocks.map((s, i) => (
+          <div key={s.label}>
+            <div style={{ padding: "22px 24px" }}>
+              <MonoLabel style={{ marginBottom: "6px" }}>{s.label}</MonoLabel>
+              <p style={{ ...BEBAS, fontSize: "52px", lineHeight: 1, color: s.color, letterSpacing: "-1px" }}>{s.value}</p>
+              <p style={{ fontSize: "11px", color: C.muted, marginTop: "4px" }}>{s.sub}</p>
+            </div>
+            {i < statBlocks.length - 1 && <Rule />}
+          </div>
+        ))}
+      </aside>
+
+      {/* ── Center — roster list ── */}
+      <div style={{ flex: 1, borderRight: `1px solid ${C.rule}`, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
+        {/* Add athlete */}
+        <div style={{ padding: "14px 20px", borderBottom: `1px solid ${C.rule}`, flexShrink: 0 }}>
+          <form onSubmit={handleAdd} style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            <input
+              type="email"
+              placeholder="Add athlete by email..."
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              style={{
+                flex: 1, background: "transparent", border: "none",
+                borderBottom: `1px solid ${C.rule}`, borderRadius: 0,
+                padding: "6px 0", fontSize: "13px", color: C.fg,
+                outline: "none",
+              }}
+            />
+            <button
+              type="submit"
+              disabled={adding}
+              style={{
+                ...MONO, fontSize: "9px", letterSpacing: "2px", color: C.muted,
+                background: "none", border: `1px solid ${C.rule}`,
+                padding: "6px 14px", cursor: "pointer", flexShrink: 0,
+              }}
+            >
+              {adding ? "..." : "ADD"}
+            </button>
+          </form>
+          {addError && <p style={{ fontSize: "11px", color: C.red, marginTop: "6px" }}>{addError}</p>}
+        </div>
+
+        {/* Column headers */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "3px 1fr 72px 110px 32px",
+          padding: "8px 0",
+          borderBottom: `1px solid ${C.rule}`,
+          flexShrink: 0,
+        }}>
+          <div />
+          <MonoLabel style={{ paddingLeft: "20px" }}>ATHLETE</MonoLabel>
+          <MonoLabel style={{ textAlign: "center" }}>ACTIVE</MonoLabel>
+          <MonoLabel>STATUS</MonoLabel>
+          <div />
+        </div>
+
+        {/* Rows */}
+        <div style={{ overflowY: "auto", flex: 1 }}>
+          {athletes.length === 0 ? (
+            <p style={{ padding: "48px 24px", color: C.muted, fontSize: "13px", textAlign: "center" }}>
+              No athletes yet — add one by email above.
+            </p>
+          ) : (
+            athletes.map((a) => {
+              const s = athleteStatus(a.id, assignments)
+              const sc = statusColor(s)
+              const isSelected = selectedId === a.id
+              return (
                 <div
-                  className="h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-sm text-white"
-                  style={{ background: PURPLE }}
+                  key={a.id}
+                  onClick={() => setSelectedId(isSelected ? null : a.id)}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "3px 1fr 72px 110px 32px",
+                    alignItems: "center",
+                    borderBottom: `1px solid ${C.rule}`,
+                    cursor: "pointer",
+                    background: isSelected ? C.soft : "transparent",
+                    transition: "background 0.1s",
+                  }}
                 >
-                  {a.name.charAt(0).toUpperCase()}
+                  <div style={{ alignSelf: "stretch", background: sc }} />
+
+                  <div style={{ padding: "13px 16px 13px 20px" }}>
+                    <p style={{ fontSize: "14px", fontWeight: 500, color: C.fg, lineHeight: 1.2 }}>{a.name}</p>
+                    <p style={{ ...MONO, fontSize: "9px", letterSpacing: "1px", color: C.muted, marginTop: "3px" }}>
+                      {[a.sport, a.team].filter(Boolean).join(" · ").toUpperCase() || a.email}
+                    </p>
+                  </div>
+
+                  <div style={{ textAlign: "center" }}>
+                    <span style={{ ...BEBAS, fontSize: "24px", color: a.active_assignments > 0 ? sc : C.rule, lineHeight: 1 }}>
+                      {a.active_assignments}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span style={{
+                      ...MONO, fontSize: "8px", letterSpacing: "1.5px",
+                      color: sc, border: `1px solid ${sc}`,
+                      padding: "3px 7px", display: "inline-block",
+                    }}>
+                      {statusLabel(s)}
+                    </span>
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "center" }} onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => handleRemove(a.id)}
+                      disabled={removing === a.id}
+                      style={{ color: C.rule, background: "none", border: "none", cursor: "pointer", padding: "4px", display: "flex", alignItems: "center" }}
+                      title="Remove"
+                    >
+                      {removing === a.id ? <Loader2 size={11} className="animate-spin" /> : <X size={11} />}
+                    </button>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="font-medium truncate" style={{ color: "var(--cream)" }}>{a.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {[a.sport, a.team].filter(Boolean).join(" · ") || a.email}
-                  </p>
-                  {a.active_assignments > 0 && (
-                    <Badge variant="secondary" className="mt-1 text-xs">
-                      {a.active_assignments} active
-                    </Badge>
+              )
+            })
+          )}
+        </div>
+      </div>
+
+      {/* ── Right — athlete detail ── */}
+      <aside style={{ width: "300px", flexShrink: 0, display: "flex", flexDirection: "column", overflowY: "auto" }}>
+        {selected ? (
+          <AthleteDetail
+            athlete={selected}
+            assignments={assignments.filter((a) => a.athlete_id === selected.id)}
+            meetings={meetings.filter((m) => m.athlete_id === selected.id)}
+            onUpdateMeetings={onUpdateMeetings}
+          />
+        ) : (
+          <div style={{ padding: "48px 24px", color: C.muted, fontSize: "13px", textAlign: "center", lineHeight: 1.6 }}>
+            Select an athlete<br />to view details
+          </div>
+        )}
+      </aside>
+    </div>
+  )
+}
+
+// ─── Athlete Detail ───────────────────────────────────────────────────────────
+
+function AthleteDetail({
+  athlete, assignments, meetings, onUpdateMeetings,
+}: {
+  athlete: PhysioAthlete
+  assignments: PhysioAssignment[]
+  meetings: PhysioMeeting[]
+  onUpdateMeetings: () => void
+}) {
+  const [showForm, setShowForm] = useState(false)
+  const [fTitle, setFTitle] = useState("")
+  const [fDate, setFDate] = useState(() => new Date().toISOString().split("T")[0])
+  const [fTime, setFTime] = useState("09:00")
+  const [fDuration, setFDuration] = useState(60)
+  const [fNotes, setFNotes] = useState("")
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState("")
+
+  const s = (() => {
+    if (assignments.some((a) => a.type === "rehab" && a.status === "active")) return "flagged" as const
+    if (assignments.some((a) => a.type === "prehab" && a.status === "active")) return "protocol" as const
+    return "cleared" as const
+  })()
+
+  const active = assignments.filter((a) => a.status === "active")
+  const nextMeeting = meetings
+    .filter((m) => m.status === "scheduled" && new Date(m.scheduled_at) >= new Date())
+    .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())[0]
+
+  async function handleSchedule(e: React.FormEvent) {
+    e.preventDefault()
+    setSaveError("")
+    setSaving(true)
+    try {
+      const scheduledAt = new Date(`${fDate}T${fTime}`).toISOString()
+      const res = await fetch("/api/physio/meetings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ athleteId: athlete.id, title: fTitle || "Meeting", notes: fNotes || null, scheduledAt, durationMinutes: fDuration }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to schedule")
+      setShowForm(false); setFTitle(""); setFNotes("")
+      onUpdateMeetings()
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Failed")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+
+      {/* Header */}
+      <div style={{ padding: "24px 24px 18px", borderBottom: `1px solid ${C.rule}` }}>
+        <h2 style={{ fontSize: "22px", fontWeight: 600, color: C.fg, lineHeight: 1.1, marginBottom: "6px" }}>
+          {athlete.name}
+        </h2>
+        <MonoLabel>
+          {[athlete.sport?.toUpperCase(), statusLabel(s)].filter(Boolean).join(" · ")}
+        </MonoLabel>
+      </div>
+
+      {/* Protocols */}
+      <div style={{ padding: "20px 24px", flex: 1, overflowY: "auto" }}>
+        {active.length === 0 ? (
+          <p style={{ fontSize: "12px", color: C.muted }}>No active protocols.</p>
+        ) : (
+          active.map((a, i) => {
+            const progress = calcProgress(a)
+            const pct = Math.round(progress * 100)
+            const started = fmtDate(new Date(a.created_at))
+            const estEnd = a.duration_weeks
+              ? fmtDate(new Date(new Date(a.created_at).getTime() + a.duration_weeks * 7 * 86400000))
+              : null
+            const typeColor = a.type === "rehab" ? C.red : C.gold
+
+            return (
+              <div key={a.id} style={{ marginBottom: i < active.length - 1 ? "28px" : 0 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                  <div>
+                    <MonoLabel style={{ marginBottom: "4px" }}>PROTOCOL · {a.type.toUpperCase()}</MonoLabel>
+                    <p style={{ fontSize: "13px", fontWeight: 500, color: C.fg }}>{a.title}</p>
+                  </div>
+                  <span style={{ ...MONO, fontSize: "11px", color: typeColor, flexShrink: 0, marginLeft: "8px" }}>{pct}%</span>
+                </div>
+
+                {/* Progress bar */}
+                <div style={{ height: "2px", background: C.rule, marginBottom: "12px" }}>
+                  <div style={{ height: "100%", width: `${pct}%`, background: typeColor, transition: "width 0.3s" }} />
+                </div>
+
+                {/* Dates */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                  <div>
+                    <MonoLabel style={{ marginBottom: "3px" }}>STARTED</MonoLabel>
+                    <p style={{ fontSize: "12px", color: C.fg }}>{started}</p>
+                  </div>
+                  {estEnd && (
+                    <div>
+                      <MonoLabel style={{ marginBottom: "3px" }}>EST. END</MonoLabel>
+                      <p style={{ fontSize: "12px", color: C.fg }}>{estEnd}</p>
+                    </div>
                   )}
                 </div>
+
+                {/* Exercises */}
+                {a.exercises?.length > 0 && (
+                  <div>
+                    <MonoLabel style={{ marginBottom: "6px" }}>EXERCISES</MonoLabel>
+                    {a.exercises.map((ex, ei) => (
+                      <div key={ei} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: `1px solid ${C.soft}` }}>
+                        <p style={{ fontSize: "12px", color: C.fg }}>{ex.name}</p>
+                        {(ex.sets || ex.reps) && (
+                          <p style={{ ...MONO, fontSize: "11px", color: C.muted }}>
+                            {[ex.sets && `${ex.sets}×`, ex.reps].filter(Boolean).join(" ")}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {a.frequency && (
+                  <p style={{ ...MONO, fontSize: "10px", color: C.muted, marginTop: "8px" }}>{a.frequency}</p>
+                )}
+
+                {i < active.length - 1 && <Rule style={{ marginTop: "20px" }} />}
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleRemove(a.id)}
-                disabled={removing === a.id}
-                className="flex-shrink-0 text-muted-foreground hover:text-destructive"
-              >
-                {removing === a.id
-                  ? <Loader2 className="h-4 w-4 animate-spin" />
-                  : <Trash2 className="h-4 w-4" />
-                }
-              </Button>
-            </GlassCard>
-          ))}
-        </div>
-      )}
+            )
+          })
+        )}
+
+        {/* Next session */}
+        {nextMeeting && (
+          <div style={{ marginTop: "24px" }}>
+            <Rule style={{ marginBottom: "16px" }} />
+            <MonoLabel style={{ marginBottom: "6px" }}>NEXT SESSION</MonoLabel>
+            <p style={{ fontSize: "13px", color: C.fg }}>{nextMeeting.title}</p>
+            <p style={{ ...MONO, fontSize: "10px", color: C.green, marginTop: "3px" }}>
+              {fmtDate(new Date(nextMeeting.scheduled_at))} · {new Date(nextMeeting.scheduled_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Schedule meeting */}
+      <div style={{ borderTop: `1px solid ${C.rule}` }}>
+        {!showForm ? (
+          <button
+            onClick={() => setShowForm(true)}
+            style={{
+              width: "100%", padding: "18px 24px",
+              ...MONO, fontSize: "10px", letterSpacing: "3px", color: C.muted,
+              background: "none", border: "none", cursor: "pointer",
+              transition: "color 0.15s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = C.fg }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = C.muted }}
+          >
+            SCHEDULE MEETING →
+          </button>
+        ) : (
+          <form onSubmit={handleSchedule} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2px" }}>
+              <MonoLabel>SCHEDULE MEETING</MonoLabel>
+              <button type="button" onClick={() => setShowForm(false)} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted }}>
+                <X size={13} />
+              </button>
+            </div>
+            <input
+              placeholder="Title"
+              value={fTitle}
+              onChange={(e) => setFTitle(e.target.value)}
+              style={{ background: "transparent", border: `1px solid ${C.rule}`, padding: "7px 10px", fontSize: "13px", color: C.fg, outline: "none", width: "100%" }}
+            />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+              <input type="date" value={fDate} onChange={(e) => setFDate(e.target.value)} required
+                style={{ background: "transparent", border: `1px solid ${C.rule}`, padding: "7px 10px", fontSize: "12px", color: C.fg, outline: "none" }}
+              />
+              <input type="time" value={fTime} onChange={(e) => setFTime(e.target.value)} required
+                style={{ background: "transparent", border: `1px solid ${C.rule}`, padding: "7px 10px", fontSize: "12px", color: C.fg, outline: "none" }}
+              />
+            </div>
+            <div style={{ display: "flex", gap: "4px" }}>
+              {[30, 45, 60, 90].map((d) => (
+                <button
+                  key={d} type="button" onClick={() => setFDuration(d)}
+                  style={{
+                    flex: 1, padding: "6px 0",
+                    ...MONO, fontSize: "10px",
+                    background: fDuration === d ? C.fg : "transparent",
+                    color: fDuration === d ? C.bg : C.muted,
+                    border: `1px solid ${fDuration === d ? C.fg : C.rule}`,
+                    cursor: "pointer",
+                  }}
+                >
+                  {d}m
+                </button>
+              ))}
+            </div>
+            <textarea
+              value={fNotes}
+              onChange={(e) => setFNotes(e.target.value)}
+              rows={2}
+              placeholder="Notes (optional)"
+              style={{ width: "100%", border: `1px solid ${C.rule}`, background: "transparent", padding: "8px 10px", fontSize: "12px", resize: "none", color: C.fg, outline: "none" }}
+            />
+            {saveError && <p style={{ fontSize: "11px", color: C.red }}>{saveError}</p>}
+            <button
+              type="submit" disabled={saving}
+              style={{
+                width: "100%", padding: "10px",
+                ...MONO, fontSize: "10px", letterSpacing: "2px",
+                background: C.fg, color: C.bg, border: "none", cursor: "pointer",
+              }}
+            >
+              {saving ? "..." : "CONFIRM →"}
+            </button>
+          </form>
+        )}
+      </div>
     </div>
   )
 }
@@ -300,11 +659,7 @@ function RosterTab({ athletes, onUpdate }: { athletes: PhysioAthlete[]; onUpdate
 // ─── Calendar Tab ─────────────────────────────────────────────────────────────
 
 function CalendarTab({
-  athletes,
-  meetings,
-  displayMonth,
-  onMonthChange,
-  onUpdate,
+  athletes, meetings, displayMonth, onMonthChange, onUpdate,
 }: {
   athletes: PhysioAthlete[]
   meetings: PhysioMeeting[]
@@ -335,9 +690,7 @@ function CalendarTab({
   for (let d = 1; d <= daysInMonth; d++) cells.push(d)
   while (cells.length % 7 !== 0) cells.push(null)
 
-  const meetingDaySet = new Set(
-    meetings.map((m) => new Date(m.scheduled_at).toLocaleDateString("en-CA"))
-  )
+  const meetingDaySet = new Set(meetings.map((m) => new Date(m.scheduled_at).toLocaleDateString("en-CA")))
 
   function prevMonth() {
     const d = new Date(year, month - 2, 1)
@@ -356,7 +709,7 @@ function CalendarTab({
 
   const visibleMeetings = selectedDateStr
     ? meetings.filter((m) => new Date(m.scheduled_at).toLocaleDateString("en-CA") === selectedDateStr)
-    : meetings.filter((m) => m.status === "scheduled" && new Date(m.scheduled_at) >= today).slice(0, 6)
+    : meetings.filter((m) => m.status === "scheduled" && new Date(m.scheduled_at) >= today).slice(0, 8)
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -371,8 +724,7 @@ function CalendarTab({
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to schedule")
-      setShowForm(false)
-      setFTitle(""); setFNotes(""); setFAthleteId("")
+      setShowForm(false); setFTitle(""); setFNotes(""); setFAthleteId("")
       onUpdate()
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Failed to schedule")
@@ -390,229 +742,208 @@ function CalendarTab({
     onUpdate()
   }
 
+  const cellStyle = (isToday: boolean, isSelected: boolean): React.CSSProperties => ({
+    height: "52px",
+    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start",
+    paddingTop: "8px",
+    borderBottom: `1px solid ${C.rule}`,
+    borderRight: `1px solid ${C.rule}`,
+    background: isSelected ? C.soft : "transparent",
+    cursor: "pointer",
+  })
+
   return (
-    <div className="space-y-4">
-      <div className="grid md:grid-cols-[1fr_320px] gap-4 items-start">
-        {/* Calendar grid */}
-        <GlassCard className="p-0 overflow-hidden">
-          {/* Month nav */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-            <Button variant="ghost" size="icon" onClick={prevMonth}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span
-              style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "18px", letterSpacing: "2px", color: "var(--cream)" }}
-            >
-              {MONTH_NAMES[month - 1]} {year}
-            </span>
-            <Button variant="ghost" size="icon" onClick={nextMonth}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+    <div style={{ padding: "28px 28px", display: "grid", gridTemplateColumns: "1fr 320px", gap: "24px", alignItems: "start" }}>
+      {/* Calendar */}
+      <div style={{ border: `1px solid ${C.rule}`, overflow: "hidden" }}>
+        {/* Month nav */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: `1px solid ${C.rule}` }}>
+          <button onClick={prevMonth} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex" }}>
+            <ChevronLeft size={16} />
+          </button>
+          <span style={{ ...BEBAS, fontSize: "18px", letterSpacing: "3px", color: C.fg }}>
+            {MONTH_NAMES[month - 1]} {year}
+          </span>
+          <button onClick={nextMonth} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex" }}>
+            <ChevronRight size={16} />
+          </button>
+        </div>
 
-          {/* Day headers */}
-          <div className="grid border-b border-border" style={{ gridTemplateColumns: "repeat(7, 1fr)" }}>
-            {DAY_LABELS.map((d) => (
-              <div key={d} className="py-2 text-center text-xs text-muted-foreground font-medium">
-                {d}
-              </div>
-            ))}
-          </div>
+        {/* Day headers */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", borderBottom: `1px solid ${C.rule}` }}>
+          {DAY_LABELS.map((d) => (
+            <div key={d} style={{ ...MONO, fontSize: "9px", letterSpacing: "1px", color: C.muted, textAlign: "center", padding: "8px 0" }}>{d}</div>
+          ))}
+        </div>
 
-          {/* Day cells */}
-          <div className="grid" style={{ gridTemplateColumns: "repeat(7, 1fr)" }}>
-            {cells.map((day, i) => {
-              if (day === null) {
-                return <div key={`e-${i}`} className="h-14 border-b border-r border-border" />
-              }
-              const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`
-              const hasMeeting = meetingDaySet.has(dateStr)
-              const isToday = year === today.getFullYear() && month === today.getMonth() + 1 && day === today.getDate()
-              const isSelected = selectedDay === day
+        {/* Days */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
+          {cells.map((day, i) => {
+            if (day === null) return <div key={`e-${i}`} style={{ height: "52px", borderBottom: `1px solid ${C.rule}`, borderRight: `1px solid ${C.rule}` }} />
+            const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+            const hasMeeting = meetingDaySet.has(dateStr)
+            const isToday = year === today.getFullYear() && month === today.getMonth() + 1 && day === today.getDate()
+            const isSelected = selectedDay === day
+            return (
+              <button
+                key={day}
+                onClick={() => { setSelectedDay(isSelected ? null : day); setFDate(dateStr) }}
+                style={cellStyle(isToday, isSelected)}
+              >
+                <span style={{
+                  height: "22px", width: "22px", display: "flex", alignItems: "center", justifyContent: "center",
+                  borderRadius: "50%", fontSize: "12px",
+                  background: isToday ? C.fg : "transparent",
+                  color: isToday ? C.bg : isSelected ? C.fg : C.fg,
+                  fontWeight: isToday || isSelected ? 600 : 400,
+                }}>
+                  {day}
+                </span>
+                {hasMeeting && <div style={{ height: "4px", width: "4px", borderRadius: "50%", background: C.green, marginTop: "3px" }} />}
+              </button>
+            )
+          })}
+        </div>
+      </div>
 
-              return (
-                <button
-                  key={day}
-                  onClick={() => { setSelectedDay(isSelected ? null : day); setFDate(dateStr) }}
-                  className="h-14 flex flex-col items-center justify-start pt-1.5 border-b border-r border-border transition-colors hover:bg-secondary"
-                  style={{ background: isSelected ? "rgba(167,139,250,0.15)" : undefined }}
-                >
-                  <span
-                    className="h-6 w-6 flex items-center justify-center rounded-full text-xs"
-                    style={{
-                      background: isToday ? PURPLE : "transparent",
-                      color: isToday ? "#fff" : isSelected ? PURPLE : "var(--cream)",
-                      fontWeight: isToday || isSelected ? 600 : 400,
-                    }}
-                  >
-                    {day}
-                  </span>
-                  {hasMeeting && (
-                    <div className="h-1.5 w-1.5 rounded-full mt-0.5" style={{ background: PURPLE }} />
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        </GlassCard>
-
-        {/* Schedule form */}
-        <GlassCard className="space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="font-medium text-sm" style={{ color: "var(--cream)" }}>Schedule Meeting</p>
+      {/* Right panel */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        {/* Form */}
+        <div style={{ border: `1px solid ${C.rule}`, padding: "20px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+            <MonoLabel>SCHEDULE MEETING</MonoLabel>
             {showForm && (
-              <Button variant="ghost" size="icon" onClick={() => setShowForm(false)}>
-                <X className="h-4 w-4" />
-              </Button>
+              <button onClick={() => setShowForm(false)} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted }}>
+                <X size={13} />
+              </button>
             )}
           </div>
           {!showForm ? (
-            <Button className="w-full gradient-primary" onClick={() => setShowForm(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              New Meeting
-            </Button>
+            <button
+              onClick={() => setShowForm(true)}
+              style={{
+                width: "100%", padding: "10px",
+                ...MONO, fontSize: "10px", letterSpacing: "2px",
+                background: C.fg, color: C.bg, border: "none", cursor: "pointer",
+              }}
+            >
+              + NEW MEETING
+            </button>
           ) : (
-            <form onSubmit={handleSave} className="space-y-3">
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1">Athlete</label>
-                <select
-                  value={fAthleteId}
-                  onChange={(e) => setFAthleteId(e.target.value)}
-                  required
-                  className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground"
-                >
-                  <option value="">Select athlete...</option>
-                  {athletes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1">Title</label>
-                <Input placeholder="e.g. Initial assessment" value={fTitle} onChange={(e) => setFTitle(e.target.value)} />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-xs text-muted-foreground block mb-1">Date</label>
-                  <Input type="date" value={fDate} onChange={(e) => setFDate(e.target.value)} required />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground block mb-1">Time</label>
-                  <Input type="time" value={fTime} onChange={(e) => setFTime(e.target.value)} required />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1">Duration</label>
-                <div className="flex gap-1.5">
-                  {[30, 45, 60, 90].map((d) => (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => setFDuration(d)}
-                      className="flex-1 py-1.5 rounded text-xs transition-colors border border-border"
-                      style={{ background: fDuration === d ? PURPLE : "transparent", color: fDuration === d ? "#fff" : "var(--muted-foreground)" }}
-                    >
-                      {d}m
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1">Notes</label>
-                <textarea
-                  value={fNotes}
-                  onChange={(e) => setFNotes(e.target.value)}
-                  rows={2}
-                  placeholder="Optional..."
-                  className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground resize-none"
+            <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <select
+                value={fAthleteId} onChange={(e) => setFAthleteId(e.target.value)} required
+                style={{ background: "transparent", border: `1px solid ${C.rule}`, padding: "7px 10px", fontSize: "12px", color: C.fg, outline: "none" }}
+              >
+                <option value="">Select athlete...</option>
+                {athletes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+              <input
+                placeholder="Title" value={fTitle} onChange={(e) => setFTitle(e.target.value)}
+                style={{ background: "transparent", border: `1px solid ${C.rule}`, padding: "7px 10px", fontSize: "12px", color: C.fg, outline: "none" }}
+              />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                <input type="date" value={fDate} onChange={(e) => setFDate(e.target.value)} required
+                  style={{ background: "transparent", border: `1px solid ${C.rule}`, padding: "7px 10px", fontSize: "12px", color: C.fg, outline: "none" }}
+                />
+                <input type="time" value={fTime} onChange={(e) => setFTime(e.target.value)} required
+                  style={{ background: "transparent", border: `1px solid ${C.rule}`, padding: "7px 10px", fontSize: "12px", color: C.fg, outline: "none" }}
                 />
               </div>
-              {saveError && <p className="text-sm text-destructive">{saveError}</p>}
-              <Button type="submit" disabled={saving} className="w-full gradient-primary">
-                {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                Confirm Meeting
-              </Button>
+              <div style={{ display: "flex", gap: "4px" }}>
+                {[30, 45, 60, 90].map((d) => (
+                  <button
+                    key={d} type="button" onClick={() => setFDuration(d)}
+                    style={{
+                      flex: 1, padding: "6px 0",
+                      ...MONO, fontSize: "10px",
+                      background: fDuration === d ? C.fg : "transparent",
+                      color: fDuration === d ? C.bg : C.muted,
+                      border: `1px solid ${fDuration === d ? C.fg : C.rule}`,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {d}m
+                  </button>
+                ))}
+              </div>
+              <textarea
+                value={fNotes} onChange={(e) => setFNotes(e.target.value)}
+                rows={2} placeholder="Notes (optional)"
+                style={{ width: "100%", border: `1px solid ${C.rule}`, background: "transparent", padding: "8px 10px", fontSize: "12px", resize: "none", color: C.fg, outline: "none" }}
+              />
+              {saveError && <p style={{ fontSize: "11px", color: C.red }}>{saveError}</p>}
+              <button
+                type="submit" disabled={saving}
+                style={{
+                  width: "100%", padding: "10px",
+                  ...MONO, fontSize: "10px", letterSpacing: "2px",
+                  background: C.fg, color: C.bg, border: "none", cursor: "pointer",
+                }}
+              >
+                {saving ? "..." : "CONFIRM →"}
+              </button>
             </form>
           )}
-        </GlassCard>
-      </div>
+        </div>
 
-      {/* Meeting list */}
-      <div>
-        <p className="text-sm text-muted-foreground mb-3">
-          {selectedDay ? `${MONTH_NAMES[month - 1]} ${selectedDay}` : "Upcoming Meetings"}
-        </p>
-        {visibleMeetings.length === 0 ? (
-          <GlassCard className="text-center py-8">
-            <Calendar className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-            <p className="text-muted-foreground text-sm">
-              {selectedDay ? "No meetings on this day." : "No upcoming meetings."}
+        {/* Meeting list */}
+        <div>
+          <MonoLabel style={{ marginBottom: "10px" }}>
+            {selectedDay ? `${MONTH_NAMES[month - 1].toUpperCase()} ${selectedDay}` : "UPCOMING"}
+          </MonoLabel>
+          {visibleMeetings.length === 0 ? (
+            <p style={{ fontSize: "12px", color: C.muted }}>
+              {selectedDay ? "No meetings this day." : "No upcoming meetings."}
             </p>
-          </GlassCard>
-        ) : (
-          <div className="space-y-2">
-            {visibleMeetings.map((m) => {
-              const dt = new Date(m.scheduled_at)
-              const dateLabel = dt.toLocaleDateString("en-US", { month: "short", day: "numeric" })
-              const timeLabel = dt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
-              return (
-                <GlassCard key={m.id} className="flex items-center justify-between p-4">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="text-center w-10 flex-shrink-0">
-                      <p className="text-xs text-muted-foreground uppercase">{dateLabel.split(" ")[0]}</p>
-                      <p
-                        className="leading-none"
-                        style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "20px", color: "var(--cream)" }}
-                      >
-                        {dateLabel.split(" ")[1]}
-                      </p>
-                    </div>
-                    <div className="w-px h-8 bg-border flex-shrink-0" />
-                    <div className="min-w-0">
-                      <p
-                        className="font-medium text-sm truncate"
-                        style={{
-                          color: "var(--cream)",
-                          textDecoration: m.status === "completed" ? "line-through" : "none",
-                        }}
-                      >
+          ) : (
+            <div style={{ border: `1px solid ${C.rule}` }}>
+              {visibleMeetings.map((m, i) => {
+                const dt = new Date(m.scheduled_at)
+                return (
+                  <div
+                    key={m.id}
+                    style={{
+                      padding: "12px 16px",
+                      borderBottom: i < visibleMeetings.length - 1 ? `1px solid ${C.rule}` : "none",
+                      display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px",
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: "13px", color: C.fg, fontWeight: 500, textDecoration: m.status === "completed" ? "line-through" : "none" }}>
                         {m.title}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        {m.athlete_name} · {timeLabel} · {m.duration_minutes}m
+                      <p style={{ ...MONO, fontSize: "9px", letterSpacing: "1px", color: C.muted, marginTop: "3px" }}>
+                        {m.athlete_name} · {fmtDate(dt)} · {dt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
                       </p>
                     </div>
+                    {m.status === "scheduled" && (
+                      <div style={{ display: "flex", gap: "4px", flexShrink: 0 }}>
+                        <button
+                          onClick={() => updateMeeting(m.id, "completed")}
+                          style={{ color: C.muted, background: "none", border: "none", cursor: "pointer", display: "flex", padding: "4px" }}
+                          title="Mark complete"
+                        >
+                          <Check size={13} />
+                        </button>
+                        <button
+                          onClick={() => updateMeeting(m.id, "cancelled")}
+                          style={{ color: C.muted, background: "none", border: "none", cursor: "pointer", display: "flex", padding: "4px" }}
+                          title="Cancel"
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                    )}
+                    {m.status !== "scheduled" && (
+                      <span style={{ ...MONO, fontSize: "8px", letterSpacing: "1px", color: C.muted }}>{m.status.toUpperCase()}</span>
+                    )}
                   </div>
-                  {m.status === "scheduled" && (
-                    <div className="flex items-center gap-1 flex-shrink-0 ml-3">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => updateMeeting(m.id, "completed")}
-                        className="h-8 w-8 text-muted-foreground hover:text-green-400"
-                        title="Mark complete"
-                      >
-                        <Check className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => updateMeeting(m.id, "cancelled")}
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        title="Cancel"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  )}
-                  {m.status !== "scheduled" && (
-                    <Badge variant="secondary" className="flex-shrink-0 ml-3 capitalize">
-                      {m.status}
-                    </Badge>
-                  )}
-                </GlassCard>
-              )
-            })}
-          </div>
-        )}
+                )
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -621,9 +952,7 @@ function CalendarTab({
 // ─── Assignments Tab ──────────────────────────────────────────────────────────
 
 function AssignmentsTab({
-  athletes,
-  assignments,
-  onUpdate,
+  athletes, assignments, onUpdate,
 }: {
   athletes: PhysioAthlete[]
   assignments: PhysioAssignment[]
@@ -660,8 +989,7 @@ function AssignmentsTab({
   function resetForm() {
     setFAthleteId(""); setFTitle(""); setFDescription("")
     setFExercises([{ name: "", sets: "", reps: "" }])
-    setFFrequency(""); setFDurationWeeks(""); setFNotes("")
-    setSaveError("")
+    setFFrequency(""); setFDurationWeeks(""); setFNotes(""); setSaveError("")
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -709,70 +1037,80 @@ function AssignmentsTab({
     onUpdate()
   }
 
+  const inputStyle: React.CSSProperties = {
+    background: "transparent", border: `1px solid ${C.rule}`,
+    padding: "7px 10px", fontSize: "13px", color: C.fg, outline: "none", width: "100%",
+  }
+
   return (
-    <div className="space-y-4">
-      {/* Filters + new */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="flex gap-2 flex-wrap items-center">
+    <div style={{ padding: "28px" }}>
+
+      {/* Toolbar */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", gap: "12px" }}>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
           <select
-            value={filterAthlete}
-            onChange={(e) => setFilterAthlete(e.target.value)}
-            className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground"
+            value={filterAthlete} onChange={(e) => setFilterAthlete(e.target.value)}
+            style={{ background: "transparent", border: `1px solid ${C.rule}`, padding: "6px 10px", fontSize: "12px", color: C.fg, outline: "none" }}
           >
-            <option value="all">All Athletes</option>
+            <option value="all">All athletes</option>
             {athletes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select>
           {(["all", "prehab", "rehab"] as const).map((t) => (
-            <Button
-              key={t}
-              variant={filterType === t ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilterType(t)}
-              className="capitalize"
-              style={filterType === t && t === "rehab" ? { background: ORANGE, borderColor: ORANGE } : filterType === t && t === "prehab" ? { background: PURPLE, borderColor: PURPLE } : {}}
+            <button
+              key={t} onClick={() => setFilterType(t)}
+              style={{
+                ...MONO, fontSize: "9px", letterSpacing: "1.5px", textTransform: "uppercase",
+                padding: "6px 12px", cursor: "pointer",
+                background: filterType === t ? C.fg : "transparent",
+                color: filterType === t ? C.bg : C.muted,
+                border: `1px solid ${filterType === t ? C.fg : C.rule}`,
+              }}
             >
               {t}
-            </Button>
+            </button>
           ))}
         </div>
-        <Button
+        <button
           onClick={() => { setShowForm((v) => !v); if (showForm) resetForm() }}
-          variant={showForm ? "outline" : "default"}
-          className={showForm ? "" : "gradient-primary"}
+          style={{
+            ...MONO, fontSize: "9px", letterSpacing: "2px",
+            padding: "7px 16px", cursor: "pointer",
+            background: showForm ? "transparent" : C.fg,
+            color: showForm ? C.muted : C.bg,
+            border: `1px solid ${showForm ? C.rule : C.fg}`,
+          }}
         >
-          {showForm ? <X className="h-4 w-4 mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-          {showForm ? "Cancel" : "New Assignment"}
-        </Button>
+          {showForm ? "CANCEL" : "+ NEW"}
+        </button>
       </div>
 
       {/* Create form */}
       {showForm && (
-        <GlassCard className="space-y-4">
-          <p className="font-medium text-sm" style={{ color: "var(--cream)" }}>New Assignment</p>
-          <form onSubmit={handleSave} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
+        <div style={{ border: `1px solid ${C.rule}`, padding: "24px", marginBottom: "20px" }}>
+          <MonoLabel style={{ marginBottom: "16px" }}>NEW ASSIGNMENT</MonoLabel>
+          <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">Athlete</label>
-                <select
-                  value={fAthleteId}
-                  onChange={(e) => setFAthleteId(e.target.value)}
-                  required
-                  className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground"
-                >
+                <MonoLabel style={{ marginBottom: "6px" }}>ATHLETE</MonoLabel>
+                <select value={fAthleteId} onChange={(e) => setFAthleteId(e.target.value)} required style={inputStyle}>
                   <option value="">Select...</option>
                   {athletes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">Type</label>
-                <div className="flex gap-2">
+                <MonoLabel style={{ marginBottom: "6px" }}>TYPE</MonoLabel>
+                <div style={{ display: "flex", gap: "6px" }}>
                   {(["prehab", "rehab"] as const).map((t) => (
                     <button
-                      key={t}
-                      type="button"
-                      onClick={() => setFType(t)}
-                      className="flex-1 py-2 rounded-md text-sm capitalize transition-colors border border-border"
-                      style={{ background: fType === t ? (t === "prehab" ? PURPLE : ORANGE) : "transparent", color: fType === t ? "#fff" : "var(--muted-foreground)" }}
+                      key={t} type="button" onClick={() => setFType(t)}
+                      style={{
+                        flex: 1, padding: "8px 0",
+                        ...MONO, fontSize: "10px", letterSpacing: "1px", textTransform: "uppercase",
+                        background: fType === t ? (t === "rehab" ? C.red : C.gold) : "transparent",
+                        color: fType === t ? "#fff" : C.muted,
+                        border: `1px solid ${fType === t ? (t === "rehab" ? C.red : C.gold) : C.rule}`,
+                        cursor: "pointer",
+                      }}
                     >
                       {t}
                     </button>
@@ -782,201 +1120,173 @@ function AssignmentsTab({
             </div>
 
             <div>
-              <label className="text-xs text-muted-foreground block mb-1">Title</label>
-              <Input placeholder="e.g. Hip stability protocol" value={fTitle} onChange={(e) => setFTitle(e.target.value)} required />
+              <MonoLabel style={{ marginBottom: "6px" }}>TITLE</MonoLabel>
+              <input placeholder="e.g. Hip stability protocol" value={fTitle} onChange={(e) => setFTitle(e.target.value)} required style={inputStyle} />
             </div>
 
             <div>
-              <label className="text-xs text-muted-foreground block mb-1">Description</label>
+              <MonoLabel style={{ marginBottom: "6px" }}>DESCRIPTION</MonoLabel>
               <textarea
-                value={fDescription}
-                onChange={(e) => setFDescription(e.target.value)}
-                rows={2}
-                placeholder="Overview of the protocol..."
-                className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground resize-none"
+                value={fDescription} onChange={(e) => setFDescription(e.target.value)}
+                rows={2} placeholder="Overview..."
+                style={{ ...inputStyle, resize: "none" }}
               />
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-xs text-muted-foreground">Exercises</label>
-                <button type="button" onClick={addExRow} className="text-xs flex items-center gap-1" style={{ color: PURPLE }}>
-                  <Plus className="h-3 w-3" /> Add row
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                <MonoLabel>EXERCISES</MonoLabel>
+                <button type="button" onClick={addExRow} style={{ ...MONO, fontSize: "9px", letterSpacing: "1px", color: C.green, background: "none", border: "none", cursor: "pointer" }}>
+                  + ADD ROW
                 </button>
               </div>
-              <div className="space-y-2">
-                {fExercises.map((ex, idx) => (
-                  <div key={idx} className="flex gap-2 items-center">
-                    <Input placeholder="Exercise name" value={ex.name} onChange={(e) => updateEx(idx, "name", e.target.value)} className="flex-1" />
-                    <Input placeholder="Sets" value={ex.sets} onChange={(e) => updateEx(idx, "sets", e.target.value)} style={{ width: "64px" }} />
-                    <Input placeholder="Reps" value={ex.reps} onChange={(e) => updateEx(idx, "reps", e.target.value)} style={{ width: "64px" }} />
-                    {fExercises.length > 1 && (
-                      <Button type="button" variant="ghost" size="icon" onClick={() => removeExRow(idx)} className="flex-shrink-0 text-muted-foreground hover:text-destructive">
-                        <X className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1">Frequency</label>
-                <Input placeholder="e.g. Daily, 3×/week" value={fFrequency} onChange={(e) => setFFrequency(e.target.value)} />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1">Duration (weeks)</label>
-                <Input type="number" min={1} max={52} placeholder="e.g. 6" value={fDurationWeeks} onChange={(e) => setFDurationWeeks(e.target.value)} />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs text-muted-foreground block mb-1">Clinical Notes</label>
-              <textarea
-                value={fNotes}
-                onChange={(e) => setFNotes(e.target.value)}
-                rows={2}
-                placeholder="Contraindications, progressions, restrictions..."
-                className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground resize-none"
-              />
-            </div>
-
-            {saveError && <p className="text-sm text-destructive">{saveError}</p>}
-
-            <Button
-              type="submit"
-              disabled={saving}
-              className="w-full"
-              style={{ background: fType === "rehab" ? ORANGE : PURPLE, color: "#fff", borderColor: "transparent" }}
-            >
-              {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Save Assignment
-            </Button>
-          </form>
-        </GlassCard>
-      )}
-
-      {/* List */}
-      {filtered.length === 0 ? (
-        <GlassCard className="text-center py-12">
-          <ClipboardList className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-          <p className="text-muted-foreground">No assignments yet. Create one above.</p>
-        </GlassCard>
-      ) : (
-        <div className="space-y-2">
-          {filtered.map((a) => (
-            <AssignmentRow
-              key={a.id}
-              assignment={a}
-              expanded={expandedId === a.id}
-              onToggle={() => setExpandedId(expandedId === a.id ? null : a.id)}
-              onStatusChange={(s) => updateStatus(a.id, s)}
-              onDelete={() => deleteAssignment(a.id)}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function AssignmentRow({
-  assignment: a,
-  expanded,
-  onToggle,
-  onStatusChange,
-  onDelete,
-}: {
-  assignment: PhysioAssignment
-  expanded: boolean
-  onToggle: () => void
-  onStatusChange: (s: "active" | "completed" | "paused") => void
-  onDelete: () => void
-}) {
-  return (
-    <GlassCard className="p-0 overflow-hidden">
-      <button
-        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-secondary transition-colors"
-        onClick={onToggle}
-      >
-        <div className="flex items-center gap-2.5 min-w-0">
-          <Badge
-            variant="secondary"
-            style={{
-              background: a.type === "rehab" ? "rgba(249,115,22,0.15)" : "rgba(167,139,250,0.15)",
-              color: a.type === "rehab" ? ORANGE : PURPLE,
-              border: "none",
-            }}
-          >
-            {a.type}
-          </Badge>
-          {a.status !== "active" && (
-            <Badge variant="secondary" className="capitalize">{a.status}</Badge>
-          )}
-          <div className="min-w-0">
-            <p className="font-medium text-sm truncate" style={{ color: "var(--cream)" }}>{a.title}</p>
-            <p className="text-xs text-muted-foreground">
-              {a.athlete_name}{a.frequency ? ` · ${a.frequency}` : ""}
-            </p>
-          </div>
-        </div>
-        <ChevronDown
-          className="h-4 w-4 flex-shrink-0 ml-3 text-muted-foreground transition-transform"
-          style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}
-        />
-      </button>
-
-      {expanded && (
-        <div className="border-t border-border px-4 py-3 space-y-3 bg-secondary/30">
-          {a.description && (
-            <p className="text-sm text-muted-foreground leading-relaxed">{a.description}</p>
-          )}
-          {a.exercises?.length > 0 && (
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Exercises</p>
-              {a.exercises.map((ex, i) => (
-                <div key={i} className="flex items-baseline gap-2">
-                  <span className="text-sm font-medium" style={{ color: "var(--cream)" }}>{ex.name}</span>
-                  {(ex.sets || ex.reps) && (
-                    <span className="text-xs text-muted-foreground">
-                      {[ex.sets && `${ex.sets}×`, ex.reps].filter(Boolean).join(" ")}
-                    </span>
+              {fExercises.map((ex, idx) => (
+                <div key={idx} style={{ display: "flex", gap: "6px", marginBottom: "6px" }}>
+                  <input placeholder="Exercise" value={ex.name} onChange={(e) => updateEx(idx, "name", e.target.value)}
+                    style={{ ...inputStyle, flex: 1 }}
+                  />
+                  <input placeholder="Sets" value={ex.sets} onChange={(e) => updateEx(idx, "sets", e.target.value)}
+                    style={{ ...inputStyle, width: "60px" }}
+                  />
+                  <input placeholder="Reps" value={ex.reps} onChange={(e) => updateEx(idx, "reps", e.target.value)}
+                    style={{ ...inputStyle, width: "60px" }}
+                  />
+                  {fExercises.length > 1 && (
+                    <button type="button" onClick={() => removeExRow(idx)} style={{ color: C.muted, background: "none", border: "none", cursor: "pointer", flexShrink: 0 }}>
+                      <X size={13} />
+                    </button>
                   )}
                 </div>
               ))}
             </div>
-          )}
-          {(a.frequency || a.duration_weeks) && (
-            <p className="text-xs text-muted-foreground">
-              {[a.frequency, a.duration_weeks && `${a.duration_weeks} weeks`].filter(Boolean).join(" · ")}
-            </p>
-          )}
-          {a.notes && (
-            <p className="text-sm text-muted-foreground italic leading-relaxed">{a.notes}</p>
-          )}
-          <div className="flex gap-2 pt-1">
-            {a.status === "active" && (
-              <>
-                <Button variant="outline" size="sm" className="flex-1" onClick={() => onStatusChange("completed")}>
-                  <Check className="h-3.5 w-3.5 mr-1.5" /> Complete
-                </Button>
-                <Button variant="outline" size="sm" className="flex-1" onClick={() => onStatusChange("paused")}>
-                  Pause
-                </Button>
-              </>
-            )}
-            {(a.status === "paused" || a.status === "completed") && (
-              <Button variant="outline" size="sm" className="flex-1" onClick={() => onStatusChange("active")}>
-                Reactivate
-              </Button>
-            )}
-            <Button variant="ghost" size="icon" onClick={onDelete} className="text-muted-foreground hover:text-destructive">
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <div>
+                <MonoLabel style={{ marginBottom: "6px" }}>FREQUENCY</MonoLabel>
+                <input placeholder="e.g. Daily, 3×/week" value={fFrequency} onChange={(e) => setFFrequency(e.target.value)} style={inputStyle} />
+              </div>
+              <div>
+                <MonoLabel style={{ marginBottom: "6px" }}>DURATION (WEEKS)</MonoLabel>
+                <input type="number" min={1} max={52} placeholder="e.g. 6" value={fDurationWeeks} onChange={(e) => setFDurationWeeks(e.target.value)} style={inputStyle} />
+              </div>
+            </div>
+
+            <div>
+              <MonoLabel style={{ marginBottom: "6px" }}>CLINICAL NOTES</MonoLabel>
+              <textarea
+                value={fNotes} onChange={(e) => setFNotes(e.target.value)}
+                rows={2} placeholder="Contraindications, progressions..."
+                style={{ ...inputStyle, resize: "none" }}
+              />
+            </div>
+
+            {saveError && <p style={{ fontSize: "11px", color: C.red }}>{saveError}</p>}
+
+            <button
+              type="submit" disabled={saving}
+              style={{
+                padding: "11px", ...MONO, fontSize: "10px", letterSpacing: "2px",
+                background: fType === "rehab" ? C.red : C.gold,
+                color: fType === "rehab" ? "#fff" : C.fg,
+                border: "none", cursor: "pointer",
+              }}
+            >
+              {saving ? "..." : "SAVE ASSIGNMENT →"}
+            </button>
+          </form>
         </div>
       )}
-    </GlassCard>
+
+      {/* List */}
+      {filtered.length === 0 ? (
+        <p style={{ color: C.muted, fontSize: "13px" }}>No assignments yet.</p>
+      ) : (
+        <div style={{ border: `1px solid ${C.rule}` }}>
+          {filtered.map((a, i) => {
+            const typeColor = a.type === "rehab" ? C.red : C.gold
+            const expanded = expandedId === a.id
+            return (
+              <div key={a.id} style={{ borderBottom: i < filtered.length - 1 ? `1px solid ${C.rule}` : "none" }}>
+                <button
+                  onClick={() => setExpandedId(expanded ? null : a.id)}
+                  style={{
+                    width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                    padding: "14px 20px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left",
+                    gap: "12px",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0 }}>
+                    <div style={{ width: "3px", alignSelf: "stretch", background: typeColor, flexShrink: 0 }} />
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ fontSize: "13px", fontWeight: 500, color: C.fg }}>{a.title}</p>
+                      <p style={{ ...MONO, fontSize: "9px", letterSpacing: "1px", color: C.muted, marginTop: "3px" }}>
+                        {a.athlete_name} · {a.type.toUpperCase()}{a.frequency ? ` · ${a.frequency}` : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
+                    {a.status !== "active" && (
+                      <span style={{ ...MONO, fontSize: "8px", letterSpacing: "1px", color: C.muted }}>{a.status.toUpperCase()}</span>
+                    )}
+                    <span style={{ ...MONO, fontSize: "9px", letterSpacing: "1px", color: typeColor }}>
+                      {a.duration_weeks ? `${Math.round(calcProgress(a) * 100)}%` : ""}
+                    </span>
+                    <span style={{ color: C.muted, fontSize: "10px", transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>▾</span>
+                  </div>
+                </button>
+
+                {expanded && (
+                  <div style={{ padding: "0 20px 16px 35px", borderTop: `1px solid ${C.soft}` }}>
+                    {a.description && (
+                      <p style={{ fontSize: "12px", color: C.muted, lineHeight: 1.6, marginTop: "12px" }}>{a.description}</p>
+                    )}
+                    {a.exercises?.length > 0 && (
+                      <div style={{ marginTop: "12px" }}>
+                        <MonoLabel style={{ marginBottom: "8px" }}>EXERCISES</MonoLabel>
+                        {a.exercises.map((ex, ei) => (
+                          <div key={ei} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: `1px solid ${C.soft}` }}>
+                            <p style={{ fontSize: "12px", color: C.fg }}>{ex.name}</p>
+                            {(ex.sets || ex.reps) && (
+                              <p style={{ ...MONO, fontSize: "11px", color: C.muted }}>
+                                {[ex.sets && `${ex.sets}×`, ex.reps].filter(Boolean).join(" ")}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {a.notes && <p style={{ fontSize: "12px", color: C.muted, fontStyle: "italic", marginTop: "10px" }}>{a.notes}</p>}
+                    <div style={{ display: "flex", gap: "8px", marginTop: "14px" }}>
+                      {a.status === "active" && (
+                        <>
+                          <button onClick={() => updateStatus(a.id, "completed")}
+                            style={{ ...MONO, fontSize: "9px", letterSpacing: "1px", padding: "6px 14px", border: `1px solid ${C.rule}`, background: "transparent", color: C.green, cursor: "pointer" }}>
+                            COMPLETE
+                          </button>
+                          <button onClick={() => updateStatus(a.id, "paused")}
+                            style={{ ...MONO, fontSize: "9px", letterSpacing: "1px", padding: "6px 14px", border: `1px solid ${C.rule}`, background: "transparent", color: C.muted, cursor: "pointer" }}>
+                            PAUSE
+                          </button>
+                        </>
+                      )}
+                      {(a.status === "paused" || a.status === "completed") && (
+                        <button onClick={() => updateStatus(a.id, "active")}
+                          style={{ ...MONO, fontSize: "9px", letterSpacing: "1px", padding: "6px 14px", border: `1px solid ${C.rule}`, background: "transparent", color: C.muted, cursor: "pointer" }}>
+                          REACTIVATE
+                        </button>
+                      )}
+                      <button onClick={() => deleteAssignment(a.id)}
+                        style={{ color: C.muted, background: "none", border: "none", cursor: "pointer", marginLeft: "auto", display: "flex", alignItems: "center" }}>
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
   )
 }
