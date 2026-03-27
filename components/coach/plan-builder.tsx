@@ -279,9 +279,6 @@ export function PlanBuilder() {
     <div className="p-4 md:p-8 space-y-6 max-w-4xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href="/coach" className="text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
         <div>
           <h1
             className="flex items-center gap-2"

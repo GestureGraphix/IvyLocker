@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge"
 import {
   Calendar,
   Plus,
-  ArrowLeft,
   FileText,
   Send,
   Trash2,
@@ -133,9 +132,6 @@ export function PlansManager() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Link href="/coach" className="text-muted-foreground hover:text-foreground">
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
             <h1
               className="flex items-center gap-2"
               style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "32px", letterSpacing: "1px", color: "var(--cream)" }}

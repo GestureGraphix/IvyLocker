@@ -6,8 +6,9 @@ import { GlassCard } from "@/components/ui/glass-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Users, UserPlus, Search, Calendar, Activity, FolderOpen, FileText, ArrowLeft } from "lucide-react"
+import { Users, UserPlus, Search, Calendar, Activity, FolderOpen, FileText, LogOut } from "lucide-react"
 import Link from "next/link"
+import { useAuth } from "@/hooks/use-auth"
 import { AthleteCard } from "./athlete-card"
 import { AddAthleteDialog } from "./add-athlete-dialog"
 import { AssignWorkoutDialog } from "./assign-workout-dialog"
@@ -34,6 +35,7 @@ interface Athlete {
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 export function CoachDashboard() {
+  const { logout } = useAuth()
   const [searchQuery, setSearchQuery] = useState("")
   const [addAthleteOpen, setAddAthleteOpen] = useState(false)
   const [assignWorkoutOpen, setAssignWorkoutOpen] = useState(false)
@@ -83,9 +85,6 @@ export function CoachDashboard() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
           <div>
             <h1
               className="flex items-center gap-2"
@@ -120,6 +119,9 @@ export function CoachDashboard() {
               Assign Workout ({selectedAthletes.length})
             </Button>
           )}
+          <Button variant="ghost" size="icon" onClick={logout} title="Sign out">
+            <LogOut className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 

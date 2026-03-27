@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
   Calendar,
-  ArrowLeft,
   Send,
   Trash2,
   Clock,
@@ -174,10 +173,7 @@ export default function PlanDetailPage({
         <GlassCard className="text-center py-8">
           <p className="text-destructive">Plan not found</p>
           <Link href="/coach/plans">
-            <Button variant="outline" className="mt-4">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Plans
-            </Button>
+            <Button variant="outline" className="mt-4">Back to Plans</Button>
           </Link>
         </GlassCard>
       </div>
@@ -193,9 +189,6 @@ export default function PlanDetailPage({
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Link href="/coach/plans" className="text-muted-foreground hover:text-foreground">
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
               <Calendar className="h-7 w-7 text-primary" />
               {plan.name}

@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import {
-  ArrowLeft,
   Loader2,
   User,
   Calendar,
@@ -97,10 +96,7 @@ export function AthleteDetailView({ athleteId }: { athleteId: string }) {
         <GlassCard className="text-center py-12">
           <p className="text-destructive mb-4">Failed to load athlete data</p>
           <Link href="/coach">
-            <Button variant="outline">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Roster
-            </Button>
+            <Button variant="outline">Back to Roster</Button>
           </Link>
         </GlassCard>
       </div>
@@ -121,11 +117,6 @@ export function AthleteDetailView({ athleteId }: { athleteId: string }) {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Link href="/coach">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
           <div className="h-14 w-14 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
             <span className="text-white font-bold text-xl">
               {athlete.name.charAt(0).toUpperCase()}
