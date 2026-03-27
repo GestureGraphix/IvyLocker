@@ -19,6 +19,7 @@ interface MobilityLog {
 interface MobilityHistoryProps {
   logs: MobilityLog[]
   onUpdate: () => void
+  emptyLabel?: string
 }
 
 const bodyGroupColors: Record<string, string> = {
@@ -30,7 +31,7 @@ const bodyGroupColors: Record<string, string> = {
   "Full Body": "bg-ivy-pale text-ivy",
 }
 
-export function MobilityHistory({ logs, onUpdate }: MobilityHistoryProps) {
+export function MobilityHistory({ logs, onUpdate, emptyLabel = "No sessions logged" }: MobilityHistoryProps) {
   const handleDelete = async (id: string) => {
     try {
       await fetch(`/api/athletes/mobility-logs/${id}`, { method: "DELETE" })
@@ -56,8 +57,8 @@ export function MobilityHistory({ logs, onUpdate }: MobilityHistoryProps) {
     return (
       <GlassCard className="text-center py-12">
         <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-foreground mb-2">No mobility sessions logged</h3>
-        <p className="text-muted-foreground">Start tracking your stretching and recovery work</p>
+        <h3 className="text-lg font-medium text-foreground mb-2">{emptyLabel}</h3>
+        <p className="text-muted-foreground">Start tracking your sessions</p>
       </GlassCard>
     )
   }

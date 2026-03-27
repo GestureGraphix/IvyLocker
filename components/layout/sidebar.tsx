@@ -20,7 +20,7 @@ const performanceItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/training", label: "Training", icon: Dumbbell },
   { href: "/fuel", label: "Fuel", icon: Utensils },
-  { href: "/mobility", label: "Mobility", icon: Activity },
+  { href: "/mobility", label: "Physio", icon: Activity },
 ]
 
 const academicsItems = [

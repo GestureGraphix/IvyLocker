@@ -17,12 +17,21 @@ interface Exercise {
   body_group: string
 }
 
+type Category = "mobility" | "rehab" | "prehab"
+
 interface LogMobilityDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
   exercises: Exercise[]
   selectedExercise: Exercise | null
+  defaultCategory?: Category
+}
+
+const categoryLabels: Record<Category, string> = {
+  mobility: "Mobility",
+  rehab: "Rehab",
+  prehab: "Prehab",
 }
 
 export function LogMobilityDialog({
@@ -31,6 +40,7 @@ export function LogMobilityDialog({
   onSuccess,
   exercises,
   selectedExercise,
+  defaultCategory = "mobility",
 }: LogMobilityDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -64,6 +74,7 @@ export function LogMobilityDialog({
           date: new Date().toISOString().split("T")[0],
           duration_minutes: Number.parseInt(formData.duration_minutes),
           notes: formData.notes,
+          category: defaultCategory,
         }),
       })
 
@@ -75,7 +86,7 @@ export function LogMobilityDialog({
         notes: "",
       })
     } catch (error) {
-      console.error("Failed to log mobility:", error)
+      console.error("Failed to log session:", error)
     } finally {
       setIsLoading(false)
     }
@@ -85,7 +96,9 @@ export function LogMobilityDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[450px] bg-card border-border">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold gradient-text">Log Mobility Session</DialogTitle>
+          <DialogTitle className="text-xl font-bold gradient-text">
+            Log {categoryLabels[defaultCategory]} Session
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">

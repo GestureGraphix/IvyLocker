@@ -34,11 +34,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { exercise_id, date, duration_minutes, notes } = await request.json()
+    const { exercise_id, date, duration_minutes, notes, category } = await request.json()
 
     const result = await sql`
-      INSERT INTO mobility_logs (user_id, exercise_id, date, duration_minutes, notes)
-      VALUES (${user.id}, ${exercise_id}, ${date}, ${duration_minutes}, ${notes || null})
+      INSERT INTO mobility_logs (user_id, exercise_id, date, duration_minutes, notes, category)
+      VALUES (${user.id}, ${exercise_id}, ${date}, ${duration_minutes}, ${notes || null}, ${category || 'mobility'})
       RETURNING *
     `
 

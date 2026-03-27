@@ -1,5 +1,5 @@
 import { MainLayout } from "@/components/layout/main-layout"
-import { MobilityContent } from "@/components/mobility/mobility-content"
+import { PhysioContent } from "@/components/physio/physio-content"
 import { getCurrentUser } from "@/lib/auth"
 
 export default async function MobilityPage() {
@@ -7,7 +7,7 @@ export default async function MobilityPage() {
 
   return (
     <MainLayout userName={user?.name || "Demo Athlete"} userRole={user?.role || "ATHLETE"}>
-      <MobilityContent />
+      <PhysioContent />
     </MainLayout>
   )
 }
