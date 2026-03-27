@@ -18,10 +18,10 @@ export const UNIVERSITY_THEMES: Record<string, UniversityTheme> = {
   },
   "Yale University": {
     primary: "#00356B",
-    accent: "#C8A900",
+    accent: "#FFFFFF",
     mid: "#002a56",
-    light: "#4a7bbf",
-    pale: "#e6eef8",
+    light: "#3a6aaa",
+    pale: "#e0eaf6",
     name: "Yale University",
   },
   "Princeton University": {
