@@ -112,9 +112,9 @@ export function AccountContent() {
       })
 
       if (res.ok) {
-        populatedRef.current = false
-        await mutateAuth()
-        await mutateProfile()
+        // Update SWR caches silently — form already shows the correct saved values
+        mutateAuth()
+        mutateProfile()
         toast.success("Profile updated successfully")
       } else {
         toast.error("Failed to update profile")
