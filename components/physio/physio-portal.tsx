@@ -782,68 +782,63 @@ function PlansTab({
   assignments: PhysioAssignment[]
   onUpdate: () => void
 }) {
-  const [filterAthlete, setFilterAthlete] = useState("all")
-  const [filterType, setFilterType] = useState<"all" | "prehab" | "rehab">("all")
-  const [showForm, setShowForm] = useState(false)
+  const [search, setSearch] = useState("")
+  const [selectedAthlete, setSelectedAthlete] = useState<PhysioAthlete | null>(null)
+  const [prehabOn, setPrehabOn] = useState(false)
+  const [rehabOn, setRehabOn] = useState(false)
+  const [prehabTitle, setPrehabTitle] = useState("")
+  const [prehabText, setPrehabText] = useState("")
+  const [rehabTitle, setRehabTitle] = useState("")
+  const [rehabText, setRehabText] = useState("")
+  const [savingPrehab, setSavingPrehab] = useState(false)
+  const [savingRehab, setSavingRehab] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  const [fAthleteId, setFAthleteId] = useState("")
-  const [fTitle, setFTitle] = useState("")
-  const [fType, setFType] = useState<"prehab" | "rehab">("prehab")
-  const [fDescription, setFDescription] = useState("")
-  const [fExercises, setFExercises] = useState([{ name: "", sets: "", reps: "" }])
-  const [fFrequency, setFFrequency] = useState("")
-  const [fDurationWeeks, setFDurationWeeks] = useState("")
-  const [fNotes, setFNotes] = useState("")
-  const [saving, setSaving] = useState(false)
-  const [saveError, setSaveError] = useState("")
+  const filtered = athletes.filter((a) =>
+    a.name.toLowerCase().includes(search.toLowerCase()) ||
+    (a.sport ?? "").toLowerCase().includes(search.toLowerCase())
+  )
+  const showDropdown = search.length > 0 && !selectedAthlete
 
-  const filtered = assignments.filter((a) => {
-    if (filterAthlete !== "all" && a.athlete_id !== filterAthlete) return false
-    if (filterType !== "all" && a.type !== filterType) return false
-    return true
-  })
-
-  function addExRow() { setFExercises((r) => [...r, { name: "", sets: "", reps: "" }]) }
-  function removeExRow(i: number) { setFExercises((r) => r.filter((_, idx) => idx !== i)) }
-  function updateEx(i: number, field: "name" | "sets" | "reps", value: string) {
-    setFExercises((r) => r.map((row, idx) => idx === i ? { ...row, [field]: value } : row))
+  function selectAthlete(a: PhysioAthlete) {
+    setSelectedAthlete(a)
+    setSearch(a.name)
+    setPrehabOn(false); setRehabOn(false)
+    setPrehabTitle(""); setPrehabText("")
+    setRehabTitle(""); setRehabText("")
   }
 
-  function resetForm() {
-    setFAthleteId(""); setFTitle(""); setFDescription("")
-    setFExercises([{ name: "", sets: "", reps: "" }])
-    setFFrequency(""); setFDurationWeeks(""); setFNotes(""); setSaveError("")
+  function clearAthlete() {
+    setSelectedAthlete(null)
+    setSearch("")
+    setPrehabOn(false); setRehabOn(false)
   }
 
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault()
-    setSaveError("")
-    setSaving(true)
+  async function saveType(type: "prehab" | "rehab") {
+    if (!selectedAthlete) return
+    const title = type === "prehab" ? prehabTitle : rehabTitle
+    const text  = type === "prehab" ? prehabText  : rehabText
+    if (!title.trim() && !text.trim()) return
+    const set = type === "prehab" ? setSavingPrehab : setSavingRehab
+    set(true)
     try {
-      const exercises = fExercises.filter((ex) => ex.name.trim()).map((ex) => ({
-        name: ex.name.trim(),
-        ...(ex.sets && { sets: ex.sets }),
-        ...(ex.reps && { reps: ex.reps }),
-      }))
       const res = await fetch("/api/physio/assignments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          athleteId: fAthleteId, title: fTitle, type: fType,
-          description: fDescription || null, exercises,
-          frequency: fFrequency || null,
-          duration_weeks: fDurationWeeks ? parseInt(fDurationWeeks) : null,
-          notes: fNotes || null,
+          athleteId: selectedAthlete.id,
+          title: title.trim() || `${type.charAt(0).toUpperCase() + type.slice(1)} plan`,
+          type,
+          description: text.trim() || null,
+          exercises: [],
         }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Failed to save")
-      setShowForm(false); resetForm(); onUpdate()
-    } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "Failed to save")
+      if (!res.ok) throw new Error()
+      if (type === "prehab") { setPrehabTitle(""); setPrehabText(""); setPrehabOn(false) }
+      else                   { setRehabTitle("");  setRehabText("");  setRehabOn(false) }
+      onUpdate()
     } finally {
-      setSaving(false)
+      set(false)
     }
   }
 
@@ -861,236 +856,245 @@ function PlansTab({
   }
 
   const typeColor = (t: "prehab" | "rehab") => t === "rehab" ? "#b83232" : "var(--ivy-mid)"
-
-  const inputCls = "w-full rounded-md border px-3 py-2 text-sm bg-background text-foreground outline-none"
   const inputStyle = { borderColor: "var(--rule)" }
+  const inputCls = "w-full rounded-md border px-3 py-2 text-sm bg-background text-foreground outline-none"
+
+  const athleteAssignments = selectedAthlete
+    ? assignments.filter((a) => a.athlete_id === selectedAthlete.id)
+    : assignments
 
   return (
-    <div className="space-y-4 pt-1">
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-2 flex-wrap items-center">
-          <select
-            value={filterAthlete} onChange={(e) => setFilterAthlete(e.target.value)}
-            className="rounded-md border px-3 py-1.5 text-sm bg-background text-foreground outline-none"
-            style={inputStyle}
-          >
-            <option value="all">All Athletes</option>
-            {athletes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-          </select>
-          {(["all", "prehab", "rehab"] as const).map((t) => (
+    <div className="space-y-5 pt-1">
+
+      {/* ── Search + select athlete ── */}
+      <div className="relative">
+        <div className="relative">
+          <input
+            placeholder="Search athletes..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); if (selectedAthlete) setSelectedAthlete(null) }}
+            className={inputCls}
+            style={{ ...inputStyle, paddingRight: selectedAthlete ? "36px" : undefined }}
+          />
+          {selectedAthlete && (
             <button
-              key={t}
-              onClick={() => setFilterType(t)}
-              className="px-3 py-1.5 rounded-md text-sm transition-colors border capitalize"
-              style={{
-                background: filterType === t ? "var(--ivy)" : "transparent",
-                color: filterType === t ? "#fff" : "var(--muted-foreground)",
-                borderColor: filterType === t ? "var(--ivy)" : "var(--rule)",
-              }}
+              onClick={clearAthlete}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
             >
-              {t}
+              <X className="h-3.5 w-3.5" />
             </button>
-          ))}
+          )}
         </div>
-        <Button
-          onClick={() => { setShowForm((v) => !v); if (showForm) resetForm() }}
-          variant={showForm ? "outline" : "default"}
-          style={!showForm ? { background: "var(--ivy)", color: "#fff" } : {}}
-        >
-          {showForm ? <X className="h-4 w-4 mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-          {showForm ? "Cancel" : "New Plan"}
-        </Button>
+
+        {/* Dropdown */}
+        {showDropdown && (
+          <div
+            className="absolute z-10 w-full mt-1 bg-white overflow-hidden"
+            style={{ border: "1px solid var(--rule)", borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
+          >
+            {filtered.length === 0 ? (
+              <p className="px-4 py-3 text-sm text-muted-foreground">No athletes found.</p>
+            ) : (
+              filtered.map((a, i) => (
+                <button
+                  key={a.id}
+                  onClick={() => selectAthlete(a)}
+                  className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-secondary/40 transition-colors"
+                  style={{ borderBottom: i < filtered.length - 1 ? "1px solid var(--rule)" : "none" }}
+                >
+                  <span className="text-sm font-medium" style={{ color: "var(--ink)" }}>{a.name}</span>
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "1px", color: "var(--muted-foreground)" }}>
+                    {[a.sport, a.team].filter(Boolean).join(" · ").toUpperCase()}
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Create form */}
-      {showForm && (
-        <div className="bg-white p-5" style={{ border: "1px solid var(--rule)", borderRadius: "8px" }}>
-          <p className="text-sm font-medium mb-4" style={{ color: "var(--ink)" }}>New Assignment</p>
-          <form onSubmit={handleSave} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-muted-foreground mb-1">Athlete</label>
-                <select value={fAthleteId} onChange={(e) => setFAthleteId(e.target.value)} required className={inputCls} style={inputStyle}>
-                  <option value="">Select...</option>
-                  {athletes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs text-muted-foreground mb-1">Type</label>
-                <div className="flex gap-2">
-                  {(["prehab", "rehab"] as const).map((t) => (
-                    <button
-                      key={t} type="button" onClick={() => setFType(t)}
-                      className="flex-1 py-2 rounded-md text-sm capitalize transition-colors border"
-                      style={{
-                        background: fType === t ? typeColor(t) : "transparent",
-                        color: fType === t ? "#fff" : "var(--muted-foreground)",
-                        borderColor: fType === t ? typeColor(t) : "var(--rule)",
-                      }}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
+      {/* ── Plan builder (shown when athlete selected) ── */}
+      {selectedAthlete && (
+        <div className="bg-white overflow-hidden" style={{ border: "1px solid var(--rule)", borderRadius: "8px" }}>
+          {/* Athlete header */}
+          <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--rule)" }}>
+            <p className="text-sm font-semibold" style={{ color: "var(--ink)" }}>{selectedAthlete.name}</p>
+            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "1px", color: "var(--muted-foreground)", marginTop: "2px" }}>
+              {[selectedAthlete.sport, selectedAthlete.team].filter(Boolean).join(" · ").toUpperCase() || selectedAthlete.email}
+            </p>
+          </div>
 
-            <div>
-              <label className="block text-xs text-muted-foreground mb-1">Title</label>
-              <input placeholder="e.g. Hip stability protocol" value={fTitle} onChange={(e) => setFTitle(e.target.value)} required className={inputCls} style={inputStyle} />
-            </div>
-
-            <div>
-              <label className="block text-xs text-muted-foreground mb-1">Description</label>
-              <textarea value={fDescription} onChange={(e) => setFDescription(e.target.value)} rows={2} placeholder="Overview..." className={inputCls + " resize-none"} style={inputStyle} />
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-xs text-muted-foreground">Exercises</label>
-                <button type="button" onClick={addExRow} className="text-xs flex items-center gap-1" style={{ color: "var(--ivy-mid)" }}>
-                  <Plus className="h-3 w-3" /> Add row
-                </button>
-              </div>
-              <div className="space-y-2">
-                {fExercises.map((ex, idx) => (
-                  <div key={idx} className="flex gap-2 items-center">
-                    <input placeholder="Exercise name" value={ex.name} onChange={(e) => updateEx(idx, "name", e.target.value)} className={inputCls + " flex-1"} style={inputStyle} />
-                    <input placeholder="Sets" value={ex.sets} onChange={(e) => updateEx(idx, "sets", e.target.value)} className={inputCls} style={{ ...inputStyle, width: "60px" }} />
-                    <input placeholder="Reps" value={ex.reps} onChange={(e) => updateEx(idx, "reps", e.target.value)} className={inputCls} style={{ ...inputStyle, width: "60px" }} />
-                    {fExercises.length > 1 && (
-                      <button type="button" onClick={() => removeExRow(idx)} className="text-muted-foreground hover:text-destructive transition-colors">
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    )}
+          {/* Type checkboxes */}
+          <div className="flex px-5 py-4 gap-6" style={{ borderBottom: (prehabOn || rehabOn) ? "1px solid var(--rule)" : "none" }}>
+            {(["prehab", "rehab"] as const).map((t) => {
+              const on = t === "prehab" ? prehabOn : rehabOn
+              const set = t === "prehab" ? setPrehabOn : setRehabOn
+              return (
+                <label key={t} className="flex items-center gap-2.5 cursor-pointer select-none">
+                  <div
+                    onClick={() => set(!on)}
+                    className="h-4 w-4 rounded flex items-center justify-center transition-colors flex-shrink-0"
+                    style={{
+                      border: `1.5px solid ${on ? typeColor(t) : "var(--rule)"}`,
+                      background: on ? typeColor(t) : "transparent",
+                    }}
+                  >
+                    {on && <Check className="h-2.5 w-2.5 text-white" />}
                   </div>
-                ))}
-              </div>
+                  <span
+                    className="text-sm capitalize font-medium"
+                    style={{ color: on ? typeColor(t) : "var(--muted-foreground)" }}
+                  >
+                    {t}
+                  </span>
+                </label>
+              )
+            })}
+          </div>
+
+          {/* Plan text boxes */}
+          {(prehabOn || rehabOn) && (
+            <div className={`grid gap-0 ${prehabOn && rehabOn ? "md:grid-cols-2" : "grid-cols-1"}`}>
+              {(["prehab", "rehab"] as const).filter((t) => t === "prehab" ? prehabOn : rehabOn).map((t, idx, arr) => {
+                const title = t === "prehab" ? prehabTitle : rehabTitle
+                const text  = t === "prehab" ? prehabText  : rehabText
+                const setTitle = t === "prehab" ? setPrehabTitle : setRehabTitle
+                const setText  = t === "prehab" ? setPrehabText  : setRehabText
+                const saving   = t === "prehab" ? savingPrehab   : savingRehab
+                const hasContent = title.trim() || text.trim()
+
+                return (
+                  <div
+                    key={t}
+                    className="p-5 flex flex-col gap-3"
+                    style={{
+                      borderRight: arr.length === 2 && idx === 0 ? "1px solid var(--rule)" : "none",
+                      borderTop: "1px solid var(--rule)",
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span
+                        style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "2px", textTransform: "uppercase", color: typeColor(t) }}
+                      >
+                        {t}
+                      </span>
+                    </div>
+
+                    <input
+                      placeholder="Plan title..."
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className={inputCls}
+                      style={inputStyle}
+                    />
+
+                    <textarea
+                      placeholder={t === "prehab"
+                        ? "Describe exercises, sets/reps, frequency, cues..."
+                        : "Describe rehab protocol, progressions, restrictions, timeline..."}
+                      value={text}
+                      onChange={(e) => setText(e.target.value)}
+                      rows={6}
+                      className={inputCls + " resize-none"}
+                      style={{ ...inputStyle, fontFamily: "'DM Mono', monospace", fontSize: "12px", lineHeight: "1.7" }}
+                    />
+
+                    <Button
+                      onClick={() => saveType(t)}
+                      disabled={saving || !hasContent}
+                      size="sm"
+                      style={{ background: hasContent ? typeColor(t) : undefined, color: hasContent ? "#fff" : undefined }}
+                    >
+                      {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Check className="h-3.5 w-3.5 mr-1.5" />}
+                      Save {t}
+                    </Button>
+                  </div>
+                )
+              })}
             </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-muted-foreground mb-1">Frequency</label>
-                <input placeholder="e.g. Daily, 3×/week" value={fFrequency} onChange={(e) => setFFrequency(e.target.value)} className={inputCls} style={inputStyle} />
-              </div>
-              <div>
-                <label className="block text-xs text-muted-foreground mb-1">Duration (weeks)</label>
-                <input type="number" min={1} max={52} placeholder="e.g. 6" value={fDurationWeeks} onChange={(e) => setFDurationWeeks(e.target.value)} className={inputCls} style={inputStyle} />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs text-muted-foreground mb-1">Clinical Notes</label>
-              <textarea value={fNotes} onChange={(e) => setFNotes(e.target.value)} rows={2} placeholder="Contraindications, progressions..." className={inputCls + " resize-none"} style={inputStyle} />
-            </div>
-
-            {saveError && <p className="text-sm text-destructive">{saveError}</p>}
-
-            <Button type="submit" disabled={saving} className="w-full" style={{ background: typeColor(fType), color: "#fff" }}>
-              {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Save Assignment
-            </Button>
-          </form>
+          )}
         </div>
       )}
 
-      {/* List */}
-      {filtered.length === 0 ? (
+      {/* ── Existing plans list ── */}
+      {athleteAssignments.length > 0 && (
+        <div>
+          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "2px", textTransform: "uppercase", color: "var(--muted-foreground)", marginBottom: "10px" }}>
+            {selectedAthlete ? `${selectedAthlete.name}'s Plans` : "All Plans"}
+          </p>
+          <div className="bg-white overflow-hidden" style={{ border: "1px solid var(--rule)", borderRadius: "8px" }}>
+            {athleteAssignments.map((a, i) => {
+              const pct = Math.round(calcProgress(a) * 100)
+              const expanded = expandedId === a.id
+              return (
+                <div key={a.id} style={{ borderBottom: i < athleteAssignments.length - 1 ? "1px solid var(--rule)" : "none" }}>
+                  <button
+                    onClick={() => setExpandedId(expanded ? null : a.id)}
+                    className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-secondary/30 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-0.5 h-7 rounded-full flex-shrink-0" style={{ background: typeColor(a.type) }} />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate" style={{ color: "var(--ink)" }}>{a.title}</p>
+                        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "1px", color: "var(--muted-foreground)", marginTop: "2px" }}>
+                          {a.athlete_name} · {a.type}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0 ml-3">
+                      {a.status !== "active" && <span className="text-xs capitalize text-muted-foreground">{a.status}</span>}
+                      {a.duration_weeks && <span className="text-xs" style={{ color: typeColor(a.type) }}>{pct}%</span>}
+                      <span className="text-muted-foreground text-xs" style={{ display: "inline-block", transition: "transform 0.2s", transform: expanded ? "rotate(180deg)" : "none" }}>▾</span>
+                    </div>
+                  </button>
+
+                  {expanded && (
+                    <div className="px-4 pb-4 pt-3 space-y-3" style={{ borderTop: "1px solid var(--rule)" }}>
+                      {a.description && (
+                        <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap" style={{ fontFamily: "'DM Mono', monospace", fontSize: "12px", lineHeight: "1.7" }}>
+                          {a.description}
+                        </p>
+                      )}
+                      {a.duration_weeks && (
+                        <div className="space-y-1">
+                          <div className="h-1 rounded-full overflow-hidden bg-secondary">
+                            <div className="h-full rounded-full" style={{ width: `${pct}%`, background: typeColor(a.type) }} />
+                          </div>
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>Started {fmtDate(new Date(a.created_at))}</span>
+                            <span>Est. end {fmtDate(new Date(new Date(a.created_at).getTime() + a.duration_weeks * 7 * 86400000))}</span>
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex gap-2 pt-1">
+                        {a.status === "active" && (
+                          <>
+                            <Button variant="outline" size="sm" onClick={() => updateStatus(a.id, "completed")} className="flex-1">
+                              <Check className="h-3.5 w-3.5 mr-1.5" /> Complete
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => updateStatus(a.id, "paused")} className="flex-1">Pause</Button>
+                          </>
+                        )}
+                        {(a.status === "paused" || a.status === "completed") && (
+                          <Button variant="outline" size="sm" onClick={() => updateStatus(a.id, "active")} className="flex-1">Reactivate</Button>
+                        )}
+                        <Button variant="ghost" size="icon" onClick={() => deleteAssignment(a.id)} className="text-muted-foreground hover:text-destructive">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {assignments.length === 0 && !selectedAthlete && (
         <div className="bg-white py-12 text-center" style={{ border: "1px solid var(--rule)", borderRadius: "8px" }}>
           <ClipboardList className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-          <p className="text-sm text-muted-foreground">No assignments yet.</p>
-        </div>
-      ) : (
-        <div className="bg-white overflow-hidden" style={{ border: "1px solid var(--rule)", borderRadius: "8px" }}>
-          {filtered.map((a, i) => {
-            const pct = Math.round(calcProgress(a) * 100)
-            const expanded = expandedId === a.id
-            return (
-              <div key={a.id} style={{ borderBottom: i < filtered.length - 1 ? "1px solid var(--rule)" : "none" }}>
-                <button
-                  onClick={() => setExpandedId(expanded ? null : a.id)}
-                  className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-secondary/30 transition-colors"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-0.5 h-8 rounded-full flex-shrink-0" style={{ background: typeColor(a.type) }} />
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate" style={{ color: "var(--ink)" }}>{a.title}</p>
-                      <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "1px", color: "var(--muted-foreground)", marginTop: "2px" }}>
-                        {a.athlete_name} · {a.type}{a.frequency ? ` · ${a.frequency}` : ""}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 flex-shrink-0 ml-3">
-                    {a.status !== "active" && (
-                      <span className="text-xs capitalize text-muted-foreground">{a.status}</span>
-                    )}
-                    {a.duration_weeks && (
-                      <span className="text-xs" style={{ color: typeColor(a.type) }}>{pct}%</span>
-                    )}
-                    <span className="text-muted-foreground text-xs" style={{ transform: expanded ? "rotate(180deg)" : "none", display: "inline-block", transition: "transform 0.2s" }}>▾</span>
-                  </div>
-                </button>
-
-                {expanded && (
-                  <div className="px-4 pb-4 space-y-3" style={{ borderTop: "1px solid var(--rule)", paddingTop: "12px" }}>
-                    {a.description && <p className="text-sm text-muted-foreground leading-relaxed">{a.description}</p>}
-
-                    {a.duration_weeks && (
-                      <div className="space-y-1">
-                        <div className="h-1 rounded-full overflow-hidden bg-secondary">
-                          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: typeColor(a.type) }} />
-                        </div>
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>Started {fmtDate(new Date(a.created_at))}</span>
-                          <span>Est. end {fmtDate(new Date(new Date(a.created_at).getTime() + a.duration_weeks * 7 * 86400000))}</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {a.exercises?.length > 0 && (
-                      <div>
-                        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "2px", textTransform: "uppercase", color: "var(--muted-foreground)", marginBottom: "6px" }}>Exercises</p>
-                        {a.exercises.map((ex, ei) => (
-                          <div key={ei} className="flex items-baseline justify-between py-1.5" style={{ borderBottom: "1px solid var(--rule)" }}>
-                            <span className="text-sm" style={{ color: "var(--ink)" }}>{ex.name}</span>
-                            {(ex.sets || ex.reps) && (
-                              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "11px", color: "var(--muted-foreground)" }}>
-                                {[ex.sets && `${ex.sets}×`, ex.reps].filter(Boolean).join(" ")}
-                              </span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {a.notes && <p className="text-sm text-muted-foreground italic">{a.notes}</p>}
-
-                    <div className="flex gap-2 pt-1">
-                      {a.status === "active" && (
-                        <>
-                          <Button variant="outline" size="sm" onClick={() => updateStatus(a.id, "completed")} className="flex-1">
-                            <Check className="h-3.5 w-3.5 mr-1.5" /> Complete
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={() => updateStatus(a.id, "paused")} className="flex-1">
-                            Pause
-                          </Button>
-                        </>
-                      )}
-                      {(a.status === "paused" || a.status === "completed") && (
-                        <Button variant="outline" size="sm" onClick={() => updateStatus(a.id, "active")} className="flex-1">
-                          Reactivate
-                        </Button>
-                      )}
-                      <Button variant="ghost" size="icon" onClick={() => deleteAssignment(a.id)} className="text-muted-foreground hover:text-destructive">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )
-          })}
+          <p className="text-sm text-muted-foreground">Search for an athlete above to assign a plan.</p>
         </div>
       )}
     </div>
