@@ -2,9 +2,12 @@ import { MainLayout } from "@/components/layout/main-layout"
 import { AccountContent } from "@/components/account/account-content"
 import { getCurrentUser } from "@/lib/auth"
 import { sql } from "@/lib/db"
+import { redirect } from "next/navigation"
 
 export default async function AccountPage() {
   const user = await getCurrentUser()
+
+  if (user?.role === "COACH") redirect("/coach")
 
   let profile: Record<string, any> = {}
   if (user) {

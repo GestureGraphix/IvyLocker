@@ -235,9 +235,15 @@ export function Sidebar({ userRole, userName }: SidebarProps) {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-1" style={{ scrollbarWidth: "none" }}>
-        <NavSection label="Performance" items={performanceItems} pathname={pathname} />
-        <NavSection label="Academics" items={academicsItems} pathname={pathname} />
-        <NavSection label="Account" items={allAccountItems} pathname={pathname} />
+        {isCoach ? (
+          <NavSection label="Portal" items={[coachItem]} pathname={pathname} />
+        ) : (
+          <>
+            <NavSection label="Performance" items={performanceItems} pathname={pathname} />
+            <NavSection label="Academics" items={academicsItems} pathname={pathname} />
+            <NavSection label="Account" items={allAccountItems} pathname={pathname} />
+          </>
+        )}
       </nav>
 
       {/* Footer */}
