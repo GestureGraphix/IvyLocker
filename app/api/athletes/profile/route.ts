@@ -9,7 +9,7 @@ export async function GET() {
 
     const result = await sql`
       SELECT u.name, u.email, u.role,
-        ap.sport, ap.team, ap.position, ap.university, ap.graduation_year,
+        ap.sport, ap.team, ap.position, ap.jersey_number, ap.university, ap.graduation_year,
         ap.height_cm, ap.weight_kg, ap.hydration_goal_oz, ap.calorie_goal,
         ap.protein_goal_grams, ap.phone
       FROM users u
@@ -48,6 +48,7 @@ export async function PATCH(request: Request) {
         sport = COALESCE(${body.sport ?? null}, sport),
         team = COALESCE(${body.team ?? null}, team),
         position = COALESCE(${body.position ?? null}, position),
+        jersey_number = COALESCE(${body.jersey_number ?? null}, jersey_number),
         phone = COALESCE(${body.phone ?? null}, phone),
         location = COALESCE(${body.location ?? null}, location),
         university = COALESCE(${body.university ?? null}, university),

@@ -14,7 +14,7 @@ export async function GET() {
     const result = await sql`
       SELECT 
         u.id, u.email, u.name, u.role,
-        ap.sport, ap.level, ap.team, ap.position,
+        ap.sport, ap.level, ap.team, ap.position, ap.jersey_number,
         ap.height_cm, ap.weight_kg, ap.phone, ap.location,
         ap.university, ap.graduation_year, ap.allergies, ap.tags,
         ap.hydration_goal_oz, ap.calorie_goal, ap.protein_goal_grams

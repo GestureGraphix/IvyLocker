@@ -2,6 +2,7 @@ interface LockerHeaderProps {
   userName?: string
   sport?: string
   event?: string
+  jerseyNumber?: number | null
   stats?: {
     label: string
     value: string | number
@@ -15,6 +16,7 @@ export function LockerHeader({
   userName = "Athlete",
   sport = "Track & Field",
   event,
+  jerseyNumber,
   stats = [],
 }: LockerHeaderProps) {
   const nameParts = userName.trim().split(" ")
@@ -173,20 +175,22 @@ export function LockerHeader({
       </div>
 
       {/* Background number */}
-      <span
-        aria-hidden
-        className="absolute pointer-events-none select-none leading-none"
-        style={{
-          fontFamily: "'Bebas Neue', sans-serif",
-          fontSize: "220px",
-          color: "rgba(255,255,255,0.03)",
-          right: "-10px",
-          bottom: "-40px",
-          letterSpacing: "-8px",
-        }}
-      >
-        27
-      </span>
+      {jerseyNumber != null && (
+        <span
+          aria-hidden
+          className="absolute pointer-events-none select-none leading-none"
+          style={{
+            fontFamily: "'Bebas Neue', sans-serif",
+            fontSize: "220px",
+            color: "rgba(255,255,255,0.03)",
+            right: "-10px",
+            bottom: "-40px",
+            letterSpacing: "-8px",
+          }}
+        >
+          {jerseyNumber}
+        </span>
+      )}
     </div>
   )
 }

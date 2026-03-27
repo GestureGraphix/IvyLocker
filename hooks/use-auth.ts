@@ -13,6 +13,7 @@ interface User {
   level?: string
   team?: string
   position?: string
+  jersey_number?: number
   height_cm?: number
   weight_kg?: number
   phone?: string

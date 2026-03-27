@@ -174,7 +174,7 @@ export function Sidebar({ userRole, userName }: SidebarProps) {
             letterSpacing: "-2px",
           }}
         >
-          27
+          {user?.jersey_number ?? "—"}
         </span>
 
         <p

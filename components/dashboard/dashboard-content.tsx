@@ -102,6 +102,7 @@ export function DashboardContent({ userName = "Athlete" }: DashboardContentProps
       <LockerHeader
         userName={userName}
         sport={userSport}
+        jerseyNumber={userProfile?.jersey_number ?? null}
         stats={[
           {
             label: "Sessions Today",

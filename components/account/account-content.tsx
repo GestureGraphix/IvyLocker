@@ -37,6 +37,7 @@ export function AccountContent() {
     phone: "",
     location: "",
     university: "",
+    jersey_number: "",
     graduation_year: "",
     height_cm: "",
     weight_kg: "",
@@ -72,6 +73,7 @@ export function AccountContent() {
         phone: user.phone || "",
         location: user.location || "",
         university: user.university || "",
+        jersey_number: user.jersey_number?.toString() || "",
         graduation_year: user.graduation_year?.toString() || "",
         height_cm: user.height_cm?.toString() || "",
         weight_kg: user.weight_kg?.toString() || "",
@@ -92,6 +94,7 @@ export function AccountContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
+          jersey_number: formData.jersey_number ? Number.parseInt(formData.jersey_number) : null,
           graduation_year: formData.graduation_year ? Number.parseInt(formData.graduation_year) : null,
           height_cm: formData.height_cm ? Number.parseFloat(formData.height_cm) : null,
           weight_kg: formData.weight_kg ? Number.parseFloat(formData.weight_kg) : null,
@@ -273,6 +276,19 @@ export function AccountContent() {
                 onChange={(e) => setFormData({ ...formData, position: e.target.value })}
                 className=""
                 placeholder="e.g., Point Guard"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="jersey_number">Jersey Number</Label>
+              <Input
+                id="jersey_number"
+                type="number"
+                min="0"
+                max="99"
+                value={formData.jersey_number}
+                onChange={(e) => setFormData({ ...formData, jersey_number: e.target.value })}
+                className=""
+                placeholder="e.g., 23"
               />
             </div>
             <div className="space-y-2">
