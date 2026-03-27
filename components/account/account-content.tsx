@@ -2,9 +2,8 @@
 
 import type React from "react"
 
-import { useState, useEffect, useRef } from "react"
+import { useState } from "react"
 import { toast } from "sonner"
-import useSWR from "swr"
 import { GlassCard } from "@/components/ui/glass-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,12 +14,33 @@ import { UNIVERSITY_THEMES, getUniversityTheme } from "@/lib/university-themes"
 import { User, Mail, Phone, MapPin, GraduationCap, Target, Droplets, Flame, Beef, Save, Loader2, Lock, Eye, EyeOff } from "lucide-react"
 
 const UNIVERSITIES = Object.keys(UNIVERSITY_THEMES)
-const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
-export function AccountContent() {
+interface InitialProfile {
+  sport?: string | null
+  team?: string | null
+  position?: string | null
+  jersey_number?: number | null
+  phone?: string | null
+  location?: string | null
+  university?: string | null
+  graduation_year?: number | null
+  height_cm?: number | null
+  weight_kg?: number | null
+  hydration_goal_oz?: number | null
+  calorie_goal?: number | null
+  protein_goal_grams?: number | null
+}
+
+interface AccountContentProps {
+  initialName?: string
+  initialEmail?: string
+  initialProfile?: InitialProfile
+}
+
+export function AccountContent({ initialName = "", initialEmail = "", initialProfile = {} }: AccountContentProps) {
   const { user, logout, mutate: mutateAuth } = useAuth()
-  const { data: profileData, mutate: mutateProfile } = useSWR("/api/athletes/profile", fetcher)
-  const populatedRef = useRef(false)
+  const p = initialProfile
+
   const [isLoading, setIsLoading] = useState(false)
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
@@ -33,21 +53,21 @@ export function AccountContent() {
     confirmPassword: "",
   })
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    sport: "",
-    team: "",
-    position: "",
-    phone: "",
-    location: "",
-    university: "",
-    jersey_number: "",
-    graduation_year: "",
-    height_cm: "",
-    weight_kg: "",
-    hydration_goal_oz: "100",
-    calorie_goal: "2500",
-    protein_goal_grams: "150",
+    name: initialName,
+    email: initialEmail,
+    sport: p.sport || "",
+    team: p.team || "",
+    position: p.position || "",
+    phone: p.phone || "",
+    location: p.location || "",
+    university: p.university || "",
+    jersey_number: p.jersey_number?.toString() || "",
+    graduation_year: p.graduation_year?.toString() || "",
+    height_cm: p.height_cm?.toString() || "",
+    weight_kg: p.weight_kg?.toString() || "",
+    hydration_goal_oz: p.hydration_goal_oz?.toString() || "100",
+    calorie_goal: p.calorie_goal?.toString() || "2500",
+    protein_goal_grams: p.protein_goal_grams?.toString() || "150",
   })
 
   const applyUniversityTheme = (university: string) => {
@@ -61,35 +81,9 @@ export function AccountContent() {
   }
 
   const handleUniversityChange = (value: string) => {
-    setFormData({ ...formData, university: value })
+    setFormData((prev) => ({ ...prev, university: value }))
     applyUniversityTheme(value)
   }
-
-  // Populate form exactly once per mount when both sources are ready
-  useEffect(() => {
-    if (populatedRef.current) return
-    if (!user || profileData === undefined) return
-
-    populatedRef.current = true
-    const p = profileData?.profile || {}
-    setFormData({
-      name: user.name || "",
-      email: user.email || "",
-      sport: p.sport || "",
-      team: p.team || "",
-      position: p.position || "",
-      phone: p.phone || "",
-      location: p.location || "",
-      university: p.university || "",
-      jersey_number: p.jersey_number?.toString() || "",
-      graduation_year: p.graduation_year?.toString() || "",
-      height_cm: p.height_cm?.toString() || "",
-      weight_kg: p.weight_kg?.toString() || "",
-      hydration_goal_oz: p.hydration_goal_oz?.toString() || "100",
-      calorie_goal: p.calorie_goal?.toString() || "2500",
-      protein_goal_grams: p.protein_goal_grams?.toString() || "150",
-    })
-  }, [user, profileData])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -112,9 +106,7 @@ export function AccountContent() {
       })
 
       if (res.ok) {
-        // Update SWR caches silently — form already shows the correct saved values
         mutateAuth()
-        mutateProfile()
         toast.success("Profile updated successfully")
       } else {
         toast.error("Failed to update profile")
@@ -202,8 +194,7 @@ export function AccountContent() {
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className=""
+                onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
@@ -214,7 +205,6 @@ export function AccountContent() {
                   id="email"
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="pl-10"
                   disabled
                 />
@@ -227,7 +217,7 @@ export function AccountContent() {
                 <Input
                   id="phone"
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
                   className="pl-10"
                   placeholder="(555) 123-4567"
                 />
@@ -240,7 +230,7 @@ export function AccountContent() {
                 <Input
                   id="location"
                   value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
                   className="pl-10"
                   placeholder="City, State"
                 />
@@ -261,8 +251,7 @@ export function AccountContent() {
               <Input
                 id="sport"
                 value={formData.sport}
-                onChange={(e) => setFormData({ ...formData, sport: e.target.value })}
-                className=""
+                onChange={(e) => setFormData((prev) => ({ ...prev, sport: e.target.value }))}
                 placeholder="e.g., Basketball"
               />
             </div>
@@ -271,8 +260,7 @@ export function AccountContent() {
               <Input
                 id="team"
                 value={formData.team}
-                onChange={(e) => setFormData({ ...formData, team: e.target.value })}
-                className=""
+                onChange={(e) => setFormData((prev) => ({ ...prev, team: e.target.value }))}
                 placeholder="e.g., Varsity"
               />
             </div>
@@ -281,8 +269,7 @@ export function AccountContent() {
               <Input
                 id="position"
                 value={formData.position}
-                onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                className=""
+                onChange={(e) => setFormData((prev) => ({ ...prev, position: e.target.value }))}
                 placeholder="e.g., Point Guard"
               />
             </div>
@@ -294,8 +281,7 @@ export function AccountContent() {
                 min="0"
                 max="99"
                 value={formData.jersey_number}
-                onChange={(e) => setFormData({ ...formData, jersey_number: e.target.value })}
-                className=""
+                onChange={(e) => setFormData((prev) => ({ ...prev, jersey_number: e.target.value }))}
                 placeholder="e.g., 23"
               />
             </div>
@@ -305,8 +291,7 @@ export function AccountContent() {
                 id="height"
                 type="number"
                 value={formData.height_cm}
-                onChange={(e) => setFormData({ ...formData, height_cm: e.target.value })}
-                className=""
+                onChange={(e) => setFormData((prev) => ({ ...prev, height_cm: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
@@ -315,8 +300,7 @@ export function AccountContent() {
                 id="weight"
                 type="number"
                 value={formData.weight_kg}
-                onChange={(e) => setFormData({ ...formData, weight_kg: e.target.value })}
-                className=""
+                onChange={(e) => setFormData((prev) => ({ ...prev, weight_kg: e.target.value }))}
               />
             </div>
           </div>
@@ -369,8 +353,7 @@ export function AccountContent() {
                 min="2024"
                 max="2030"
                 value={formData.graduation_year}
-                onChange={(e) => setFormData({ ...formData, graduation_year: e.target.value })}
-                className=""
+                onChange={(e) => setFormData((prev) => ({ ...prev, graduation_year: e.target.value }))}
                 placeholder="2026"
               />
             </div>
@@ -393,8 +376,7 @@ export function AccountContent() {
                 id="hydration"
                 type="number"
                 value={formData.hydration_goal_oz}
-                onChange={(e) => setFormData({ ...formData, hydration_goal_oz: e.target.value })}
-                className=""
+                onChange={(e) => setFormData((prev) => ({ ...prev, hydration_goal_oz: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
@@ -406,8 +388,7 @@ export function AccountContent() {
                 id="calories"
                 type="number"
                 value={formData.calorie_goal}
-                onChange={(e) => setFormData({ ...formData, calorie_goal: e.target.value })}
-                className=""
+                onChange={(e) => setFormData((prev) => ({ ...prev, calorie_goal: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
@@ -419,8 +400,7 @@ export function AccountContent() {
                 id="protein"
                 type="number"
                 value={formData.protein_goal_grams}
-                onChange={(e) => setFormData({ ...formData, protein_goal_grams: e.target.value })}
-                className=""
+                onChange={(e) => setFormData((prev) => ({ ...prev, protein_goal_grams: e.target.value }))}
               />
             </div>
           </div>
@@ -459,7 +439,7 @@ export function AccountContent() {
                   id="currentPassword"
                   type={showCurrentPassword ? "text" : "password"}
                   value={passwordData.currentPassword}
-                  onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                  onChange={(e) => setPasswordData((prev) => ({ ...prev, currentPassword: e.target.value }))}
                   className="pr-10"
                   required
                 />
@@ -479,7 +459,7 @@ export function AccountContent() {
                   id="newPassword"
                   type={showNewPassword ? "text" : "password"}
                   value={passwordData.newPassword}
-                  onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                  onChange={(e) => setPasswordData((prev) => ({ ...prev, newPassword: e.target.value }))}
                   className="pr-10"
                   required
                   minLength={8}
@@ -499,8 +479,7 @@ export function AccountContent() {
                 id="confirmPassword"
                 type="password"
                 value={passwordData.confirmPassword}
-                onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                className=""
+                onChange={(e) => setPasswordData((prev) => ({ ...prev, confirmPassword: e.target.value }))}
                 required
                 minLength={8}
               />
