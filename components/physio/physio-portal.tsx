@@ -1,14 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import useSWR from "swr"
 import {
   X, Check, Loader2, Trash2, ChevronLeft, ChevronRight, Plus,
-  AlertTriangle, Stethoscope, Users, CalendarDays, ClipboardList,
+  AlertTriangle, Users, CalendarDays, ClipboardList, LayoutDashboard, LogOut,
 } from "lucide-react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { useAuth } from "@/hooks/use-auth"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -81,7 +80,18 @@ function fmtDate(d: Date, opts?: Intl.DateTimeFormatOptions) {
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
-export function PhysioPortal() {
+type Tab = "dashboard" | "calendar" | "athletes" | "plans"
+
+const NAV_ITEMS: { key: Tab; label: string; Icon: React.ElementType }[] = [
+  { key: "dashboard", label: "Dashboard",   Icon: LayoutDashboard },
+  { key: "calendar",  label: "Calendar",    Icon: CalendarDays },
+  { key: "athletes",  label: "Athletes",    Icon: Users },
+  { key: "plans",     label: "Plans",       Icon: ClipboardList },
+]
+
+export function PhysioPortal({ userName }: { userName?: string }) {
+  const { user, logout } = useAuth()
+  const [tab, setTab] = useState<Tab>("dashboard")
   const [displayMonth, setDisplayMonth] = useState(() => {
     const n = new Date()
     return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`
@@ -99,61 +109,120 @@ export function PhysioPortal() {
   const activeProtocols = assignments.filter((a) => a.status === "active").length
   const upcomingMeetings = meetings.filter((m) => m.status === "scheduled" && new Date(m.scheduled_at) >= new Date()).length
 
+  const displayName = userName || user?.name || "Physio"
+  const nameParts = displayName.trim().split(" ")
+  const surname = nameParts[nameParts.length - 1].toUpperCase()
+  const firstName = nameParts[0]
+
   return (
-    <div className="p-6 md:p-7 space-y-5">
+    <div className="min-h-screen flex" style={{ background: "var(--background)" }}>
 
-      {/* Page header */}
-      <div>
-        <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "28px", letterSpacing: "1px", color: "var(--ink)" }}>
-          Physio Portal
-        </h1>
-        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "1.5px", textTransform: "uppercase", color: "var(--muted-foreground)", marginTop: "2px" }}>
-          Athletes · Meetings · Protocols
-        </p>
-      </div>
-
-      {/* Stats strip */}
-      <div
-        className="grid grid-cols-2 md:grid-cols-4 bg-white overflow-hidden"
-        style={{ border: "1px solid var(--rule)", borderRadius: "8px" }}
+      {/* ── Sidebar ── */}
+      <aside
+        className="fixed left-0 top-0 z-40 h-screen flex flex-col overflow-hidden"
+        style={{
+          width: "200px",
+          background: "var(--uni-primary)",
+          backgroundImage: "repeating-linear-gradient(-55deg, transparent, transparent 40px, rgba(255,255,255,0.018) 40px, rgba(255,255,255,0.018) 41px)",
+        }}
       >
-        <StatCell label="Athletes" value={athletes.length} sub="on roster" />
-        <StatCell label="Flagged" value={flaggedCount} sub="needs review" accent="#b83232" />
-        <StatCell label="Protocols" value={activeProtocols} sub="active" accent="var(--ivy-mid)" />
-        <StatCell label="Meetings" value={upcomingMeetings} sub="upcoming" accent="var(--gold)" />
-      </div>
+        {/* Wordmark */}
+        <div className="px-[18px] py-4 flex-shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <span className="block leading-none" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "16px", letterSpacing: "4px", color: "#f7f2ea" }}>
+            LOCKER
+          </span>
+          <span className="block mt-0.5" style={{ fontFamily: "'DM Mono', monospace", fontSize: "8px", letterSpacing: "2px", textTransform: "uppercase", color: "#a78bfa" }}>
+            Physio
+          </span>
+        </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="dashboard" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="calendar">Calendar</TabsTrigger>
-          <TabsTrigger value="athletes">Athletes</TabsTrigger>
-          <TabsTrigger value="plans">Plans</TabsTrigger>
-        </TabsList>
+        {/* Identity */}
+        <div className="relative px-[18px] py-4 overflow-hidden flex-shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <span aria-hidden className="absolute right-2.5 top-2 select-none pointer-events-none leading-none"
+            style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "64px", color: "rgba(255,255,255,0.06)", letterSpacing: "-2px" }}>
+            +
+          </span>
+          <p className="relative leading-tight" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "18px", letterSpacing: "1.5px", color: "#f7f2ea" }}>
+            {surname}
+          </p>
+          <p className="relative mt-0.5" style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "1px", textTransform: "uppercase", color: "rgba(255,255,255,0.35)" }}>
+            {firstName}
+          </p>
+        </div>
 
-        <TabsContent value="dashboard" className="space-y-0">
-          <DashboardTab athletes={athletes} assignments={assignments} meetings={meetings} />
-        </TabsContent>
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto py-2" style={{ scrollbarWidth: "none" }}>
+          <p className="px-[18px] pt-3 pb-1 uppercase" style={{ fontFamily: "'DM Mono', monospace", fontSize: "8px", letterSpacing: "2px", color: "rgba(255,255,255,0.18)" }}>
+            Portal
+          </p>
+          {NAV_ITEMS.map(({ key, label, Icon }) => {
+            const isActive = tab === key
+            return (
+              <button
+                key={key}
+                onClick={() => setTab(key)}
+                className="w-full flex items-center gap-[9px] px-[18px] py-2 text-[12px] border-l-2 transition-all duration-[180ms]"
+                style={{
+                  color: isActive ? "#f7f2ea" : "rgba(255,255,255,0.38)",
+                  background: isActive ? "rgba(255,255,255,0.06)" : "transparent",
+                  borderLeftColor: isActive ? "var(--uni-accent)" : "transparent",
+                  fontWeight: isActive ? 500 : 400,
+                  letterSpacing: "0.2px",
+                }}
+                onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.color = "rgba(255,255,255,0.70)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)" } }}
+                onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.color = "rgba(255,255,255,0.38)"; e.currentTarget.style.background = "transparent" } }}
+              >
+                <Icon style={{ width: "14px", height: "14px", opacity: isActive ? 1 : 0.7, flexShrink: 0 }} />
+                <span>{label}</span>
+              </button>
+            )
+          })}
+        </nav>
 
-        <TabsContent value="calendar" className="space-y-0">
-          <CalendarTab
-            athletes={athletes}
-            meetings={meetings}
-            displayMonth={displayMonth}
-            onMonthChange={setDisplayMonth}
-            onUpdate={mutateMeetings}
-          />
-        </TabsContent>
+        {/* Footer */}
+        <div className="p-3 flex-shrink-0" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-2 px-2 py-1.5 rounded transition-colors text-[11px]"
+            style={{ color: "rgba(255,255,255,0.25)" }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.55)")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.25)")}
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            <span>Sign out</span>
+          </button>
+        </div>
+      </aside>
 
-        <TabsContent value="athletes" className="space-y-0">
-          <AthletesTab athletes={athletes} assignments={assignments} onUpdate={mutateAthletes} />
-        </TabsContent>
+      {/* ── Main content ── */}
+      <main className="pl-[200px] pb-8 w-full">
+        <div className="p-6 md:p-7 space-y-5">
 
-        <TabsContent value="plans" className="space-y-0">
-          <PlansTab athletes={athletes} assignments={assignments} onUpdate={mutateAssignments} />
-        </TabsContent>
-      </Tabs>
+          {/* Page title */}
+          <div>
+            <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "28px", letterSpacing: "1px", color: "var(--ink)" }}>
+              {NAV_ITEMS.find((n) => n.key === tab)?.label}
+            </h1>
+            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "1.5px", textTransform: "uppercase", color: "var(--muted-foreground)", marginTop: "2px" }}>
+              Physio Portal · {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+            </p>
+          </div>
+
+          {/* Stats strip */}
+          <div className="grid grid-cols-2 md:grid-cols-4 bg-white overflow-hidden" style={{ border: "1px solid var(--rule)", borderRadius: "8px" }}>
+            <StatCell label="Athletes"  value={athletes.length}    sub="on roster"    />
+            <StatCell label="Flagged"   value={flaggedCount}        sub="needs review" accent="#b83232" />
+            <StatCell label="Protocols" value={activeProtocols}     sub="active"       accent="var(--ivy-mid)" />
+            <StatCell label="Meetings"  value={upcomingMeetings}    sub="upcoming"     accent="var(--gold)" />
+          </div>
+
+          {/* Tab content */}
+          {tab === "dashboard" && <DashboardTab athletes={athletes} assignments={assignments} meetings={meetings} />}
+          {tab === "calendar"  && <CalendarTab athletes={athletes} meetings={meetings} displayMonth={displayMonth} onMonthChange={setDisplayMonth} onUpdate={mutateMeetings} />}
+          {tab === "athletes"  && <AthletesTab athletes={athletes} assignments={assignments} onUpdate={mutateAthletes} />}
+          {tab === "plans"     && <PlansTab athletes={athletes} assignments={assignments} onUpdate={mutateAssignments} />}
+        </div>
+      </main>
     </div>
   )
 }
@@ -162,10 +231,7 @@ export function PhysioPortal() {
 
 function StatCell({ label, value, sub, accent }: { label: string; value: number; sub: string; accent?: string }) {
   return (
-    <div
-      className="px-[18px] py-4"
-      style={{ borderRight: "1px solid var(--rule)" }}
-    >
+    <div className="px-[18px] py-4" style={{ borderRight: "1px solid var(--rule)" }}>
       <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "8px", letterSpacing: "2px", textTransform: "uppercase", color: "var(--muted-foreground)", marginBottom: "4px" }}>
         {label}
       </p>
