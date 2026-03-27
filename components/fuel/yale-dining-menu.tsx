@@ -126,7 +126,8 @@ export function YaleDiningMenu({ onLogMeal }: YaleDiningMenuProps) {
 
     try {
       if (existingId) {
-        await fetch(`/api/athletes/meal-favorites/${existingId}`, { method: "DELETE" })
+        const res = await fetch(`/api/athletes/meal-favorites/${existingId}`, { method: "DELETE" })
+        if (!res.ok) throw new Error("delete failed")
         setFavorites(prev => {
           const next = new Map(prev)
           next.delete(item.name)
@@ -145,10 +146,9 @@ export function YaleDiningMenu({ onLogMeal }: YaleDiningMenuProps) {
             fat_grams: item.fatG,
           }),
         })
+        if (!res.ok) throw new Error("add failed")
         const json = await res.json()
-        if (json.favorite) {
-          setFavorites(prev => new Map(prev).set(item.name, json.favorite.id))
-        }
+        setFavorites(prev => new Map(prev).set(item.name, json.favorite.id))
       }
     } catch {
       toast.error("Failed to update favorite")
