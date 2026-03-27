@@ -4,7 +4,6 @@ import { ProgressBar } from "@/components/ui/progress-bar"
 import { CheckInWidget } from "./check-in-widget"
 import { DailyRecommendationCard } from "./daily-recommendation-card"
 import { UpcomingItems } from "./upcoming-items"
-import { LockerHeader } from "@/components/layout/locker-header"
 import { DashboardSkeleton } from "@/components/ui/skeletons"
 import { PhysioAssignmentsCard } from "./physio-assignments-card"
 import useSWR from "swr"
@@ -54,7 +53,6 @@ export function DashboardContent({ userName = "Athlete" }: DashboardContentProps
   const todaySessions = sessions.filter((s: { start_at: string }) =>
     new Date(s.start_at).toDateString() === todayDateStr
   )
-  const completedSessions = todaySessions.filter((s: { completed: boolean }) => s.completed).length
 
   const checkIn = checkInData?.checkIn
   const wellnessScore = checkIn
@@ -91,47 +89,12 @@ export function DashboardContent({ userName = "Athlete" }: DashboardContentProps
       priority: a.priority,
     }))
 
-  const userSport = userProfile?.sport || "Athletics"
-
   if (isLoading) {
     return <DashboardSkeleton />
   }
 
   return (
     <div>
-      {/* Locker Hero Header */}
-      <LockerHeader
-        userName={userName}
-        sport={userSport}
-        jerseyNumber={userProfile?.jersey_number ?? null}
-        stats={[
-          {
-            label: "Sessions Today",
-            value: `${completedSessions}/${todaySessions.length || 0}`,
-            color: "#f7f2ea",
-          },
-          {
-            label: "Hydration",
-            value: todayHydration,
-            unit: "oz",
-            sub: `goal ${goals.hydration}`,
-            color: todayHydration >= goals.hydration ? "#52b788" : "#f7f2ea",
-          },
-          {
-            label: "Wellness",
-            value: wellnessScore || "—",
-            unit: wellnessScore ? "/10" : "",
-            color: wellnessScore ? "#c9a84c" : "rgba(255,255,255,0.4)",
-          },
-          {
-            label: "Meals",
-            value: todayMeals.length,
-            sub: `${mealTotals.calories} kcal`,
-            color: "#f7f2ea",
-          },
-        ]}
-      />
-
       <div className="p-6 md:p-7 space-y-5">
         {/* AI Coach Note */}
         <DailyRecommendationCard />
