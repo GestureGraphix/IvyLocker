@@ -245,37 +245,39 @@ export function Sidebar({ userRole, userName }: SidebarProps) {
         className="p-3 flex-shrink-0"
         style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
       >
-        <div
-          className="flex rounded overflow-hidden mb-2"
-          style={{
-            background: "rgba(255,255,255,0.05)",
-            border: "1px solid rgba(255,255,255,0.06)",
-            fontFamily: "'DM Mono', monospace",
-            fontSize: "9px",
-            letterSpacing: "1px",
-            textTransform: "uppercase",
-          }}
-        >
-          {([
-            { label: "Athlete", href: "/", active: !isCoach && !isPhysio },
-            { label: "Coach",   href: "/coach", active: isCoach },
-            { label: "Physio",  href: "/physio", active: isPhysio },
-          ] as const).map(({ label, href, active }) => (
-            <Link
-              key={label}
-              href={href}
-              className="flex-1 py-1.5 text-center transition-colors"
-              style={{
-                background: active ? "rgba(255,255,255,0.10)" : "transparent",
-                color: active ? "#f7f2ea" : "rgba(255,255,255,0.25)",
-              }}
-              onMouseEnter={e => { if (!active) e.currentTarget.style.color = "rgba(255,255,255,0.55)" }}
-              onMouseLeave={e => { if (!active) e.currentTarget.style.color = "rgba(255,255,255,0.25)" }}
-            >
-              {label}
-            </Link>
-          ))}
-        </div>
+        {(isCoach || isPhysio) && (
+          <div
+            className="flex rounded overflow-hidden mb-2"
+            style={{
+              background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(255,255,255,0.06)",
+              fontFamily: "'DM Mono', monospace",
+              fontSize: "9px",
+              letterSpacing: "1px",
+              textTransform: "uppercase",
+            }}
+          >
+            {([
+              { label: "Athlete", href: "/", active: !isCoach && !isPhysio },
+              { label: "Coach",   href: "/coach", active: isCoach },
+              { label: "Physio",  href: "/physio", active: isPhysio },
+            ] as const).map(({ label, href, active }) => (
+              <Link
+                key={label}
+                href={href}
+                className="flex-1 py-1.5 text-center transition-colors"
+                style={{
+                  background: active ? "rgba(255,255,255,0.10)" : "transparent",
+                  color: active ? "#f7f2ea" : "rgba(255,255,255,0.25)",
+                }}
+                onMouseEnter={e => { if (!active) e.currentTarget.style.color = "rgba(255,255,255,0.55)" }}
+                onMouseLeave={e => { if (!active) e.currentTarget.style.color = "rgba(255,255,255,0.25)" }}
+              >
+                {label}
+              </Link>
+            ))}
+          </div>
+        )}
 
         <button
           onClick={logout}
