@@ -244,4 +244,25 @@
     background: var(--gold);
     color: #0c0c0c;
   }
+
+  /* Physio portal dark theme override */
+  .physio-theme {
+    --background: #12111a;
+    --foreground: var(--cream);
+    --card: #1c1b28;
+    --card-foreground: var(--cream);
+    --border: #2e2c42;
+    --muted-foreground: rgba(247, 242, 234, 0.5);
+    --secondary: rgba(255, 255, 255, 0.05);
+    --secondary-foreground: var(--cream);
+    --primary: #a78bfa;
+    --primary-foreground: #ffffff;
+    background: #12111a;
+    color: var(--cream);
+    min-height: 100vh;
+  }
+  .physio-theme .gradient-primary {
+    background: #a78bfa;
+    color: #ffffff;
+  }
 }
