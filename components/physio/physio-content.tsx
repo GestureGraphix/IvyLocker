@@ -12,7 +12,7 @@ import useSWR from "swr"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
-type Category = "mobility" | "rehab" | "prehab"
+type Category = "rehab" | "prehab"
 
 interface LogEntry {
   id: string
@@ -38,7 +38,7 @@ interface Exercise {
 export function PhysioContent() {
   const [isLogDialogOpen, setIsLogDialogOpen] = useState(false)
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null)
-  const [activeTab, setActiveTab] = useState("mobility")
+  const [activeTab, setActiveTab] = useState("rehab")
 
   const { data: exercisesData, mutate: mutateExercises } = useSWR("/api/athletes/mobility-exercises", fetcher)
   const { data: logsData, mutate: mutateLogs } = useSWR("/api/athletes/mobility-logs", fetcher)
@@ -46,27 +46,26 @@ export function PhysioContent() {
   const exercises: Exercise[] = exercisesData?.exercises || []
   const logs: LogEntry[] = logsData?.logs || []
 
-  const mobilityLogs = logs.filter((l) => !l.category || l.category === "mobility")
   const rehabLogs = logs.filter((l) => l.category === "rehab")
   const prehabLogs = logs.filter((l) => l.category === "prehab")
+  const allLogs = logs.filter((l) => l.category === "rehab" || l.category === "prehab")
 
-  // Stats across all categories
+  // Stats across rehab + prehab
   const today = new Date().toISOString().split("T")[0]
-  const todayMinutes = logs
+  const todayMinutes = allLogs
     .filter((l) => l.date === today)
     .reduce((acc, l) => acc + l.duration_minutes, 0)
 
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-  const weekMinutes = logs
+  const weekMinutes = allLogs
     .filter((l) => new Date(l.date) >= weekAgo)
     .reduce((acc, l) => acc + l.duration_minutes, 0)
 
-  const bodyGroups = [...new Set(logs.map((l) => l.body_group).filter(Boolean))]
+  const bodyGroups = [...new Set(allLogs.map((l) => l.body_group).filter(Boolean))]
 
-  const categoryForTab = (activeTab === "library" ? "mobility" : activeTab) as Category
+  const categoryForTab = (activeTab === "library" || activeTab === "history" ? "rehab" : activeTab) as Category
 
   const tabLabel: Record<string, string> = {
-    mobility: "Mobility",
     rehab: "Rehab",
     prehab: "Prehab",
   }
@@ -88,10 +87,10 @@ export function PhysioContent() {
             <Activity className="h-6 w-6" style={{ color: "var(--ivy-mid)" }} />
             Physio
           </h1>
-          <p className="text-muted-foreground text-sm">Mobility, rehab, and prehab tracking</p>
+          <p className="text-muted-foreground text-sm">Rehab and prehab tracking</p>
         </div>
 
-        {activeTab !== "library" && (
+        {(activeTab === "rehab" || activeTab === "prehab") && (
           <Button
             onClick={() => {
               setSelectedExercise(null)
@@ -147,19 +146,11 @@ export function PhysioContent() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
-          <TabsTrigger value="mobility">Mobility</TabsTrigger>
           <TabsTrigger value="rehab">Rehab</TabsTrigger>
           <TabsTrigger value="prehab">Prehab</TabsTrigger>
           <TabsTrigger value="library">Exercise Library</TabsTrigger>
+          <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="mobility">
-          <MobilityHistory
-            logs={mobilityLogs}
-            onUpdate={() => mutateLogs()}
-            emptyLabel="No mobility sessions logged"
-          />
-        </TabsContent>
 
         <TabsContent value="rehab">
           <MobilityHistory
@@ -182,6 +173,14 @@ export function PhysioContent() {
             exercises={exercises}
             onLogExercise={handleLogExercise}
             onUpdate={() => mutateExercises()}
+          />
+        </TabsContent>
+
+        <TabsContent value="history">
+          <MobilityHistory
+            logs={allLogs}
+            onUpdate={() => mutateLogs()}
+            emptyLabel="No sessions logged yet"
           />
         </TabsContent>
       </Tabs>
