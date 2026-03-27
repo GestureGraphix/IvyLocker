@@ -68,7 +68,7 @@ function NavSection({
             style={{
               color: isActive ? "#f7f2ea" : "rgba(255,255,255,0.38)",
               background: isActive ? "rgba(255,255,255,0.06)" : "transparent",
-              borderLeftColor: isActive ? "#c9a84c" : "transparent",
+              borderLeftColor: isActive ? "var(--uni-accent)" : "transparent",
               fontWeight: isActive ? 500 : 400,
               letterSpacing: "0.2px",
             }}
@@ -120,9 +120,10 @@ export function Sidebar({ userRole, userName }: SidebarProps) {
       className="fixed left-0 top-0 z-40 h-screen flex flex-col overflow-hidden"
       style={{
         width: "200px",
-        background: "#162e22",
+        background: "var(--uni-primary)",
         backgroundImage:
           "repeating-linear-gradient(-55deg, transparent, transparent 40px, rgba(255,255,255,0.018) 40px, rgba(255,255,255,0.018) 41px)",
+        transition: "background 0.3s ease",
       }}
     >
       {/* Wordmark */}
@@ -149,7 +150,7 @@ export function Sidebar({ userRole, userName }: SidebarProps) {
               fontSize: "8px",
               letterSpacing: "2px",
               textTransform: "uppercase",
-              color: isCoach ? "#7dd3fc" : "#c9a84c",
+              color: isCoach ? "#7dd3fc" : "var(--uni-accent)",
             }}
           >
             {isCoach ? "Coach" : "Athlete"}
@@ -219,7 +220,7 @@ export function Sidebar({ userRole, userName }: SidebarProps) {
           >
             <div
               className="h-full rounded-sm"
-              style={{ width: "72%", background: "#c9a84c" }}
+              style={{ width: "72%", background: "var(--uni-accent)" }}
             />
           </div>
         </div>
