@@ -11,7 +11,7 @@ export async function GET() {
       SELECT u.name, u.email, u.role,
         ap.sport, ap.team, ap.position, ap.jersey_number, ap.university, ap.graduation_year,
         ap.height_cm, ap.weight_kg, ap.hydration_goal_oz, ap.calorie_goal,
-        ap.protein_goal_grams, ap.phone
+        ap.protein_goal_grams, ap.phone, ap.location
       FROM users u
       LEFT JOIN athlete_profiles ap ON ap.user_id = u.id
       WHERE u.id = ${user.id}

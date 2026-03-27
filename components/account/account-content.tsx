@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
+import useSWR from "swr"
 import { GlassCard } from "@/components/ui/glass-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,9 +15,11 @@ import { UNIVERSITY_THEMES, getUniversityTheme } from "@/lib/university-themes"
 import { User, Mail, Phone, MapPin, GraduationCap, Target, Droplets, Flame, Beef, Save, Loader2, Lock, Eye, EyeOff } from "lucide-react"
 
 const UNIVERSITIES = Object.keys(UNIVERSITY_THEMES)
+const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 export function AccountContent() {
-  const { user, logout, mutate } = useAuth()
+  const { user, logout, mutate: mutateAuth } = useAuth()
+  const { data: profileData, mutate: mutateProfile } = useSWR("/api/athletes/profile", fetcher)
   const [isLoading, setIsLoading] = useState(false)
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
@@ -61,28 +64,28 @@ export function AccountContent() {
     applyUniversityTheme(value)
   }
 
-  // Populate form when user data loads
+  // Populate form once both user (name/email) and profile data are available
   useEffect(() => {
-    if (user) {
-      setFormData({
-        name: user.name || "",
-        email: user.email || "",
-        sport: user.sport || "",
-        team: user.team || "",
-        position: user.position || "",
-        phone: user.phone || "",
-        location: user.location || "",
-        university: user.university || "",
-        jersey_number: user.jersey_number?.toString() || "",
-        graduation_year: user.graduation_year?.toString() || "",
-        height_cm: user.height_cm?.toString() || "",
-        weight_kg: user.weight_kg?.toString() || "",
-        hydration_goal_oz: user.hydration_goal_oz?.toString() || "100",
-        calorie_goal: user.calorie_goal?.toString() || "2500",
-        protein_goal_grams: user.protein_goal_grams?.toString() || "150",
-      })
-    }
-  }, [user])
+    if (!user) return
+    const p = profileData?.profile || {}
+    setFormData({
+      name: user.name || "",
+      email: user.email || "",
+      sport: p.sport || "",
+      team: p.team || "",
+      position: p.position || "",
+      phone: p.phone || "",
+      location: p.location || "",
+      university: p.university || "",
+      jersey_number: p.jersey_number?.toString() || "",
+      graduation_year: p.graduation_year?.toString() || "",
+      height_cm: p.height_cm?.toString() || "",
+      weight_kg: p.weight_kg?.toString() || "",
+      hydration_goal_oz: p.hydration_goal_oz?.toString() || "100",
+      calorie_goal: p.calorie_goal?.toString() || "2500",
+      protein_goal_grams: p.protein_goal_grams?.toString() || "150",
+    })
+  }, [user, profileData])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -105,8 +108,8 @@ export function AccountContent() {
       })
 
       if (res.ok) {
-        // Refresh user data in auth context
-        await mutate()
+        await mutateAuth()
+        await mutateProfile()
         toast.success("Profile updated successfully")
       } else {
         toast.error("Failed to update profile")
