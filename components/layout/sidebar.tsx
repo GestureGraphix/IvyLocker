@@ -256,33 +256,25 @@ export function Sidebar({ userRole, userName }: SidebarProps) {
             textTransform: "uppercase",
           }}
         >
-          <div
-            className="flex-1 py-1.5 text-center"
-            style={{
-              background: !isCoach && !isPhysio ? "rgba(255,255,255,0.10)" : "transparent",
-              color: !isCoach && !isPhysio ? "#f7f2ea" : "rgba(255,255,255,0.25)",
-            }}
-          >
-            Athlete
-          </div>
-          <div
-            className="flex-1 py-1.5 text-center"
-            style={{
-              background: isCoach ? "rgba(255,255,255,0.10)" : "transparent",
-              color: isCoach ? "#f7f2ea" : "rgba(255,255,255,0.25)",
-            }}
-          >
-            Coach
-          </div>
-          <div
-            className="flex-1 py-1.5 text-center"
-            style={{
-              background: isPhysio ? "rgba(255,255,255,0.10)" : "transparent",
-              color: isPhysio ? "#f7f2ea" : "rgba(255,255,255,0.25)",
-            }}
-          >
-            Physio
-          </div>
+          {([
+            { label: "Athlete", href: "/", active: !isCoach && !isPhysio },
+            { label: "Coach",   href: "/coach", active: isCoach },
+            { label: "Physio",  href: "/physio", active: isPhysio },
+          ] as const).map(({ label, href, active }) => (
+            <Link
+              key={label}
+              href={href}
+              className="flex-1 py-1.5 text-center transition-colors"
+              style={{
+                background: active ? "rgba(255,255,255,0.10)" : "transparent",
+                color: active ? "#f7f2ea" : "rgba(255,255,255,0.25)",
+              }}
+              onMouseEnter={e => { if (!active) e.currentTarget.style.color = "rgba(255,255,255,0.55)" }}
+              onMouseLeave={e => { if (!active) e.currentTarget.style.color = "rgba(255,255,255,0.25)" }}
+            >
+              {label}
+            </Link>
+          ))}
         </div>
 
         <button

@@ -7,7 +7,6 @@ export default async function PhysioPage() {
   const user = await getCurrentUser()
 
   if (!user) redirect("/login")
-  if (user.role !== "PHYSIO") redirect("/")
 
   return (
     <MainLayout userName={user.name} userRole="PHYSIO">
