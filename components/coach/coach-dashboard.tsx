@@ -6,13 +6,10 @@ import { GlassCard } from "@/components/ui/glass-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Users, UserPlus, Search, Calendar, Activity, FolderOpen, FileText, LogOut } from "lucide-react"
-import Link from "next/link"
-import { useAuth } from "@/hooks/use-auth"
+import { UserPlus, Search, Calendar, Activity } from "lucide-react"
 import { AthleteCard } from "./athlete-card"
 import { AddAthleteDialog } from "./add-athlete-dialog"
 import { AssignWorkoutDialog } from "./assign-workout-dialog"
-import { CoachDashboardSkeleton } from "@/components/ui/skeletons"
 
 interface Athlete {
   id: string
@@ -32,10 +29,33 @@ interface Athlete {
   upcoming_sessions: number
 }
 
+function StatCell({
+  label,
+  value,
+  sub,
+  accent,
+}: {
+  label: string
+  value: string | number
+  sub: string
+  accent?: string
+}) {
+  return (
+    <div className="px-[18px] py-4" style={{ borderRight: "1px solid var(--rule)" }}>
+      <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "8px", letterSpacing: "2px", textTransform: "uppercase", color: "var(--muted-foreground)", marginBottom: "4px" }}>
+        {label}
+      </p>
+      <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "36px", lineHeight: 1, color: accent ?? "var(--ink)", letterSpacing: "-0.5px" }}>
+        {value}
+      </p>
+      <p style={{ fontSize: "11px", color: "var(--muted-foreground)", marginTop: "3px" }}>{sub}</p>
+    </div>
+  )
+}
+
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 export function CoachDashboard() {
-  const { logout } = useAuth()
   const [searchQuery, setSearchQuery] = useState("")
   const [addAthleteOpen, setAddAthleteOpen] = useState(false)
   const [assignWorkoutOpen, setAssignWorkoutOpen] = useState(false)
@@ -55,16 +75,17 @@ export function CoachDashboard() {
   )
 
   const athletesWithCheckin = athletes.filter((a) => a.todays_checkin).length
-  const averageWellness = athletes.length > 0
-    ? Math.round(
-        athletes
-          .filter((a) => a.todays_checkin)
-          .reduce((sum, a) => {
-            const checkin = a.todays_checkin!
-            return sum + (checkin.mental_state + checkin.physical_state) / 2
-          }, 0) / (athletesWithCheckin || 1)
-      )
-    : null
+  const averageWellness =
+    athletes.length > 0
+      ? Math.round(
+          athletes
+            .filter((a) => a.todays_checkin)
+            .reduce((sum, a) => {
+              const checkin = a.todays_checkin!
+              return sum + (checkin.mental_state + checkin.physical_state) / 2
+            }, 0) / (athletesWithCheckin || 1)
+        )
+      : null
 
   const toggleAthleteSelection = (id: string) => {
     setSelectedAthletes((prev) =>
@@ -72,84 +93,33 @@ export function CoachDashboard() {
     )
   }
 
-  const selectAll = () => {
-    setSelectedAthletes(filteredAthletes.map((a) => a.id))
-  }
-
-  const clearSelection = () => {
-    setSelectedAthletes([])
-  }
+  const selectAll = () => setSelectedAthletes(filteredAthletes.map((a) => a.id))
+  const clearSelection = () => setSelectedAthletes([])
 
   return (
-    <div className="p-4 md:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div>
-            <h1
-              className="flex items-center gap-2"
-              style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "32px", letterSpacing: "1px", color: "var(--cream)" }}
-            >
-              <Users className="h-6 w-6" style={{ color: "var(--gold)" }} />
-              Coach Portal
-            </h1>
-            <p className="text-muted-foreground">Manage your athletes and assign workouts</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Link href="/coach/plans">
-            <Button variant="outline">
-              <FileText className="h-4 w-4 mr-2" />
-              Plans
-            </Button>
-          </Link>
-          <Link href="/coach/groups">
-            <Button variant="outline">
-              <FolderOpen className="h-4 w-4 mr-2" />
-              Groups
-            </Button>
-          </Link>
-          <Button onClick={() => setAddAthleteOpen(true)} variant="outline">
-            <UserPlus className="h-4 w-4 mr-2" />
-            Add Athlete
-          </Button>
-          {selectedAthletes.length > 0 && (
-            <Button onClick={() => setAssignWorkoutOpen(true)} className="gradient-primary">
-              <Calendar className="h-4 w-4 mr-2" />
-              Assign Workout ({selectedAthletes.length})
-            </Button>
-          )}
-          <Button variant="ghost" size="icon" onClick={logout} title="Sign out">
-            <LogOut className="h-4 w-4" />
-          </Button>
-        </div>
+    <div className="p-6 md:p-7 space-y-5">
+      {/* Page title */}
+      <div>
+        <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "28px", letterSpacing: "1px", color: "var(--ink)" }}>
+          Athletes
+        </h1>
+        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "1.5px", textTransform: "uppercase", color: "var(--muted-foreground)", marginTop: "2px" }}>
+          Coach Portal · {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+        </p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <GlassCard className="text-center">
-          <div className="text-3xl font-bold" style={{ color: "var(--gold)" }}>{athletes.length}</div>
-          <div className="text-sm text-muted-foreground">Total Athletes</div>
-        </GlassCard>
-        <GlassCard className="text-center">
-          <div className="text-3xl font-bold" style={{ color: "var(--ivy-light)" }}>{athletesWithCheckin}</div>
-          <div className="text-sm text-muted-foreground">Checked In Today</div>
-        </GlassCard>
-        <GlassCard className="text-center">
-          <div className="text-3xl font-bold" style={{ color: "var(--gold)" }}>
-            {averageWellness !== null ? `${averageWellness}/10` : "—"}
-          </div>
-          <div className="text-sm text-muted-foreground">Avg Wellness</div>
-        </GlassCard>
-        <GlassCard className="text-center">
-          <div className="text-3xl font-bold" style={{ color: "var(--cream)" }}>
-            {athletes.reduce((sum, a) => sum + a.upcoming_sessions, 0)}
-          </div>
-          <div className="text-sm text-muted-foreground">Sessions This Week</div>
-        </GlassCard>
+      {/* Stats strip */}
+      <div
+        className="grid grid-cols-2 md:grid-cols-4 bg-white overflow-hidden"
+        style={{ border: "1px solid var(--rule)", borderRadius: "8px" }}
+      >
+        <StatCell label="Athletes"    value={athletes.length}          sub="on roster"    />
+        <StatCell label="Checked In"  value={athletesWithCheckin}      sub="today"        accent="var(--ivy-mid)" />
+        <StatCell label="Avg Wellness" value={averageWellness !== null ? `${averageWellness}/10` : "—"} sub="out of 10" accent="var(--gold)" />
+        <StatCell label="Sessions"    value={athletes.reduce((s, a) => s + a.upcoming_sessions, 0)} sub="this week" />
       </div>
 
-      {/* Search and Selection Controls */}
+      {/* Search + controls */}
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -172,10 +142,20 @@ export function CoachDashboard() {
               Clear
             </Button>
           )}
+          <Button onClick={() => setAddAthleteOpen(true)} variant="outline">
+            <UserPlus className="h-4 w-4 mr-2" />
+            Add Athlete
+          </Button>
+          {selectedAthletes.length > 0 && (
+            <Button onClick={() => setAssignWorkoutOpen(true)} className="gradient-primary">
+              <Calendar className="h-4 w-4 mr-2" />
+              Assign Workout ({selectedAthletes.length})
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Athletes List */}
+      {/* Athletes list */}
       {isLoading ? (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
@@ -227,7 +207,6 @@ export function CoachDashboard() {
         onOpenChange={setAddAthleteOpen}
         onSuccess={() => mutate()}
       />
-
       <AssignWorkoutDialog
         open={assignWorkoutOpen}
         onOpenChange={setAssignWorkoutOpen}

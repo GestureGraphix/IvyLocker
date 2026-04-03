@@ -17,6 +17,30 @@ import {
   Loader2,
   Eye,
 } from "lucide-react"
+
+function StatCell({
+  label,
+  value,
+  sub,
+  accent,
+}: {
+  label: string
+  value: string | number
+  sub: string
+  accent?: string
+}) {
+  return (
+    <div className="px-[18px] py-4" style={{ borderRight: "1px solid var(--rule)" }}>
+      <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "8px", letterSpacing: "2px", textTransform: "uppercase", color: "var(--muted-foreground)", marginBottom: "4px" }}>
+        {label}
+      </p>
+      <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "36px", lineHeight: 1, color: accent ?? "var(--ink)", letterSpacing: "-0.5px" }}>
+        {value}
+      </p>
+      <p style={{ fontSize: "11px", color: "var(--muted-foreground)", marginTop: "3px" }}>{sub}</p>
+    </div>
+  )
+}
 import { toast } from "sonner"
 
 interface Plan {
@@ -127,21 +151,15 @@ export function PlansManager() {
   const publishedCount = plans.filter((p) => p.status === "published").length
 
   return (
-    <div className="p-4 md:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="p-6 md:p-7 space-y-5">
+      {/* Page title */}
+      <div className="flex items-end justify-between">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <h1
-              className="flex items-center gap-2"
-              style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "32px", letterSpacing: "1px", color: "var(--cream)" }}
-            >
-              <Calendar className="h-6 w-6" style={{ color: "var(--gold)" }} />
-              Weekly Plans
-            </h1>
-          </div>
-          <p className="text-muted-foreground">
-            Create and manage weekly training plans for your athletes
+          <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "28px", letterSpacing: "1px", color: "var(--ink)" }}>
+            Weekly Plans
+          </h1>
+          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "1.5px", textTransform: "uppercase", color: "var(--muted-foreground)", marginTop: "2px" }}>
+            Coach Portal · {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
           </p>
         </div>
         <Link href="/coach/plans/new">
@@ -152,20 +170,14 @@ export function PlansManager() {
         </Link>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <GlassCard className="text-center">
-          <div className="text-3xl font-bold" style={{ color: "var(--gold)" }}>{plans.length}</div>
-          <div className="text-sm text-muted-foreground">Total Plans</div>
-        </GlassCard>
-        <GlassCard className="text-center">
-          <div className="text-3xl font-bold" style={{ color: "var(--gold)" }}>{draftCount}</div>
-          <div className="text-sm text-muted-foreground">Drafts</div>
-        </GlassCard>
-        <GlassCard className="text-center hidden md:block">
-          <div className="text-3xl font-bold" style={{ color: "var(--ivy-light)" }}>{publishedCount}</div>
-          <div className="text-sm text-muted-foreground">Published</div>
-        </GlassCard>
+      {/* Stats strip */}
+      <div
+        className="grid grid-cols-3 bg-white overflow-hidden"
+        style={{ border: "1px solid var(--rule)", borderRadius: "8px" }}
+      >
+        <StatCell label="Total Plans" value={plans.length}    sub="all time"  />
+        <StatCell label="Drafts"      value={draftCount}      sub="pending"   accent="var(--gold)" />
+        <StatCell label="Published"   value={publishedCount}  sub="live"      accent="var(--ivy-mid)" />
       </div>
 
       {/* Plans List */}

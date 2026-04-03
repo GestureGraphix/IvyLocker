@@ -12,9 +12,32 @@ import {
   Search,
   Pencil,
   Trash2,
-  UserPlus,
   ChevronRight,
 } from "lucide-react"
+
+function StatCell({
+  label,
+  value,
+  sub,
+  accent,
+}: {
+  label: string
+  value: string | number
+  sub: string
+  accent?: string
+}) {
+  return (
+    <div className="px-[18px] py-4" style={{ borderRight: "1px solid var(--rule)" }}>
+      <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "8px", letterSpacing: "2px", textTransform: "uppercase", color: "var(--muted-foreground)", marginBottom: "4px" }}>
+        {label}
+      </p>
+      <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "36px", lineHeight: 1, color: accent ?? "var(--ink)", letterSpacing: "-0.5px" }}>
+        {value}
+      </p>
+      <p style={{ fontSize: "11px", color: "var(--muted-foreground)", marginTop: "3px" }}>{sub}</p>
+    </div>
+  )
+}
 import { CreateGroupDialog } from "./create-group-dialog"
 import { ManageGroupMembersDialog } from "./manage-group-members-dialog"
 import { toast } from "sonner"
@@ -92,21 +115,15 @@ export function GroupsManager() {
   ]
 
   return (
-    <div className="p-4 md:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="p-6 md:p-7 space-y-5">
+      {/* Page title */}
+      <div className="flex items-end justify-between">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <h1
-              className="flex items-center gap-2"
-              style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "32px", letterSpacing: "1px", color: "var(--cream)" }}
-            >
-              <Users className="h-6 w-6" style={{ color: "var(--gold)" }} />
-              Athlete Groups
-            </h1>
-          </div>
-          <p className="text-muted-foreground">
-            Organize athletes into groups for easier workout assignment
+          <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "28px", letterSpacing: "1px", color: "var(--ink)" }}>
+            Athlete Groups
+          </h1>
+          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "1.5px", textTransform: "uppercase", color: "var(--muted-foreground)", marginTop: "2px" }}>
+            Coach Portal · {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
           </p>
         </div>
         <Button onClick={() => setCreateDialogOpen(true)} className="gradient-primary">
@@ -115,22 +132,14 @@ export function GroupsManager() {
         </Button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <GlassCard className="text-center">
-          <div className="text-3xl font-bold" style={{ color: "var(--gold)" }}>{groups.length}</div>
-          <div className="text-sm text-muted-foreground">Groups</div>
-        </GlassCard>
-        <GlassCard className="text-center">
-          <div className="text-3xl font-bold" style={{ color: "var(--ivy-light)" }}>{totalAthletes}</div>
-          <div className="text-sm text-muted-foreground">Athletes Assigned</div>
-        </GlassCard>
-        <GlassCard className="text-center hidden md:block">
-          <div className="text-3xl font-bold" style={{ color: "var(--gold)" }}>
-            {groups.filter((g) => g.member_count === 0).length}
-          </div>
-          <div className="text-sm text-muted-foreground">Empty Groups</div>
-        </GlassCard>
+      {/* Stats strip */}
+      <div
+        className="grid grid-cols-3 bg-white overflow-hidden"
+        style={{ border: "1px solid var(--rule)", borderRadius: "8px" }}
+      >
+        <StatCell label="Groups"           value={groups.length}                                     sub="total"           />
+        <StatCell label="Athletes"         value={totalAthletes}                                     sub="assigned"        accent="var(--ivy-mid)" />
+        <StatCell label="Empty"            value={groups.filter((g) => g.member_count === 0).length} sub="no members"      />
       </div>
 
       {/* Search */}
