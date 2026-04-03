@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2, Droplets } from "lucide-react"
+import { Loader2, Droplets, Coffee, GlassWater, CupSoda } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface HydrationLog {
@@ -25,7 +25,13 @@ interface AddHydrationDialogProps {
   onSuccess: (newLog: HydrationLog) => void
 }
 
-const quickAmounts = [8, 12, 16, 20, 32]
+const quickAmounts = [
+  { oz: 8,  Icon: Coffee,      label: "Cup"     },
+  { oz: 12, Icon: GlassWater,  label: "Glass"   },
+  { oz: 16, Icon: GlassWater,  label: "Lg Glass"},
+  { oz: 20, Icon: CupSoda,     label: "Bottle"  },
+  { oz: 32, Icon: Droplets,    label: "Nalgene" },
+]
 
 // Get local date string in YYYY-MM-DD format (not UTC)
 function getLocalDateString(date: Date = new Date()): string {
@@ -90,19 +96,20 @@ export function AddHydrationDialog({ open, onOpenChange, onSuccess }: AddHydrati
           <div className="space-y-2">
             <Label>Quick Add</Label>
             <div className="flex gap-2">
-              {quickAmounts.map((amount) => (
+              {quickAmounts.map(({ oz, Icon, label }) => (
                 <button
-                  key={amount}
+                  key={oz}
                   type="button"
-                  onClick={() => setOunces(amount.toString())}
+                  onClick={() => setOunces(oz.toString())}
                   className={cn(
-                    "flex-1 py-2 rounded-lg text-sm font-medium transition-all",
-                    ounces === amount.toString()
+                    "flex-1 py-2 px-1 rounded-lg text-xs font-medium transition-all flex flex-col items-center gap-1",
+                    ounces === oz.toString()
                       ? "gradient-primary text-white glow-primary"
                       : "bg-secondary text-muted-foreground hover:text-foreground",
                   )}
                 >
-                  {amount}oz
+                  <Icon className="h-4 w-4" />
+                  <span>{oz}oz</span>
                 </button>
               ))}
             </div>
