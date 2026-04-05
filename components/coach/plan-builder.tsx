@@ -162,17 +162,23 @@ export function PlanBuilder() {
     groupsBySlug[g.slug] = g
   })
 
+  const isExcelFile = (file: File) =>
+    file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+    file.type === 'application/vnd.ms-excel' ||
+    file.name.endsWith('.xlsx') || file.name.endsWith('.xls') || file.name.endsWith('.csv')
+
   const handleImageSelect = (file: File) => {
-    if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type)) {
-      toast.error("Invalid image type. Use JPEG, PNG, GIF, or WebP.")
+    const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    if (!validImageTypes.includes(file.type) && !isExcelFile(file)) {
+      toast.error("Invalid file type. Use JPEG, PNG, WebP, Excel (.xlsx/.xls), or CSV.")
       return
     }
     if (file.size > 10 * 1024 * 1024) {
-      toast.error("Image too large. Maximum 10MB.")
+      toast.error("File too large. Maximum 10MB.")
       return
     }
     setImageFile(file)
-    setImagePreview(URL.createObjectURL(file))
+    setImagePreview(isExcelFile(file) ? null : URL.createObjectURL(file))
   }
 
   const clearImage = () => {
@@ -411,7 +417,7 @@ export function PlanBuilder() {
                   }`}
                 >
                   <Camera className="h-4 w-4" />
-                  Upload Image
+                  Upload File
                 </button>
               </div>
             </div>
@@ -495,8 +501,8 @@ Practice 4:45-5:45
             {/* Image Upload Mode */}
             {inputMode === "image" && (
               <div className="space-y-2">
-                <Label>Workout Plan Image</Label>
-                {!imagePreview ? (
+                <Label>Workout Plan File</Label>
+                {!imageFile ? (
                   <div
                     onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
                     onDragLeave={() => setIsDragging(false)}
@@ -504,7 +510,7 @@ Practice 4:45-5:45
                     onClick={() => {
                       const input = document.createElement("input")
                       input.type = "file"
-                      input.accept = "image/jpeg,image/png,image/gif,image/webp"
+                      input.accept = "image/jpeg,image/png,image/gif,image/webp,.xlsx,.xls,.csv"
                       input.onchange = (e) => {
                         const file = (e.target as HTMLInputElement).files?.[0]
                         if (file) handleImageSelect(file)
@@ -519,13 +525,13 @@ Practice 4:45-5:45
                   >
                     <ImagePlus className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
                     <p className="text-sm font-medium">
-                      Drop your image here or click to browse
+                      Drop your file here or click to browse
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      JPEG, PNG, WebP, GIF up to 10MB
+                      Images (JPEG, PNG, WebP) or Excel (.xlsx, .xls, .csv) up to 10MB
                     </p>
                   </div>
-                ) : (
+                ) : imagePreview ? (
                   <div className="relative rounded-lg overflow-hidden border border-border">
                     <img
                       src={imagePreview}
@@ -537,6 +543,24 @@ Practice 4:45-5:45
                       className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
                     >
                       <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative flex items-center gap-3 p-4 rounded-lg border border-border bg-secondary/20">
+                    <div className="p-2 rounded-lg bg-green-500/10">
+                      <ClipboardPaste className="h-6 w-6 text-green-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{imageFile.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {(imageFile.size / 1024).toFixed(0)} KB — Excel spreadsheet
+                      </p>
+                    </div>
+                    <button
+                      onClick={clearImage}
+                      className="p-1.5 rounded-full hover:bg-secondary transition-colors"
+                    >
+                      <X className="h-4 w-4 text-muted-foreground" />
                     </button>
                   </div>
                 )}
@@ -572,7 +596,7 @@ Practice 4:45-5:45
               {isParsing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {inputMode === "image" ? "Analyzing image..." : "Parsing with AI..."}
+                  {inputMode === "image" ? "Analyzing file..." : "Parsing with AI..."}
                 </>
               ) : (
                 <>
@@ -597,10 +621,10 @@ Practice 4:45-5:45
                 </>
               ) : (
                 <>
-                  <li>- Screenshots of spreadsheets, whiteboards, or printed plans work best</li>
+                  <li>- Upload Excel files (.xlsx, .xls) or CSV directly</li>
+                  <li>- Screenshots of spreadsheets, whiteboards, or printed plans also work</li>
                   <li>- Higher resolution images produce better results</li>
-                  <li>- Make sure all text in the image is legible</li>
-                  <li>- Add extra context in the text field if the image is unclear</li>
+                  <li>- Add extra context in the text field if anything is unclear</li>
                 </>
               )}
             </ul>

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { parseWorkoutPlan } from '@/lib/ai/parse-workout-plan'
 import type { ParseInput } from '@/lib/ai/parse-workout-plan'
+import * as XLSX from 'xlsx'
 
 // POST /api/coach/plans/parse - Parse workout text or image with AI
 export async function POST(request: Request) {
@@ -20,39 +21,81 @@ export async function POST(request: Request) {
     let input: ParseInput = {}
 
     if (contentType.includes('multipart/form-data')) {
-      // Image upload path
+      // File upload path (image or Excel)
       const formData = await request.formData()
-      const image = formData.get('image') as File | null
+      const file = formData.get('image') as File | null // "image" field handles both images and Excel
       const text = formData.get('text') as string | null
 
-      if (!image && !text) {
-        return NextResponse.json({ error: 'Image or text is required' }, { status: 400 })
+      if (!file && !text) {
+        return NextResponse.json({ error: 'File or text is required' }, { status: 400 })
       }
 
-      if (image) {
-        // Validate file type
-        const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
-        if (!validTypes.includes(image.type)) {
-          return NextResponse.json({ error: 'Invalid image type. Supported: JPEG, PNG, GIF, WebP' }, { status: 400 })
+      if (file) {
+        const imageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+        const excelTypes = [
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+          'application/vnd.ms-excel', // .xls
+        ]
+        const isExcel = excelTypes.includes(file.type) ||
+          file.name.endsWith('.xlsx') || file.name.endsWith('.xls') || file.name.endsWith('.csv')
+
+        if (!imageTypes.includes(file.type) && !isExcel) {
+          return NextResponse.json({
+            error: 'Invalid file type. Supported: JPEG, PNG, GIF, WebP, Excel (.xlsx, .xls), CSV'
+          }, { status: 400 })
         }
 
         // Validate file size (10MB max)
-        if (image.size > 10 * 1024 * 1024) {
-          return NextResponse.json({ error: 'Image too large. Maximum 10MB.' }, { status: 400 })
+        if (file.size > 10 * 1024 * 1024) {
+          return NextResponse.json({ error: 'File too large. Maximum 10MB.' }, { status: 400 })
         }
 
-        const bytes = await image.arrayBuffer()
-        const base64 = Buffer.from(bytes).toString('base64')
+        const bytes = await file.arrayBuffer()
 
-        let mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' = 'image/jpeg'
-        if (image.type === 'image/png') mediaType = 'image/png'
-        else if (image.type === 'image/gif') mediaType = 'image/gif'
-        else if (image.type === 'image/webp') mediaType = 'image/webp'
+        if (isExcel) {
+          // Convert Excel/CSV to text representation for AI parsing
+          const workbook = XLSX.read(new Uint8Array(bytes), { type: 'array' })
+          const textParts: string[] = []
 
-        input.image = { base64, mediaType }
-      }
+          for (const sheetName of workbook.SheetNames) {
+            const sheet = workbook.Sheets[sheetName]
+            if (!sheet) continue
 
-      if (text?.trim()) {
+            // Convert to CSV-like text preserving structure
+            const csv = XLSX.utils.sheet_to_csv(sheet, { blankrows: false })
+            if (csv.trim()) {
+              if (workbook.SheetNames.length > 1) {
+                textParts.push(`--- Sheet: ${sheetName} ---`)
+              }
+              textParts.push(csv)
+            }
+          }
+
+          const excelText = textParts.join('\n\n')
+          if (!excelText.trim()) {
+            return NextResponse.json({ error: 'Excel file appears to be empty' }, { status: 400 })
+          }
+
+          // Prepend Excel text to any additional context
+          input.text = text?.trim()
+            ? `${excelText}\n\nAdditional context: ${text}`
+            : excelText
+        } else {
+          // Image path
+          const base64 = Buffer.from(bytes).toString('base64')
+
+          let mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' = 'image/jpeg'
+          if (file.type === 'image/png') mediaType = 'image/png'
+          else if (file.type === 'image/gif') mediaType = 'image/gif'
+          else if (file.type === 'image/webp') mediaType = 'image/webp'
+
+          input.image = { base64, mediaType }
+
+          if (text?.trim()) {
+            input.text = text
+          }
+        }
+      } else if (text?.trim()) {
         input.text = text
       }
     } else {
