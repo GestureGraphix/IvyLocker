@@ -259,16 +259,20 @@ export async function POST(request: Request) {
     }
 
     // Course schedule
-    if (courses.length > 0) {
-      ctx += `\n=== CLASS SCHEDULE ===\n`
+    ctx += `\n=== CLASS SCHEDULE ===\n`
+    if (courses.length === 0) {
+      ctx += `NO CLASSES REGISTERED. Do not mention any classes or coursework.\n`
+    } else {
       courses.forEach((c: any) => {
         ctx += `- ${c.code || c.name}: ${c.schedule || 'No schedule'}${c.meeting_days?.length ? ` (${c.meeting_days.join('/')})` : ''}\n`
       })
     }
 
     // Academic deadlines
-    if (academics.length > 0) {
-      ctx += `\n=== DEADLINES THIS WEEK ===\n`
+    ctx += `\n=== DEADLINES THIS WEEK ===\n`
+    if (academics.length === 0) {
+      ctx += `NO DEADLINES THIS WEEK. Do not mention any assignments, exams, or academic work.\n`
+    } else {
       academics.forEach((a: any) => {
         const d = new Date(String(a.due_date || '').slice(0, 10) + 'T12:00:00')
         ctx += `- ${dayNames[d.getDay()]}: ${a.title} (${a.type}${a.priority ? `, ${a.priority} priority` : ''})${a.course_code ? ` — ${a.course_code}` : ''}\n`
@@ -276,7 +280,10 @@ export async function POST(request: Request) {
     }
 
     // Physio protocols
-    if (physioPlans.length > 0) {
+    ctx += `\n=== PHYSIO PROTOCOLS ===\n`
+    if (physioPlans.length === 0) {
+      ctx += `No active physio protocols.\n`
+    } else {
       ctx += `\n=== ACTIVE PHYSIO PROTOCOLS ===\n`
       physioPlans.forEach((pp: any) => {
         ctx += `- ${pp.title} (${pp.type}) from ${pp.physio_name}${pp.frequency ? ` — ${pp.frequency}` : ''}\n`
@@ -292,18 +299,21 @@ export async function POST(request: Request) {
     const message = await anthropic.messages.create({
       model: 'claude-3-haiku-20240307',
       max_tokens: 2000,
-      system: `You create hyper-personalized weekly plans for student-athletes. You MUST use the specific data provided — reference actual workout types, actual course names, actual deadlines, actual soreness areas, and actual nutrition gaps.
+      system: `You create weekly plans for student-athletes using ONLY the data provided. You are FORBIDDEN from inventing, assuming, or hallucinating any information.
 
-RULES:
-- FOOD: Reference their actual calorie/protein gaps. If they're under-eating, say exactly what to add. Name specific meal types around their actual training times (e.g., "Extra protein shake post-lift since you're 30g under daily").
-- SLEEP: Adjust based on training load that day and mental state. Heavier days = earlier bedtime. If mental health is low, suggest wind-down routines.
-- MOBILITY: Target their ACTUAL sore areas from check-ins. Reference their physio protocol by name. On heavy training days, specify what to foam roll. On rest days, suggest longer sessions for problem areas.
-- STUDY: Reference ACTUAL assignment names, course codes, and due dates. Prioritize by deadline proximity and priority level. Be specific: "Finish ECON 3350 problem set" not "study for classes."
-- SUMMARY: One sentence that ties the day together based on what's actually happening.
+ABSOLUTE RULES:
+1. ONLY reference data that is EXPLICITLY listed. If the data says "NO CLASSES REGISTERED" — do NOT mention classes, coursework, studying, or academics AT ALL. Leave the study field as "No classes registered".
+2. ONLY reference data that is EXPLICITLY listed. If the data says "NO DEADLINES" — do NOT invent assignments or exams.
+3. If a day has a workout listed in the TRAINING SCHEDULE, it is a TRAINING DAY — never call it rest. Use the exact intensity (high/medium/low) from the data.
+4. If a day has NO workout in the TRAINING SCHEDULE, it IS a rest day.
+5. Do NOT assume workouts are completed — they are scheduled, not done.
+6. FOOD: Only reference actual nutrition data if provided. Give practical meal timing around listed workouts.
+7. SLEEP: Adjust based on training intensity that day. Higher intensity = more sleep needed.
+8. MOBILITY: Only reference sore areas if listed in the data. If no soreness data, give general recovery advice for training days.
+9. STUDY: ONLY if classes/deadlines are listed. If none exist, write "No classes registered" — do NOT make up courses.
+10. SUMMARY: One sentence about what the day actually involves based on the data.
 
-NEVER be generic. Every line must reference specific data from their profile.
-CRITICAL: If the training schedule says a day has a workout, do NOT call it a rest day. Match the intensity level exactly (high/medium/low). If it says "High intensity training day", the summary must reflect a demanding training day, not rest.
-If they have no data for a category, say "No data yet — track [X] to get personalized advice."
+If a category has no data, write "No data yet" for that field. NEVER fill gaps with invented information.
 
 Output ONLY valid JSON:
 {
