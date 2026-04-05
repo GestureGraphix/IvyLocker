@@ -10,10 +10,10 @@ export async function GET() {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     // Get last week's Monday
-    const lastMonday = getLastMonday()
+    const lastSunday = getLastSunday()
     const cached = await sql`
       SELECT plan_json, generated_at FROM weekly_plan_cache
-      WHERE user_id = ${user.id} AND week_start = ${lastMonday}
+      WHERE user_id = ${user.id} AND week_start = ${lastSunday}
         AND plan_json::text LIKE '%"review"%'
     `
 
@@ -38,10 +38,10 @@ export async function POST() {
       return NextResponse.json({ error: 'Not configured' }, { status: 500 })
     }
 
-    const lastMonday = getLastMonday()
-    const lastSunday = new Date(lastMonday + 'T00:00:00')
-    lastSunday.setDate(lastSunday.getDate() + 7)
-    const lastSundayStr = lastSunday.toISOString().split('T')[0]
+    const lastSunday = getLastSunday()
+    const lastSatEnd = new Date(lastSunday + 'T00:00:00')
+    lastSatEnd.setDate(lastSatEnd.getDate() + 7)
+    const lastSundayEnd = lastSatEnd.toISOString().split('T')[0]
 
     // Gather ALL last week's data
     const [profile, checkins, nutrition, hydration, workouts, assignedWorkouts, physioLogs] = await Promise.all([
@@ -53,42 +53,42 @@ export async function POST() {
       sql`
         SELECT date, mental_state, physical_state, soreness_areas
         FROM check_in_logs
-        WHERE user_id = ${user.id} AND date >= ${lastMonday} AND date < ${lastSundayStr}
+        WHERE user_id = ${user.id} AND date >= ${lastSunday} AND date < ${lastSundayEnd}
         ORDER BY date
       `,
       sql`
         SELECT date_time::date as day, SUM(calories)::int as cals, SUM(protein_grams)::int as protein,
           SUM(carbs_grams)::int as carbs, SUM(fat_grams)::int as fat, COUNT(*)::int as meals
         FROM meal_logs
-        WHERE user_id = ${user.id} AND date_time >= ${lastMonday} AND date_time < ${lastSundayStr}
+        WHERE user_id = ${user.id} AND date_time >= ${lastSunday} AND date_time < ${lastSundayEnd}
         GROUP BY date_time::date ORDER BY day
       `,
       sql`
         SELECT date, SUM(ounces)::int as oz
         FROM hydration_logs
-        WHERE user_id = ${user.id} AND date >= ${lastMonday} AND date < ${lastSundayStr}
+        WHERE user_id = ${user.id} AND date >= ${lastSunday} AND date < ${lastSundayEnd}
         GROUP BY date ORDER BY date
       `,
       sql`
         SELECT type, title, completed, start_at, focus
         FROM sessions
         WHERE user_id = ${user.id}
-          AND (start_at >= ${lastMonday} OR scheduled_date >= ${lastMonday})
-          AND (start_at < ${lastSundayStr} OR scheduled_date < ${lastSundayStr})
+          AND (start_at >= ${lastSunday} OR scheduled_date >= ${lastSunday})
+          AND (start_at < ${lastSundayEnd} OR scheduled_date < ${lastSundayEnd})
       `,
       sql`
         SELECT aw.completed, ps.session_type, ps.title
         FROM assigned_workouts aw
         JOIN plan_sessions ps ON ps.id = aw.plan_session_id
         WHERE aw.athlete_id = ${user.id}
-          AND aw.workout_date >= ${lastMonday} AND aw.workout_date < ${lastSundayStr}
+          AND aw.workout_date >= ${lastSunday} AND aw.workout_date < ${lastSundayEnd}
       `,
       sql`
         SELECT pl.notes, pl.pain_level, pa.title as plan_title, pa.type as plan_type
         FROM physio_plan_logs pl
         JOIN physio_assignments pa ON pa.id = pl.assignment_id
         WHERE pl.athlete_id = ${user.id}
-          AND pl.logged_date >= ${lastMonday} AND pl.logged_date < ${lastSundayStr}
+          AND pl.logged_date >= ${lastSunday} AND pl.logged_date < ${lastSundayEnd}
       `,
     ])
 
@@ -261,7 +261,7 @@ Output ONLY valid JSON:
     const wrapped = { review: review.review || review }
     await sql`
       INSERT INTO weekly_plan_cache (user_id, week_start, plan_json)
-      VALUES (${user.id}, ${lastMonday}, ${JSON.stringify(wrapped)})
+      VALUES (${user.id}, ${lastSunday}, ${JSON.stringify(wrapped)})
       ON CONFLICT (user_id, week_start) DO UPDATE SET
         plan_json = ${JSON.stringify(wrapped)},
         generated_at = NOW()
@@ -274,12 +274,11 @@ Output ONLY valid JSON:
   }
 }
 
-function getLastMonday(): string {
+function getLastSunday(): string {
   const today = new Date()
-  const day = today.getDay()
-  // Last week's Monday
-  const diff = day === 0 ? -13 : -6 - day
-  const monday = new Date(today)
-  monday.setDate(today.getDate() + diff)
-  return monday.toISOString().split('T')[0]
+  const day = today.getDay() // 0=Sun
+  // Last week's Sunday
+  const sunday = new Date(today)
+  sunday.setDate(today.getDate() - day - 7)
+  return sunday.toISOString().split('T')[0]
 }

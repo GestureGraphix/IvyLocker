@@ -19,10 +19,10 @@ interface WeeklyPlan {
   days: Record<string, DayPlan>
 }
 
-const DAY_ORDER = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+const DAY_ORDER = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
 const DAY_LABELS: Record<string, string> = {
-  monday: "Mon", tuesday: "Tue", wednesday: "Wed", thursday: "Thu",
-  friday: "Fri", saturday: "Sat", sunday: "Sun",
+  sunday: "Sun", monday: "Mon", tuesday: "Tue", wednesday: "Wed",
+  thursday: "Thu", friday: "Fri", saturday: "Sat",
 }
 
 export function WeeklyPlanCard() {

@@ -9,7 +9,7 @@ export async function GET() {
     const user = await getCurrentUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const weekStart = getMonday()
+    const weekStart = getSunday()
     const cached = await sql`
       SELECT plan_json, generated_at FROM weekly_plan_cache
       WHERE user_id = ${user.id} AND week_start = ${weekStart}
@@ -36,7 +36,7 @@ export async function POST() {
       return NextResponse.json({ error: 'AI not configured' }, { status: 500 })
     }
 
-    const weekStart = getMonday()
+    const weekStart = getSunday()
     const weekEnd = new Date(weekStart + 'T00:00:00')
     weekEnd.setDate(weekEnd.getDate() + 7)
     const weekEndStr = weekEnd.toISOString().split('T')[0]
@@ -301,11 +301,10 @@ Output ONLY valid JSON:
   }
 }
 
-function getMonday(): string {
+function getSunday(): string {
   const today = new Date()
-  const day = today.getDay()
-  const diff = day === 0 ? -6 : 1 - day
-  const monday = new Date(today)
-  monday.setDate(today.getDate() + diff)
-  return monday.toISOString().split('T')[0]
+  const day = today.getDay() // 0=Sun
+  const sunday = new Date(today)
+  sunday.setDate(today.getDate() - day)
+  return sunday.toISOString().split('T')[0]
 }

@@ -46,23 +46,7 @@ export async function POST() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if already generated today
-    const existing = await getTodayRecommendation(user.id)
-    if (existing) {
-      // Return existing instead of regenerating (rate limit)
-      return NextResponse.json({
-        recommendation: {
-          id: existing.id,
-          text: existing.recommendation_text,
-          priorityFocus: existing.priority_focus,
-          generatedAt: existing.generated_at,
-        },
-        message: 'Recommendation already exists for today',
-        cached: true,
-      })
-    }
-
-    // Generate new recommendation
+    // Generate new recommendation (always fresh — uses current user's data only)
     const result = await generateAndSaveRecommendation(user.id)
 
     if (!result.success) {

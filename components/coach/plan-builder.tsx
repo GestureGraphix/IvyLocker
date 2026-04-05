@@ -134,13 +134,12 @@ export function PlanBuilder() {
   const [planText, setPlanText] = useState("")
   const [planName, setPlanName] = useState("")
   const [weekStartDate, setWeekStartDate] = useState(() => {
-    // Default to next Monday
+    // Default to this Sunday (start of current week) or next Sunday
     const today = new Date()
-    const dayOfWeek = today.getDay()
-    const daysUntilMonday = dayOfWeek === 0 ? 1 : 8 - dayOfWeek
-    const nextMonday = new Date(today)
-    nextMonday.setDate(today.getDate() + daysUntilMonday)
-    return nextMonday.toISOString().split("T")[0]
+    const dayOfWeek = today.getDay() // 0=Sun
+    const nextSunday = new Date(today)
+    nextSunday.setDate(today.getDate() + (7 - dayOfWeek))
+    return nextSunday.toISOString().split("T")[0]
   })
   const [isParsing, setIsParsing] = useState(false)
   const [parsedPlan, setParsedPlan] = useState<ParsedPlan | null>(null)
@@ -464,7 +463,7 @@ export function PlanBuilder() {
             <div className="space-y-3">
               <Label>Daily Intensity</Label>
               <div className="grid grid-cols-7 gap-2">
-                {(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const).map((day) => {
+                {(["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const).map((day) => {
                   const intensity = dayIntensities[day] || "n/a"
                   const colors: Record<string, { bg: string; text: string; border: string }> = {
                     high: { bg: "bg-red-500/20", text: "text-red-400", border: "border-red-500/40" },

@@ -44,18 +44,17 @@ interface WeeklySummary {
   }
 }
 
-function getMonday(offset: number = 0): string {
+function getSunday(offset: number = 0): string {
   const today = new Date()
-  const day = today.getDay()
-  const diff = day === 0 ? -6 : 1 - day
-  const monday = new Date(today)
-  monday.setDate(today.getDate() + diff + offset * 7)
-  return monday.toISOString().split("T")[0]
+  const day = today.getDay() // 0=Sun
+  const sunday = new Date(today)
+  sunday.setDate(today.getDate() - day + offset * 7)
+  return sunday.toISOString().split("T")[0]
 }
 
 export function WeeklySummaryCard() {
   const [weekOffset, setWeekOffset] = useState(0)
-  const weekStart = getMonday(weekOffset)
+  const weekStart = getSunday(weekOffset)
 
   const { data } = useSWR<WeeklySummary>(
     `/api/athletes/weekly-summary?weekStart=${weekStart}`,

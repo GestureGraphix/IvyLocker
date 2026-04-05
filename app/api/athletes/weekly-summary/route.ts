@@ -14,11 +14,10 @@ export async function GET(request: Request) {
     // Default to current week (Monday)
     if (!weekStart) {
       const today = new Date()
-      const day = today.getDay()
-      const diff = day === 0 ? -6 : 1 - day
-      const monday = new Date(today)
-      monday.setDate(today.getDate() + diff)
-      weekStart = monday.toISOString().split('T')[0]
+      const day = today.getDay() // 0=Sun
+      const sunday = new Date(today)
+      sunday.setDate(today.getDate() - day)
+      weekStart = sunday.toISOString().split('T')[0]
     }
 
     const weekEnd = new Date(weekStart + 'T00:00:00')
