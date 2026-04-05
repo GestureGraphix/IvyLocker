@@ -158,37 +158,39 @@ export function WeeklyPlanCard() {
                 {/* Expanded details */}
                 {isExpanded && (
                   <div
-                    className="px-[18px] pb-3 pt-1 grid grid-cols-2 gap-2"
+                    className="px-[18px] pb-3 pt-1 space-y-3"
                     style={{ background: "var(--cream-d, #f7f4ef)" }}
                   >
-                    <div className="flex items-start gap-2">
-                      <Utensils className="h-3 w-3 mt-0.5 flex-shrink-0" style={{ color: "#ca8a04" }} />
-                      <div>
-                        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "8px", letterSpacing: "1px", textTransform: "uppercase", color: "var(--muted-foreground)" }}>Food</p>
-                        <p className="text-xs" style={{ color: "var(--ink)" }}>{d.food}</p>
+                    <div className="flex items-start gap-2.5">
+                      <Utensils className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" style={{ color: "#ca8a04" }} />
+                      <div className="flex-1">
+                        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "8px", letterSpacing: "1px", textTransform: "uppercase", color: "var(--muted-foreground)", marginBottom: "3px" }}>Nutrition</p>
+                        <p className="text-xs leading-relaxed" style={{ color: "var(--ink)" }}>{d.food}</p>
                       </div>
                     </div>
-                    <div className="flex items-start gap-2">
-                      <Moon className="h-3 w-3 mt-0.5 flex-shrink-0" style={{ color: "#6366f1" }} />
-                      <div>
-                        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "8px", letterSpacing: "1px", textTransform: "uppercase", color: "var(--muted-foreground)" }}>Sleep</p>
-                        <p className="text-xs" style={{ color: "var(--ink)" }}>{d.sleep}</p>
+                    <div className="flex items-start gap-2.5">
+                      <Moon className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" style={{ color: "#6366f1" }} />
+                      <div className="flex-1">
+                        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "8px", letterSpacing: "1px", textTransform: "uppercase", color: "var(--muted-foreground)", marginBottom: "3px" }}>Sleep</p>
+                        <p className="text-xs leading-relaxed" style={{ color: "var(--ink)" }}>{d.sleep}</p>
                       </div>
                     </div>
-                    <div className="flex items-start gap-2">
-                      <Activity className="h-3 w-3 mt-0.5 flex-shrink-0" style={{ color: "#16a34a" }} />
-                      <div>
-                        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "8px", letterSpacing: "1px", textTransform: "uppercase", color: "var(--muted-foreground)" }}>Mobility</p>
-                        <p className="text-xs" style={{ color: "var(--ink)" }}>{d.mobility}</p>
+                    <div className="flex items-start gap-2.5">
+                      <Activity className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" style={{ color: "#16a34a" }} />
+                      <div className="flex-1">
+                        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "8px", letterSpacing: "1px", textTransform: "uppercase", color: "var(--muted-foreground)", marginBottom: "3px" }}>Mobility & Recovery</p>
+                        <p className="text-xs leading-relaxed" style={{ color: "var(--ink)" }}>{d.mobility}</p>
                       </div>
                     </div>
-                    <div className="flex items-start gap-2">
-                      <BookOpen className="h-3 w-3 mt-0.5 flex-shrink-0" style={{ color: "#dc2626" }} />
-                      <div>
-                        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "8px", letterSpacing: "1px", textTransform: "uppercase", color: "var(--muted-foreground)" }}>Study</p>
-                        <p className="text-xs" style={{ color: "var(--ink)" }}>{d.study}</p>
+                    {d.study && d.study !== "No classes registered" && d.study !== "No data yet" && (
+                      <div className="flex items-start gap-2.5">
+                        <BookOpen className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" style={{ color: "#dc2626" }} />
+                        <div className="flex-1">
+                          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "8px", letterSpacing: "1px", textTransform: "uppercase", color: "var(--muted-foreground)", marginBottom: "3px" }}>Academics</p>
+                          <p className="text-xs leading-relaxed" style={{ color: "var(--ink)" }}>{d.study}</p>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 )}
               </div>
