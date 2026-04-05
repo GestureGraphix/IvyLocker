@@ -102,7 +102,7 @@ export function DashboardContent({ userName = "Athlete" }: DashboardContentProps
         {/* Weekly Plan */}
         <WeeklyPlanCard />
 
-        {/* AI Coach Note */}
+        {/* Daily Recommendations */}
         <DailyRecommendationCard />
 
         {/* Data Strip — 4-col stats */}

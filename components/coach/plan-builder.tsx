@@ -421,7 +421,7 @@ export function PlanBuilder() {
             Create Weekly Plan
           </h1>
           <p className="text-muted-foreground">
-            Paste your workout plan and let AI structure it
+            Create and assign weekly workout plans
           </p>
         </div>
       </div>
@@ -695,12 +695,12 @@ Practice 4:45-5:45
               {isParsing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {inputMode === "image" ? "Analyzing file..." : "Parsing with AI..."}
+                  {inputMode === "image" ? "Processing file..." : "Processing plan..."}
                 </>
               ) : (
                 <>
                   <Wand2 className="h-4 w-4 mr-2" />
-                  Parse Plan with AI
+                  Parse Plan
                 </>
               )}
             </Button>

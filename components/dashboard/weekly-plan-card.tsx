@@ -90,7 +90,7 @@ export function WeeklyPlanCard() {
         /* Empty state */
         <div className="px-[18px] py-6 text-center">
           <p className="text-sm text-muted-foreground mb-3">
-            Generate an AI weekly plan covering food, sleep, mobility, and studying
+            Generate your personalized weekly plan for food, sleep, mobility, and studying
           </p>
           <button
             onClick={generate}
