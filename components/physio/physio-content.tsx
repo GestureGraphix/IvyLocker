@@ -64,11 +64,12 @@ interface Exercise {
 }
 
 export function PhysioContent() {
+  const today = new Date().toISOString().split("T")[0]
+
   const [isLogDialogOpen, setIsLogDialogOpen] = useState(false)
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null)
-  const [activeTab, setActiveTab] = useState(physioSessions.length > 0 ? "today" : "rehab")
+  const [activeTab, setActiveTab] = useState("today")
 
-  const today = new Date().toISOString().split("T")[0]
   const { data: exercisesData, mutate: mutateExercises } = useSWR("/api/athletes/mobility-exercises", fetcher)
   const { data: logsData, mutate: mutateLogs } = useSWR("/api/athletes/mobility-logs", fetcher)
   const { data: sessionsData, mutate: mutateSessions } = useSWR<{ sessions: PhysioSession[] }>(
