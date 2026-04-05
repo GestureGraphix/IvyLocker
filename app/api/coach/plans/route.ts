@@ -97,8 +97,8 @@ export async function POST(request: Request) {
       groupSlugToId[g.name.toLowerCase().replace(/\s+/g, '')] = g.id
     })
 
-    // Add common aliases for track & field groups
-    const aliases: Record<string, string[]> = {
+    // Legacy track & field aliases (kept for backward compatibility)
+    const tfAliases: Record<string, string[]> = {
       'sprints': ['short-sprints', 'ss', 'sprinters'],
       'short-sprints': ['sprints', 'ss', 'sprinters'],
       'ss': ['sprints', 'short-sprints', 'sprinters'],
@@ -120,15 +120,33 @@ export async function POST(request: Request) {
       'distance': ['distance-runners'],
     }
 
-    // For each coach group, add aliases that point to it
+    // For each coach group, add T&F aliases that point to it
     groups.forEach((g: { id: string; slug: string }) => {
-      const groupAliases = aliases[g.slug] || []
+      const groupAliases = tfAliases[g.slug] || []
       groupAliases.forEach(alias => {
         if (!groupSlugToId[alias]) {
           groupSlugToId[alias] = g.id
         }
       })
     })
+
+    // Fuzzy matching helper: tries substring/contains match against coach groups
+    const fuzzyMatchGroup = (slug: string): string | undefined => {
+      const lower = slug.toLowerCase()
+      for (const g of groups as { id: string; slug: string; name: string }[]) {
+        const gSlug = g.slug.toLowerCase()
+        const gName = g.name.toLowerCase()
+        // Check if either contains the other
+        if (gSlug.includes(lower) || lower.includes(gSlug)) return g.id
+        if (gName.includes(lower) || lower.includes(gName)) return g.id
+      }
+      return undefined
+    }
+
+    // Resolve a group slug to an ID, with fuzzy fallback
+    const resolveGroupId = (slug: string): string | undefined => {
+      return groupSlugToId[slug] || groupSlugToId[slug.toLowerCase()] || fuzzyMatchGroup(slug)
+    }
 
     // Create the weekly plan
     const planResult = await sql`
@@ -185,7 +203,7 @@ export async function POST(request: Request) {
           // Link session to groups
           if (session.forGroups && session.forGroups.length > 0) {
             for (const groupSlug of session.forGroups) {
-              const groupId = groupSlugToId[groupSlug]
+              const groupId = resolveGroupId(groupSlug)
               if (groupId) {
                 await sql`
                   INSERT INTO plan_session_groups (plan_session_id, group_id)
@@ -211,7 +229,7 @@ export async function POST(request: Request) {
               // Link exercise to groups
               if (exercise.forGroups && exercise.forGroups.length > 0) {
                 for (const groupSlug of exercise.forGroups) {
-                  const groupId = groupSlugToId[groupSlug]
+                  const groupId = resolveGroupId(groupSlug)
                   if (groupId) {
                     await sql`
                       INSERT INTO plan_exercise_groups (plan_exercise_id, group_id)

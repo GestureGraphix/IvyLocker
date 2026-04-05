@@ -7,7 +7,7 @@ export interface ParsedExercise {
 }
 
 export interface ParsedSession {
-  type: 'practice' | 'lift' | 'conditioning' | 'recovery' | 'competition' | 'optional'
+  type: 'practice' | 'lift' | 'conditioning' | 'recovery' | 'competition' | 'optional' | 'video' | 'travel' | 'meeting' | 'skills'
   title: string | null
   startTime: string | null // "16:45" format
   endTime: string | null
@@ -41,34 +41,62 @@ export interface ParseResult {
   outputTokens?: number
 }
 
-const SYSTEM_PROMPT = `You are a workout plan parser for a track & field team management app.
+export interface ParseInput {
+  text?: string
+  image?: {
+    base64: string
+    mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
+  }
+}
 
-Parse the training plan text into structured JSON. These plans often have TWO sections:
-1. A "Practice Schedule" header with times for different event groups
-2. A "Training Plan" section with detailed exercises per day
+const SYSTEM_PROMPT = `You are a workout plan parser for a multi-sport athlete management app.
+
+Parse the training plan (text or image) into structured JSON. Plans come from many sports — track & field, rowing/crew, lacrosse, hockey, soccer, basketball, etc. Detect the sport from context and adapt your parsing accordingly.
 
 Rules:
-1. Identify days of the week as top-level sections (Monday, Tuesday, etc.)
-2. Identify session types:
-   - "Lift" or "Lifting" = "lift"
-   - "Meet" or "Competition" or event names like "Dr. Sander Scorcher" = "competition"
-   - "Pre-meet" = "practice" with title "Pre-meet"
-   - "On your own" = "optional" with isOptional: true
-   - "Off" = mark isOffDay: true
-   - Default = "practice"
-3. Detect group-specific workouts. Groups can appear as:
-   - Event abbreviations: "LS:", "SS:", "100H:", "LJ:", "TJ:", "PV:", "HJ:"
-   - Full names: "Long Sprints:", "Sprints:", "Hurdles:", "Jumps:"
-   - Patterns like "Sprinters do X" or "for hurdlers"
-   - Named athletes: "Camden/Garon:", "Graham/Sophie:" - treat as "named-athletes" group
-   - Conditional: "Friday competitors:", "non-competitors:" - use "competitors" or "non-competitors"
-4. Extract times from the schedule section (e.g., "12:00", "4:30 PM", "3:30 and 4:00")
-5. Extract locations (e.g., "PWG", "The Armory", "at the track")
-6. Parse complex exercise notation:
-   - "2x20m 2pt" = 2 reps of 20m with 2-point start
-   - "3x MJ 2B" = 3 reps of multi-jump pattern 2B
-   - "5x200m 92% 7mR" = 5x200m at 92% with 7min rest
-   - Keep the original notation in details for accuracy
+
+1. **Days**: Identify days of the week as top-level sections (Monday-Sunday). If only one day is shown (e.g., a single practice plan), output just that day. If a grid/spreadsheet shows a full week, output all days.
+
+2. **Session types** — map activities to these types:
+   - "practice" — practice, drills, on-water, on-ice, field sessions, ERG sessions
+   - "lift" — lifting, weights, strength training
+   - "conditioning" — conditioning, cardio, tempo runs, intervals (when not sport-specific practice)
+   - "recovery" — recovery, treatment, physio, mobility, stretching, cooldown sessions
+   - "competition" — games, matches, meets, races, competitions, scrimmages
+   - "optional" — anything marked optional, "on your own"
+   - "video" — film sessions, video review, film breakdown
+   - "travel" — team travel, departure, transit
+   - "meeting" — team meetings, pregame meetings, pregame meal, chalk talk
+   - "skills" — sport-specific skills sessions (skills ice, stick skills, shooting drills when separate from practice)
+   - "Off" days → set isOffDay: true
+
+3. **Groups/positions**: Detect group or position structures from the content. Use lowercase-hyphenated slugs.
+   - Track & field: "sprints", "long-sprints", "hurdles", "jumps", "long-jump", "triple-jump", "pole-vault", "high-jump", "throws", "distance", "multi"
+   - Common abbreviations: SS→"sprints", LS→"long-sprints", LJ→"long-jump", TJ→"triple-jump", PV→"pole-vault", HJ→"high-jump"
+   - Rowing/crew: "heavyweight", "lightweight", "varsity-8", "jv-8", etc.
+   - Team sports: "attack", "defense", "midfield", "goalkeepers", "forwards", etc.
+   - Generic groups: "group-1", "group-2", "starters", "reserves", etc.
+   - Lift groups: "lift-group-1", "lift-group-2", "am-lift"
+   - Named athletes: keep as-is (e.g., "Camden/Garon")
+   - Conditional: "competitors", "non-competitors"
+   - If forGroups is null, it means the exercise/session applies to all athletes.
+
+4. **Times**: Extract times in "HH:MM" 24-hour format. Convert AM/PM to 24-hour (e.g., "5:00 PM" → "17:00", "630AM" → "06:30").
+
+5. **Locations**: Extract locations (e.g., "PWG", "The Armory", "CF", "Gilder Center", "Ingalls Rink").
+
+6. **Exercises/activities**: Preserve original notation in the details field.
+   - Track: "5x200m 92% 7mR", "2x20m 2pt"
+   - Rowing: "2x7km U3", "Steady with bursts", "ERG U3 14km"
+   - Team sports: drills by name with duration, player assignments
+   - Generic: exercise name + any specifications
+
+7. **Image parsing**: When analyzing an image of a workout plan:
+   - Extract ALL visible text faithfully
+   - Respect grid/table layouts — rows and columns encode structure (days, AM/PM, session fields)
+   - Color coding often indicates session types or intensity levels
+   - Spreadsheet headers define the data structure
+   - Read every cell, even partially visible ones
 
 Output ONLY valid JSON in this exact format, no explanation:
 {
@@ -79,8 +107,8 @@ Output ONLY valid JSON in this exact format, no explanation:
       "sessions": [
         {
           "type": "practice",
-          "title": null,
-          "startTime": "16:00",
+          "title": "AM Practice",
+          "startTime": "07:45",
           "endTime": null,
           "location": "PWG",
           "isOptional": false,
@@ -88,87 +116,33 @@ Output ONLY valid JSON in this exact format, no explanation:
           "exercises": [
             {
               "name": "Warmup",
-              "details": "SD 2, flat and spike strides",
+              "details": "15 min dynamic warmup",
               "forGroups": null
-            },
-            {
-              "name": "Starts",
-              "details": "2x20m 2pt, 2x30m 3pt/4pt sleds",
-              "forGroups": ["sprints"]
-            },
-            {
-              "name": "Blocks",
-              "details": "1x25m 1x25/25m blocks curve",
-              "forGroups": ["400m"]
             }
           ]
-        },
-        {
-          "type": "lift",
-          "title": "Lift",
-          "startTime": "18:30",
-          "endTime": null,
-          "location": "PWG",
-          "isOptional": false,
-          "forGroups": null,
-          "exercises": []
-        }
-      ]
-    },
-    {
-      "dayOfWeek": "saturday",
-      "isOffDay": false,
-      "sessions": [
-        {
-          "type": "competition",
-          "title": "Dr. Sander Scorcher",
-          "startTime": null,
-          "endTime": null,
-          "location": "The Armory",
-          "isOptional": false,
-          "forGroups": null,
-          "exercises": []
         }
       ]
     }
   ],
-  "detectedGroups": ["sprints", "long-sprints", "100h", "jumps", "multi"],
+  "detectedGroups": ["attack", "defense", "midfield"],
   "scheduleInfo": {
-    "practiceTime": "varies by group",
-    "liftTime": "3:30 and 4:00",
+    "practiceTime": "varies",
+    "liftTime": "3:30 PM",
     "location": "PWG"
   }
 }
 
-Group slug conventions (lowercase with hyphens):
-- "SS" or "Short Sprints" or "Sprints" → "sprints" or "short-sprints"
-- "LS" or "Long Sprints" → "long-sprints"
-- "100H" or "Hurdles" or "Hurdlers" → "100h" or "hurdles"
-- "LJ" or "Long Jump" → "long-jump"
-- "TJ" or "Triple Jump" → "triple-jump"
-- "LJ/TJ" → use ["long-jump", "triple-jump"]
-- "PV" or "Pole Vault" → "pole-vault"
-- "HJ" or "High Jump" → "high-jump"
-- "Jumps" or "Jumpers" → "jumps"
-- "Throws" or "Throwers" → "throws"
-- "Distance" → "distance"
-- "Multi" or "Multis" → "multi"
-- "400m competitors" → "400m"
-- "200m competitors" → "200m"
-- "60m competitors" → "60m"
-- Named athletes like "Camden/Garon" → keep as "Camden/Garon" in forGroups
-
-If forGroups is null, it means the exercise/session applies to all athletes.
 If a day is not mentioned, don't include it in the output.
-For multi-part exercises (warmup items, multiple drills), combine them into one exercise with details.`
+For multi-part exercises (warmup items, multiple drills), combine them into one exercise with details.
+If schedule info isn't clear, set scheduleInfo to null.`
 
-export async function parseWorkoutPlan(planText: string): Promise<ParseResult> {
+export async function parseWorkoutPlan(input: ParseInput): Promise<ParseResult> {
   if (!process.env.ANTHROPIC_API_KEY) {
     return { success: false, error: 'ANTHROPIC_API_KEY not configured' }
   }
 
-  if (!planText.trim()) {
-    return { success: false, error: 'No plan text provided' }
+  if (!input.text?.trim() && !input.image) {
+    return { success: false, error: 'No plan text or image provided' }
   }
 
   try {
@@ -176,14 +150,41 @@ export async function parseWorkoutPlan(planText: string): Promise<ParseResult> {
       apiKey: process.env.ANTHROPIC_API_KEY,
     })
 
+    // Use Sonnet for image inputs (better spatial reasoning), Haiku for text
+    const model = input.image ? 'claude-sonnet-4-20250514' : 'claude-3-haiku-20240307'
+    const maxTokens = input.image ? 8000 : 4000
+
+    // Build content array
+    const content: Anthropic.MessageCreateParams['messages'][0]['content'] = []
+
+    if (input.image) {
+      content.push({
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: input.image.mediaType,
+          data: input.image.base64,
+        },
+      })
+    }
+
+    const textPrompt = input.text?.trim()
+      ? `Parse this training plan:\n\n${input.text}`
+      : 'Parse the workout plan shown in this image into structured JSON.'
+
+    content.push({
+      type: 'text',
+      text: textPrompt,
+    })
+
     const message = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
-      max_tokens: 4000,
+      model,
+      max_tokens: maxTokens,
       system: SYSTEM_PROMPT,
       messages: [
         {
           role: 'user',
-          content: `Parse this training plan:\n\n${planText}`,
+          content,
         },
       ],
     })

@@ -17,6 +17,9 @@ import {
   Loader2,
   Coffee,
   Dumbbell,
+  Monitor,
+  Plane,
+  Target,
 } from "lucide-react"
 import { toast } from "sonner"
 import { useState } from "react"
@@ -72,6 +75,32 @@ const SESSION_COLORS: Record<string, string> = {
   recovery: "bg-green-500/20 text-green-400 border-green-500/30",
   competition: "bg-red-500/20 text-red-400 border-red-500/30",
   optional: "bg-gray-500/20 text-gray-400 border-gray-500/30",
+  video: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
+  travel: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+  meeting: "bg-indigo-500/20 text-indigo-400 border-indigo-500/30",
+  skills: "bg-teal-500/20 text-teal-400 border-teal-500/30",
+}
+
+const getSessionIcon = (type: string) => {
+  switch (type) {
+    case "lift":
+      return <Dumbbell className="h-4 w-4" />
+    case "recovery":
+    case "optional":
+      return <Coffee className="h-4 w-4" />
+    case "competition":
+      return <Calendar className="h-4 w-4" />
+    case "video":
+      return <Monitor className="h-4 w-4" />
+    case "travel":
+      return <Plane className="h-4 w-4" />
+    case "meeting":
+      return <Users className="h-4 w-4" />
+    case "skills":
+      return <Target className="h-4 w-4" />
+    default:
+      return <Dumbbell className="h-4 w-4" />
+  }
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -257,11 +286,11 @@ export default function PlanDetailPage({
                 {day.sessions.map((session) => (
                   <div
                     key={session.id}
-                    className={`p-3 rounded-lg border ${SESSION_COLORS[session.session_type]}`}
+                    className={`p-3 rounded-lg border ${SESSION_COLORS[session.session_type] || "bg-slate-500/20 text-slate-400 border-slate-500/30"}`}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <Dumbbell className="h-4 w-4" />
+                        {getSessionIcon(session.session_type)}
                         <span className="font-medium capitalize">
                           {session.title || session.session_type}
                         </span>

@@ -25,6 +25,13 @@ import {
   Users,
   Send,
   Save,
+  ImagePlus,
+  X,
+  Monitor,
+  Plane,
+  Target,
+  Type,
+  Camera,
 } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
@@ -36,7 +43,7 @@ interface ParsedExercise {
 }
 
 interface ParsedSession {
-  type: "practice" | "lift" | "conditioning" | "recovery" | "competition" | "optional"
+  type: "practice" | "lift" | "conditioning" | "recovery" | "competition" | "optional" | "video" | "travel" | "meeting" | "skills"
   title: string | null
   startTime: string | null
   endTime: string | null
@@ -88,6 +95,10 @@ const SESSION_COLORS: Record<string, string> = {
   recovery: "bg-green-500/20 text-green-400 border-green-500/30",
   competition: "bg-red-500/20 text-red-400 border-red-500/30",
   optional: "bg-gray-500/20 text-gray-400 border-gray-500/30",
+  video: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
+  travel: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+  meeting: "bg-indigo-500/20 text-indigo-400 border-indigo-500/30",
+  skills: "bg-teal-500/20 text-teal-400 border-teal-500/30",
 }
 
 const DEFAULT_SESSION_COLOR = "bg-slate-500/20 text-slate-400 border-slate-500/30"
@@ -103,6 +114,14 @@ const getSessionIcon = (type: string) => {
       return <Coffee className="h-4 w-4" />
     case "competition":
       return <Calendar className="h-4 w-4" />
+    case "video":
+      return <Monitor className="h-4 w-4" />
+    case "travel":
+      return <Plane className="h-4 w-4" />
+    case "meeting":
+      return <Users className="h-4 w-4" />
+    case "skills":
+      return <Target className="h-4 w-4" />
     default:
       return <Dumbbell className="h-4 w-4" />
   }
@@ -111,6 +130,7 @@ const getSessionIcon = (type: string) => {
 export function PlanBuilder() {
   const router = useRouter()
   const [step, setStep] = useState<1 | 2 | 3>(1)
+  const [inputMode, setInputMode] = useState<"text" | "image">("text")
   const [planText, setPlanText] = useState("")
   const [planName, setPlanName] = useState("")
   const [weekStartDate, setWeekStartDate] = useState(() => {
@@ -128,6 +148,9 @@ export function PlanBuilder() {
   const [isSaving, setIsSaving] = useState(false)
   const [savedPlanId, setSavedPlanId] = useState<string | null>(null)
   const [isPublishing, setIsPublishing] = useState(false)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
 
   // Fetch coach's groups
   const { data: groupsData } = useSWR<{ groups: Group[] }>("/api/coach/groups", fetcher)
@@ -138,9 +161,39 @@ export function PlanBuilder() {
     groupsBySlug[g.slug] = g
   })
 
+  const handleImageSelect = (file: File) => {
+    if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type)) {
+      toast.error("Invalid image type. Use JPEG, PNG, GIF, or WebP.")
+      return
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Image too large. Maximum 10MB.")
+      return
+    }
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+  }
+
+  const clearImage = () => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview)
+    setImageFile(null)
+    setImagePreview(null)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    const file = e.dataTransfer.files[0]
+    if (file) handleImageSelect(file)
+  }
+
   const handleParse = async () => {
-    if (!planText.trim()) {
+    if (inputMode === "text" && !planText.trim()) {
       toast.error("Please paste your workout plan text")
+      return
+    }
+    if (inputMode === "image" && !imageFile) {
+      toast.error("Please upload an image of your workout plan")
       return
     }
 
@@ -148,11 +201,23 @@ export function PlanBuilder() {
     setParseError(null)
 
     try {
-      const res = await fetch("/api/coach/plans/parse", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: planText }),
-      })
+      let res: Response
+
+      if (inputMode === "image" && imageFile) {
+        const formData = new FormData()
+        formData.append("image", imageFile)
+        if (planText.trim()) formData.append("text", planText)
+        res = await fetch("/api/coach/plans/parse", {
+          method: "POST",
+          body: formData,
+        })
+      } else {
+        res = await fetch("/api/coach/plans/parse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: planText }),
+        })
+      }
 
       const data = await res.json()
 
@@ -317,13 +382,36 @@ export function PlanBuilder() {
         ))}
       </div>
 
-      {/* Step 1: Paste Plan */}
+      {/* Step 1: Input Plan */}
       {step === 1 && (
         <div className="space-y-6">
           <GlassCard className="space-y-4">
+            {/* Input Mode Toggle */}
             <div className="flex items-center gap-2">
-              <ClipboardPaste className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-semibold">Paste Your Workout Plan</h2>
+              <div className="flex rounded-lg border border-border overflow-hidden">
+                <button
+                  onClick={() => setInputMode("text")}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
+                    inputMode === "text"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary/50 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Type className="h-4 w-4" />
+                  Paste Text
+                </button>
+                <button
+                  onClick={() => setInputMode("image")}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
+                    inputMode === "image"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary/50 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Camera className="h-4 w-4" />
+                  Upload Image
+                </button>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -348,18 +436,20 @@ export function PlanBuilder() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="planText">Workout Plan Text</Label>
-              <Textarea
-                id="planText"
-                placeholder={`Paste your workout plan here...
+            {/* Text Input Mode */}
+            {inputMode === "text" && (
+              <div className="space-y-2">
+                <Label htmlFor="planText">Workout Plan Text</Label>
+                <Textarea
+                  id="planText"
+                  placeholder={`Paste your workout plan here...
 
 Example:
 Monday:
 Practice 4:45-5:45
 - Warmup, SD 1, flat strides
-- LS: 5x200m 84% 5m rest
-- SS: 6x150m 90% 5m rest
+- Group 1: 5x200m 84% 5m rest
+- Group 2: 6x150m 90% 5m rest
 
 Lift 6:30-7:30 (optional)
 - Squat 3x5
@@ -370,12 +460,78 @@ Tuesday: Off
 Wednesday:
 Practice 4:45-5:45
 - Tempo run
-- Hurdles: 3x5 hurdle drill`}
-                value={planText}
-                onChange={(e) => setPlanText(e.target.value)}
-                className="bg-secondary/50 min-h-[300px] font-mono text-sm"
-              />
-            </div>
+- Skills session 3:00-4:00`}
+                  value={planText}
+                  onChange={(e) => setPlanText(e.target.value)}
+                  className="bg-secondary/50 min-h-[300px] font-mono text-sm"
+                />
+              </div>
+            )}
+
+            {/* Image Upload Mode */}
+            {inputMode === "image" && (
+              <div className="space-y-2">
+                <Label>Workout Plan Image</Label>
+                {!imagePreview ? (
+                  <div
+                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={handleDrop}
+                    onClick={() => {
+                      const input = document.createElement("input")
+                      input.type = "file"
+                      input.accept = "image/jpeg,image/png,image/gif,image/webp"
+                      input.onchange = (e) => {
+                        const file = (e.target as HTMLInputElement).files?.[0]
+                        if (file) handleImageSelect(file)
+                      }
+                      input.click()
+                    }}
+                    className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
+                      isDragging
+                        ? "border-primary bg-primary/10"
+                        : "border-border hover:border-primary/50 hover:bg-secondary/30"
+                    }`}
+                  >
+                    <ImagePlus className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+                    <p className="text-sm font-medium">
+                      Drop your image here or click to browse
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      JPEG, PNG, WebP, GIF up to 10MB
+                    </p>
+                  </div>
+                ) : (
+                  <div className="relative rounded-lg overflow-hidden border border-border">
+                    <img
+                      src={imagePreview}
+                      alt="Workout plan preview"
+                      className="w-full max-h-[400px] object-contain bg-black/5"
+                    />
+                    <button
+                      onClick={clearImage}
+                      className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Optional text context with image */}
+                <div className="space-y-2 mt-3">
+                  <Label htmlFor="planTextContext" className="text-xs text-muted-foreground">
+                    Additional context (optional)
+                  </Label>
+                  <Textarea
+                    id="planTextContext"
+                    placeholder="Add any extra details not in the image (e.g., group assignments, location notes)..."
+                    value={planText}
+                    onChange={(e) => setPlanText(e.target.value)}
+                    className="bg-secondary/50 min-h-[80px] font-mono text-sm"
+                  />
+                </div>
+              </div>
+            )}
 
             {parseError && (
               <div className="flex items-center gap-2 text-destructive text-sm">
@@ -386,13 +542,13 @@ Practice 4:45-5:45
 
             <Button
               onClick={handleParse}
-              disabled={isParsing || !planText.trim()}
+              disabled={isParsing || (inputMode === "text" ? !planText.trim() : !imageFile)}
               className="w-full gradient-primary"
             >
               {isParsing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Parsing with AI...
+                  {inputMode === "image" ? "Analyzing image..." : "Parsing with AI..."}
                 </>
               ) : (
                 <>
@@ -407,11 +563,22 @@ Practice 4:45-5:45
           <GlassCard className="bg-primary/5 border-primary/20">
             <h3 className="font-semibold mb-2">Tips for best results:</h3>
             <ul className="text-sm text-muted-foreground space-y-1">
-              <li>- Include day names (Monday, Tuesday, etc.)</li>
-              <li>- Use "LS:", "SS:", "Hurdles:" to specify groups</li>
-              <li>- Mark optional sessions with "(optional)"</li>
-              <li>- Include times like "4:45-5:45" or "6:30pm"</li>
-              <li>- Use "Off" to mark rest days</li>
+              {inputMode === "text" ? (
+                <>
+                  <li>- Include day names (Monday, Tuesday, etc.)</li>
+                  <li>- Label groups or positions (e.g., Attack, Defense, Group 1, Varsity)</li>
+                  <li>- Mark optional sessions with "(optional)"</li>
+                  <li>- Include times and locations when available</li>
+                  <li>- Use "Off" to mark rest days</li>
+                </>
+              ) : (
+                <>
+                  <li>- Screenshots of spreadsheets, whiteboards, or printed plans work best</li>
+                  <li>- Higher resolution images produce better results</li>
+                  <li>- Make sure all text in the image is legible</li>
+                  <li>- Add extra context in the text field if the image is unclear</li>
+                </>
+              )}
             </ul>
           </GlassCard>
         </div>
