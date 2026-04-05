@@ -1146,6 +1146,9 @@ function PlansTab({
                 )}
               </div>
 
+              {/* Athlete notes */}
+              <AthleteNotes assignmentId={a.id} />
+
               {a.status !== "active" && (
                 <div className="px-4 pb-3">
                   <span className="text-xs capitalize px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">{a.status}</span>
@@ -1162,6 +1165,55 @@ function PlansTab({
           <p className="text-sm text-muted-foreground">Search for an athlete above to write a plan.</p>
         </div>
       )}
+    </div>
+  )
+}
+
+// Shows athlete session notes for a plan on the physio side
+function AthleteNotes({ assignmentId }: { assignmentId: string }) {
+  const { data } = useSWR<{ logs: { id: string; logged_date: string; notes: string | null; pain_level: number | null; created_at: string; athlete_name: string }[] }>(
+    `/api/physio/athlete-logs?assignmentId=${assignmentId}`,
+    fetcher
+  )
+  const logs = data?.logs || []
+
+  if (logs.length === 0) return null
+
+  return (
+    <div className="px-4 py-3" style={{ borderTop: "1px solid var(--rule)", background: "var(--cream-d, #f9f7f3)" }}>
+      <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "2px", textTransform: "uppercase", color: "var(--muted-foreground)", marginBottom: "8px" }}>
+        Athlete Notes
+      </p>
+      <div className="space-y-2">
+        {logs.slice(0, 10).map((log) => {
+          const dateStr = (log.logged_date || log.created_at || "").slice(0, 10)
+          const dateDisplay = dateStr ? new Date(dateStr + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""
+
+          return (
+            <div key={log.id} className="flex items-start gap-2">
+              <span className="text-[11px] text-muted-foreground w-12 flex-shrink-0 pt-0.5">{dateDisplay}</span>
+              <div className="flex-1 min-w-0">
+                {log.notes ? (
+                  <p style={{ fontSize: "12px", color: "var(--ink)", lineHeight: 1.5 }}>{log.notes}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">Session completed</p>
+                )}
+              </div>
+              {log.pain_level != null && log.pain_level > 0 && (
+                <span
+                  className="flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded flex-shrink-0"
+                  style={{
+                    background: log.pain_level <= 3 ? "#dcfce7" : log.pain_level <= 6 ? "#fef9c3" : "#fee2e2",
+                    color: log.pain_level <= 3 ? "#16a34a" : log.pain_level <= 6 ? "#ca8a04" : "#dc2626",
+                  }}
+                >
+                  {log.pain_level}/10
+                </span>
+              )}
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

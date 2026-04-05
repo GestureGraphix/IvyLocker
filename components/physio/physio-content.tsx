@@ -4,16 +4,11 @@ import { useState } from "react"
 import { GlassCard } from "@/components/ui/glass-card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ExerciseLibrary } from "@/components/mobility/exercise-library"
-import { MobilityHistory } from "@/components/mobility/mobility-history"
-import { LogMobilityDialog } from "@/components/mobility/log-mobility-dialog"
-import { Plus, Activity, Calendar, Clock, Target, Stethoscope, ExternalLink, UserPlus, X, Check } from "lucide-react"
+import { Plus, Activity, Stethoscope, ExternalLink, UserPlus, X, Check, MessageSquare, AlertTriangle } from "lucide-react"
 import useSWR from "swr"
 import { toast } from "sonner"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
-
-type Category = "rehab" | "prehab"
 
 interface Assignment {
   id: string
@@ -26,25 +21,15 @@ interface Assignment {
   status: string
 }
 
-interface LogEntry {
+interface PlanLog {
   id: string
-  exercise_id: string
-  exercise_name: string
-  body_group: string
-  date: string
-  duration_minutes: number
-  notes: string
-  category: string
-}
-
-interface Exercise {
-  id: string
-  name: string
-  body_group: string
-  youtube_url: string | null
-  sets: number | null
-  reps: number | null
-  duration_seconds: number | null
+  assignment_id: string
+  logged_date: string
+  notes: string | null
+  pain_level: number | null
+  created_at: string
+  plan_title: string
+  plan_type: string
 }
 
 interface Physio {
@@ -56,26 +41,49 @@ interface Physio {
 }
 
 export function PhysioContent() {
-  const today = new Date().toISOString().split("T")[0]
-
-  const [isLogDialogOpen, setIsLogDialogOpen] = useState(false)
-  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null)
   const [activeTab, setActiveTab] = useState("rehab")
-
-  const { data: exercisesData, mutate: mutateExercises } = useSWR("/api/athletes/mobility-exercises", fetcher)
-  const { data: logsData, mutate: mutateLogs } = useSWR("/api/athletes/mobility-logs", fetcher)
-  const { data: assignmentsData, mutate: mutateAssignments } = useSWR("/api/athletes/physio-assignments", fetcher)
-  const { data: physiosData, mutate: mutatePhysios } = useSWR<{ physios: Physio[] }>("/api/athletes/physio", fetcher)
-
+  const [loggingPlan, setLoggingPlan] = useState<string | null>(null)
+  const [logNotes, setLogNotes] = useState("")
+  const [logPain, setLogPain] = useState<number | null>(null)
+  const [saving, setSaving] = useState(false)
   const [showPhysioPicker, setShowPhysioPicker] = useState(false)
   const [linkingPhysio, setLinkingPhysio] = useState<string | null>(null)
 
-  const exercises: Exercise[] = exercisesData?.exercises || []
-  const logs: LogEntry[] = logsData?.logs || []
+  const { data: assignmentsData, mutate: mutateAssignments } = useSWR("/api/athletes/physio-assignments", fetcher)
+  const { data: logsData, mutate: mutateLogs } = useSWR("/api/athletes/physio-logs", fetcher)
+  const { data: physiosData, mutate: mutatePhysios } = useSWR<{ physios: Physio[] }>("/api/athletes/physio", fetcher)
+
   const assignments: Assignment[] = assignmentsData?.assignments || []
+  const logs: PlanLog[] = logsData?.logs || []
   const allPhysios = physiosData?.physios || []
   const linkedPhysios = allPhysios.filter((p) => p.linked)
   const unlinkedPhysios = allPhysios.filter((p) => !p.linked)
+
+  const rehabPlans = assignments.filter((a) => a.type === "rehab" && a.status === "active")
+  const prehabPlans = assignments.filter((a) => a.type === "prehab" && a.status === "active")
+  const rehabLogs = logs.filter((l) => l.plan_type === "rehab")
+  const prehabLogs = logs.filter((l) => l.plan_type === "prehab")
+
+  async function handleLogSession(assignmentId: string) {
+    setSaving(true)
+    try {
+      const res = await fetch("/api/athletes/physio-logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assignmentId, notes: logNotes.trim() || null, pain_level: logPain }),
+      })
+      if (!res.ok) throw new Error()
+      toast.success("Session logged!")
+      setLoggingPlan(null)
+      setLogNotes("")
+      setLogPain(null)
+      mutateLogs()
+    } catch {
+      toast.error("Failed to log session")
+    } finally {
+      setSaving(false)
+    }
+  }
 
   async function linkPhysio(physioId: string) {
     setLinkingPhysio(physioId)
@@ -101,8 +109,7 @@ export function PhysioContent() {
   async function unlinkPhysio(physioId: string) {
     if (!confirm("Remove this physio? Their plans will no longer appear.")) return
     try {
-      const res = await fetch(`/api/athletes/physio?physioId=${physioId}`, { method: "DELETE" })
-      if (!res.ok) throw new Error()
+      await fetch(`/api/athletes/physio?physioId=${physioId}`, { method: "DELETE" })
       toast.success("Physio removed")
       mutatePhysios()
       mutateAssignments()
@@ -111,67 +118,190 @@ export function PhysioContent() {
     }
   }
 
-  const rehabLogs = logs.filter((l) => l.category === "rehab")
-  const prehabLogs = logs.filter((l) => l.category === "prehab")
-  const allLogs = logs.filter((l) => l.category === "rehab" || l.category === "prehab")
-
-  const rehabPlans = assignments.filter((a) => a.type === "rehab" && a.status === "active")
-  const prehabPlans = assignments.filter((a) => a.type === "prehab" && a.status === "active")
-
-  const todayMinutes = allLogs
-    .filter((l) => l.date === today)
-    .reduce((acc, l) => acc + l.duration_minutes, 0)
-
-  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-  const weekMinutes = allLogs
-    .filter((l) => new Date(l.date) >= weekAgo)
-    .reduce((acc, l) => acc + l.duration_minutes, 0)
-
-  const bodyGroups = [...new Set(allLogs.map((l) => l.body_group).filter(Boolean))]
-
-  const categoryForTab = (activeTab === "library" || activeTab === "history" ? "rehab" : activeTab) as Category
-
-  const tabLabel: Record<string, string> = { rehab: "Rehab", prehab: "Prehab" }
-
-  const handleLogExercise = (exercise: Exercise) => {
-    setSelectedExercise(exercise)
-    setIsLogDialogOpen(true)
+  const formatDate = (d: string) => {
+    const date = new Date(d)
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
   }
 
-  const renderPlans = (plans: Assignment[]) => {
+  const renderPlans = (plans: Assignment[], planLogs: PlanLog[]) => {
     if (plans.length === 0) return null
 
     return (
-      <div className="space-y-3 mb-4">
-        {plans.map((plan) => (
-          <GlassCard key={plan.id} className="overflow-hidden">
-            <div className="px-4 py-3" style={{ borderBottom: plan.description ? "1px solid var(--border)" : "none" }}>
-              <div className="flex items-center gap-2.5">
-                <Stethoscope className="h-4 w-4 flex-shrink-0" style={{ color: plan.type === "rehab" ? "#f97316" : "#a78bfa" }} />
-                <div>
-                  <p className="text-sm font-semibold">{plan.title}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {plan.physio_name}
-                    {plan.frequency && ` · ${plan.frequency}`}
-                  </p>
+      <div className="space-y-3">
+        {plans.map((plan) => {
+          const isLogging = loggingPlan === plan.id
+          const thisLogs = planLogs.filter((l) => l.assignment_id === plan.id)
+
+          return (
+            <GlassCard key={plan.id} className="overflow-hidden">
+              {/* Plan header */}
+              <div className="px-4 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <Stethoscope className="h-4 w-4 flex-shrink-0" style={{ color: plan.type === "rehab" ? "#f97316" : "#a78bfa" }} />
+                    <div>
+                      <p className="text-sm font-semibold">{plan.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {plan.physio_name}
+                        {plan.frequency && ` · ${plan.frequency}`}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant={isLogging ? "ghost" : "outline"}
+                    onClick={() => {
+                      if (isLogging) { setLoggingPlan(null) }
+                      else { setLoggingPlan(plan.id); setLogNotes(""); setLogPain(null) }
+                    }}
+                    className="text-xs"
+                  >
+                    {isLogging ? <X className="h-3 w-3 mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
+                    {isLogging ? "Cancel" : "Log Session"}
+                  </Button>
                 </div>
               </div>
+
+              {/* Plan text */}
+              {plan.description && (
+                <div
+                  className="px-4 py-3"
+                  style={{
+                    fontFamily: "'DM Mono', monospace",
+                    fontSize: "12px",
+                    lineHeight: "1.8",
+                    color: "var(--ink)",
+                    whiteSpace: "pre-wrap",
+                    borderBottom: (isLogging || thisLogs.length > 0) ? "1px solid var(--border)" : "none",
+                  }}
+                >
+                  {plan.description}
+                </div>
+              )}
+
+              {/* Log form */}
+              {isLogging && (
+                <div className="px-4 py-3 space-y-3" style={{ background: "var(--cream-d, #f9f7f3)", borderBottom: thisLogs.length > 0 ? "1px solid var(--border)" : "none" }}>
+                  <textarea
+                    value={logNotes}
+                    onChange={(e) => setLogNotes(e.target.value)}
+                    placeholder="How did it go? Any pain, tightness, or things to note..."
+                    rows={3}
+                    autoFocus
+                    className="w-full rounded-md border px-3 py-2 text-sm bg-white text-foreground outline-none resize-none"
+                    style={{ borderColor: "var(--border)", fontFamily: "'DM Mono', monospace", fontSize: "12px", lineHeight: "1.7" }}
+                  />
+
+                  {/* Pain level */}
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1.5">Pain level (optional)</p>
+                    <div className="flex gap-1">
+                      {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+                        <button
+                          key={n}
+                          onClick={() => setLogPain(logPain === n ? null : n)}
+                          className="w-7 h-7 rounded text-xs font-medium transition-colors"
+                          style={{
+                            background: logPain === n
+                              ? n <= 3 ? "#22c55e" : n <= 6 ? "#eab308" : "#ef4444"
+                              : "var(--background)",
+                            color: logPain === n ? "#fff" : "var(--muted-foreground)",
+                            border: `1px solid ${logPain === n ? "transparent" : "var(--border)"}`,
+                          }}
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Button
+                    size="sm"
+                    onClick={() => handleLogSession(plan.id)}
+                    disabled={saving}
+                    style={{ background: plan.type === "rehab" ? "#f97316" : "#a78bfa", color: "#fff" }}
+                  >
+                    {saving ? <div className="h-3.5 w-3.5 border-2 border-t-transparent border-white rounded-full animate-spin mr-1.5" /> : <Check className="h-3.5 w-3.5 mr-1.5" />}
+                    Log Session
+                  </Button>
+                </div>
+              )}
+
+              {/* Recent logs for this plan */}
+              {thisLogs.length > 0 && (
+                <div className="px-4 py-2">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Recent Logs</p>
+                  {thisLogs.slice(0, 3).map((log) => (
+                    <div key={log.id} className="flex items-start gap-2 py-1.5" style={{ borderBottom: "1px solid var(--border)" }}>
+                      <span className="text-[11px] text-muted-foreground w-12 flex-shrink-0 pt-0.5">
+                        {formatDate(log.logged_date || log.created_at)}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        {log.notes && (
+                          <p style={{ fontSize: "12px", color: "var(--ink)", lineHeight: 1.5 }}>{log.notes}</p>
+                        )}
+                        {!log.notes && (
+                          <p className="text-xs text-muted-foreground italic">Session completed</p>
+                        )}
+                      </div>
+                      {log.pain_level != null && log.pain_level > 0 && (
+                        <span
+                          className="flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded flex-shrink-0"
+                          style={{
+                            background: log.pain_level <= 3 ? "#dcfce7" : log.pain_level <= 6 ? "#fef9c3" : "#fee2e2",
+                            color: log.pain_level <= 3 ? "#16a34a" : log.pain_level <= 6 ? "#ca8a04" : "#dc2626",
+                          }}
+                        >
+                          <AlertTriangle className="h-2.5 w-2.5" />
+                          {log.pain_level}/10
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </GlassCard>
+          )
+        })}
+      </div>
+    )
+  }
+
+  const renderLogHistory = (planLogs: PlanLog[]) => {
+    if (planLogs.length === 0) return null
+
+    return (
+      <div className="space-y-2 mt-4">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Session History</p>
+        {planLogs.map((log) => (
+          <div key={log.id} className="flex items-start gap-3 py-2.5" style={{ borderBottom: "1px solid var(--border)" }}>
+            <span className="text-xs text-muted-foreground w-16 flex-shrink-0 pt-0.5">
+              {formatDate(log.logged_date || log.created_at)}
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium" style={{ color: log.plan_type === "rehab" ? "#f97316" : "#a78bfa" }}>
+                {log.plan_title}
+              </p>
+              {log.notes && (
+                <p className="text-sm mt-0.5" style={{ color: "var(--ink)" }}>{log.notes}</p>
+              )}
+              {!log.notes && (
+                <p className="text-xs text-muted-foreground italic mt-0.5">Session completed</p>
+              )}
             </div>
-            {plan.description && (
-              <div
-                className="px-4 py-3"
+            {log.pain_level != null && log.pain_level > 0 && (
+              <span
+                className="flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded flex-shrink-0"
                 style={{
-                  fontFamily: "'DM Mono', monospace",
-                  fontSize: "12px",
-                  lineHeight: "1.8",
-                  color: "var(--ink)",
-                  whiteSpace: "pre-wrap",
+                  background: log.pain_level <= 3 ? "#dcfce7" : log.pain_level <= 6 ? "#fef9c3" : "#fee2e2",
+                  color: log.pain_level <= 3 ? "#16a34a" : log.pain_level <= 6 ? "#ca8a04" : "#dc2626",
                 }}
               >
-                {plan.description}
-              </div>
+                <AlertTriangle className="h-2.5 w-2.5" />
+                {log.pain_level}/10
+              </span>
             )}
-          </GlassCard>
+          </div>
         ))}
       </div>
     )
@@ -180,30 +310,15 @@ export function PhysioContent() {
   return (
     <div className="p-4 md:p-8 space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1
-            className="flex items-center gap-2"
-            style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "32px", letterSpacing: "1px", color: "var(--ink)" }}
-          >
-            <Activity className="h-6 w-6" style={{ color: "var(--ivy-mid)" }} />
-            Physio
-          </h1>
-          <p className="text-muted-foreground text-sm">Rehab and prehab tracking</p>
-        </div>
-
-        {(activeTab === "rehab" || activeTab === "prehab") && (
-          <Button
-            onClick={() => {
-              setSelectedExercise(null)
-              setIsLogDialogOpen(true)
-            }}
-            className="gradient-primary"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Log {tabLabel[activeTab]}
-          </Button>
-        )}
+      <div>
+        <h1
+          className="flex items-center gap-2"
+          style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "32px", letterSpacing: "1px", color: "var(--ink)" }}
+        >
+          <Activity className="h-6 w-6" style={{ color: "var(--ivy-mid)" }} />
+          Physio
+        </h1>
+        <p className="text-muted-foreground text-sm">Rehab and prehab tracking</p>
       </div>
 
       {/* My Physios */}
@@ -220,7 +335,6 @@ export function PhysioContent() {
           </button>
         </div>
 
-        {/* Physio picker dropdown */}
         {showPhysioPicker && (
           <div className="mb-3 rounded-lg border border-border bg-secondary/20 overflow-hidden">
             {unlinkedPhysios.length === 0 ? (
@@ -251,7 +365,6 @@ export function PhysioContent() {
           </div>
         )}
 
-        {/* Linked physios */}
         {linkedPhysios.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             No physio linked yet. Click "Add Physio" to connect with your physical therapist.
@@ -269,142 +382,73 @@ export function PhysioContent() {
                     <p className="text-xs text-muted-foreground">{p.email}</p>
                   </div>
                 </div>
-                <button
-                  onClick={() => unlinkPhysio(p.id)}
-                  className="p-1 text-muted-foreground hover:text-destructive transition-colors"
-                  title="Remove physio"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
+                <div className="flex items-center gap-2">
+                  {p.scheduling_link && (
+                    <a
+                      href={p.scheduling_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-md text-white"
+                      style={{ background: "#a78bfa" }}
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      Book
+                    </a>
+                  )}
+                  <button
+                    onClick={() => unlinkPhysio(p.id)}
+                    className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                    title="Remove physio"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         )}
       </GlassCard>
 
-      {/* Scheduling link from physio */}
-      {(() => {
-        const link = assignments.find((a) => a.physio_scheduling_link)?.physio_scheduling_link
-        const physioName = assignments.find((a) => a.physio_scheduling_link)?.physio_name
-        if (!link) return null
-        return (
-          <GlassCard className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Stethoscope className="h-5 w-5 flex-shrink-0" style={{ color: "#a78bfa" }} />
-              <div>
-                <p className="text-sm font-medium">Schedule with {physioName}</p>
-                <p className="text-xs text-muted-foreground">Book an appointment</p>
-              </div>
-            </div>
-            <a
-              href={link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors"
-              style={{ background: "#a78bfa" }}
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-              Book
-            </a>
-          </GlassCard>
-        )
-      })()}
-
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <GlassCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-gold-pale">
-              <Clock className="h-5 w-5" style={{ color: "#8a6500" }} />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{todayMinutes}</p>
-              <p className="text-sm text-muted-foreground">Minutes Today</p>
-            </div>
-          </div>
-        </GlassCard>
-
-        <GlassCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-ivy-pale">
-              <Calendar className="h-5 w-5" style={{ color: "var(--ivy-mid)" }} />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{weekMinutes}</p>
-              <p className="text-sm text-muted-foreground">Minutes This Week</p>
-            </div>
-          </div>
-        </GlassCard>
-
-        <GlassCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-ivy-pale">
-              <Target className="h-5 w-5" style={{ color: "var(--ivy-mid)" }} />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{bodyGroups.length}</p>
-              <p className="text-sm text-muted-foreground">Body Groups</p>
-            </div>
-          </div>
-        </GlassCard>
-      </div>
-
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="rehab">Rehab</TabsTrigger>
           <TabsTrigger value="prehab">Prehab</TabsTrigger>
-          <TabsTrigger value="library">Exercise Library</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
 
         <TabsContent value="rehab">
-          <div className="space-y-4">
-            {renderPlans(rehabPlans)}
-            <MobilityHistory
-              logs={rehabLogs}
-              onUpdate={() => mutateLogs()}
-              emptyLabel={rehabPlans.length === 0 ? "No rehab sessions logged" : ""}
-            />
-          </div>
+          {rehabPlans.length === 0 ? (
+            <GlassCard className="p-6 text-center">
+              <p className="text-sm text-muted-foreground">No active rehab plans</p>
+            </GlassCard>
+          ) : (
+            renderPlans(rehabPlans, rehabLogs)
+          )}
         </TabsContent>
 
         <TabsContent value="prehab">
-          <div className="space-y-4">
-            {renderPlans(prehabPlans)}
-            <MobilityHistory
-              logs={prehabLogs}
-              onUpdate={() => mutateLogs()}
-              emptyLabel={prehabPlans.length === 0 ? "No prehab sessions logged" : ""}
-            />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="library">
-          <ExerciseLibrary
-            exercises={exercises}
-            onLogExercise={handleLogExercise}
-            onUpdate={() => mutateExercises()}
-          />
+          {prehabPlans.length === 0 ? (
+            <GlassCard className="p-6 text-center">
+              <p className="text-sm text-muted-foreground">No active prehab plans</p>
+            </GlassCard>
+          ) : (
+            renderPlans(prehabPlans, prehabLogs)
+          )}
         </TabsContent>
 
         <TabsContent value="history">
-          <MobilityHistory
-            logs={allLogs}
-            onUpdate={() => mutateLogs()}
-            emptyLabel="No sessions logged yet"
-          />
+          {logs.length === 0 ? (
+            <GlassCard className="p-6 text-center">
+              <p className="text-sm text-muted-foreground">No sessions logged yet</p>
+            </GlassCard>
+          ) : (
+            <GlassCard className="p-4">
+              {renderLogHistory(logs)}
+            </GlassCard>
+          )}
         </TabsContent>
       </Tabs>
-
-      <LogMobilityDialog
-        open={isLogDialogOpen}
-        onOpenChange={setIsLogDialogOpen}
-        onSuccess={() => mutateLogs()}
-        exercises={exercises}
-        selectedExercise={selectedExercise}
-        defaultCategory={categoryForTab}
-      />
     </div>
   )
 }
