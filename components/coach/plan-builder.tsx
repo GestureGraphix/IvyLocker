@@ -145,8 +145,6 @@ export function PlanBuilder() {
   const [parsedPlan, setParsedPlan] = useState<ParsedPlan | null>(null)
   const [parseError, setParseError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
-  const [savedPlanId, setSavedPlanId] = useState<string | null>(null)
-  const [isPublishing, setIsPublishing] = useState(false)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -331,12 +329,13 @@ export function PlanBuilder() {
     }
   }
 
-  const handleSave = async () => {
+  const handleSaveAndPublish = async () => {
     if (!parsedPlan) return
 
     setIsSaving(true)
 
     try {
+      // Save
       const res = await fetch("/api/coach/plans", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -353,47 +352,22 @@ export function PlanBuilder() {
       })
 
       const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to save plan")
 
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to save plan")
-      }
+      // Publish immediately
+      const pubRes = await fetch(`/api/coach/plans/${data.planId}/publish`, { method: "POST" })
+      const pubData = await pubRes.json()
+      if (!pubRes.ok) throw new Error(pubData.error || "Failed to publish")
 
-      setSavedPlanId(data.planId)
-      setStep(4)
-      toast.success("Plan saved as draft!")
+      toast.success("Plan published to athletes!")
+      router.push("/coach/plans")
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to save plan"
-      toast.error(message)
+      toast.error(error instanceof Error ? error.message : "Failed to publish plan")
     } finally {
       setIsSaving(false)
     }
   }
 
-  const handlePublish = async () => {
-    if (!savedPlanId) return
-
-    setIsPublishing(true)
-
-    try {
-      const res = await fetch(`/api/coach/plans/${savedPlanId}/publish`, {
-        method: "POST",
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to publish plan")
-      }
-
-      toast.success(data.message || "Plan published!")
-      router.push("/coach/plans")
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to publish plan"
-      toast.error(message)
-    } finally {
-      setIsPublishing(false)
-    }
-  }
 
   const getGroupBadge = (slug: string) => {
     const group = groupsBySlug[slug]
@@ -892,26 +866,26 @@ Practice 4:45-5:45
             ))}
           </div>
 
-          {/* Save Button */}
+          {/* Actions */}
           <div className="flex gap-3">
             <Button variant="outline" onClick={() => setStep(2)} className="flex-1">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Edit Text
+              Edit
             </Button>
             <Button
-              onClick={handleSave}
+              onClick={handleSaveAndPublish}
               disabled={isSaving}
               className="flex-1 gradient-primary"
             >
               {isSaving ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
+                  Publishing...
                 </>
               ) : (
                 <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save as Draft
+                  <Send className="h-4 w-4 mr-2" />
+                  Publish to Athletes
                 </>
               )}
             </Button>
@@ -919,54 +893,6 @@ Practice 4:45-5:45
         </div>
       )}
 
-      {/* Step 3: Publish */}
-      {step === 4 && (
-        <div className="space-y-6">
-          <GlassCard className="text-center py-8">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-success/20 flex items-center justify-center">
-              <Check className="h-8 w-8 text-success" />
-            </div>
-            <h2 className="text-xl font-semibold mb-2">Plan Saved!</h2>
-            <p className="text-muted-foreground mb-6">
-              Your plan has been saved as a draft. You can publish it now to assign
-              workouts to your athletes, or do it later.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button variant="outline" onClick={() => router.push("/coach/plans")}>
-                View All Plans
-              </Button>
-              <Button
-                onClick={handlePublish}
-                disabled={isPublishing}
-                className="gradient-primary"
-              >
-                {isPublishing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Publishing...
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-4 w-4 mr-2" />
-                    Publish to Athletes
-                  </>
-                )}
-              </Button>
-            </div>
-          </GlassCard>
-
-          <GlassCard className="bg-primary/5 border-primary/20">
-            <h3 className="font-semibold mb-2">What happens when you publish?</h3>
-            <ul className="text-sm text-muted-foreground space-y-1">
-              <li>- Workouts are assigned to athletes based on their groups</li>
-              <li>- Athletes can see their workouts in their dashboard</li>
-              <li>- Athletes can mark workouts as completed</li>
-              <li>- You can track completion rates</li>
-            </ul>
-          </GlassCard>
-        </div>
-      )}
     </div>
   )
 }
