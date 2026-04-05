@@ -195,8 +195,17 @@ export async function POST(request: Request) {
       }
     }
 
+    // Helper to extract intensity level from either string or {level, time} object
+    const getIntensityLevel = (val: any): string | null => {
+      if (!val) return null
+      if (typeof val === 'string') return val
+      if (typeof val === 'object' && val.level) return val.level
+      return null
+    }
+
     // This week's workouts by day
     ctx += `\n=== THIS WEEK'S TRAINING SCHEDULE ===\n`
+    ctx += `(Week: ${weekStart} to ${weekEndStr}, ${workouts.length} assigned workouts found, ${selfSessions.length} self sessions)\n`
     for (let i = 0; i < 7; i++) {
       const d = new Date(weekStart + 'T12:00:00')
       d.setDate(d.getDate() + i)
@@ -211,19 +220,24 @@ export async function POST(request: Request) {
       })
 
       if (dayWorkouts.length === 0 && daySessions.length === 0) {
-        // Check if there's intensity data
+        // Check if there's intensity data from any workout in this plan
         const intensityData = workouts.find((w: any) => w.day_intensities)?.day_intensities
-        const intensity = intensityData?.[dayKey]
-        const intensityLevel = typeof intensity === 'object' ? intensity?.level : intensity
-        ctx += `${dayName}: Rest day / no training${intensityLevel && intensityLevel !== 'n/a' ? ` (planned intensity: ${intensityLevel})` : ''}\n`
+        const intensityLevel = getIntensityLevel(intensityData?.[dayKey])
+        if (intensityLevel && intensityLevel !== 'n/a') {
+          ctx += `${dayName}: ${intensityLevel.charAt(0).toUpperCase() + intensityLevel.slice(1)} intensity training day\n`
+        } else {
+          ctx += `${dayName}: Rest day\n`
+        }
       } else {
         const parts = dayWorkouts.map((w: any) => {
           let s = `${w.title || w.session_type}`
           if (w.start_time) s += ` at ${w.start_time}`
           if (w.location) s += ` (${w.location})`
-          // Get intensity from day_intensities
-          if (w.day_intensities && w.day_intensities[dayKey]) {
-            s += ` [${w.day_intensities[dayKey]} intensity]`
+          // Get intensity from day_intensities or title
+          const intensityData = w.day_intensities?.[dayKey]
+          const level = getIntensityLevel(intensityData)
+          if (level && level !== 'n/a') {
+            s += ` [${level} intensity]`
           }
           const exList = Array.isArray(w.exercises) ? w.exercises : []
           if (exList.length > 0 && exList[0]?.name) {
@@ -288,6 +302,7 @@ RULES:
 - SUMMARY: One sentence that ties the day together based on what's actually happening.
 
 NEVER be generic. Every line must reference specific data from their profile.
+CRITICAL: If the training schedule says a day has a workout, do NOT call it a rest day. Match the intensity level exactly (high/medium/low). If it says "High intensity training day", the summary must reflect a demanding training day, not rest.
 If they have no data for a category, say "No data yet — track [X] to get personalized advice."
 
 Output ONLY valid JSON:
