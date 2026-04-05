@@ -156,6 +156,10 @@ export function PlanBuilder() {
     monday: "n/a", tuesday: "n/a", wednesday: "n/a", thursday: "n/a",
     friday: "n/a", saturday: "n/a", sunday: "n/a",
   })
+  const [dayTimes, setDayTimes] = useState<Record<string, string>>({
+    monday: "", tuesday: "", wednesday: "", thursday: "",
+    friday: "", saturday: "", sunday: "",
+  })
 
   // Fetch coach's groups
   const { data: groupsData } = useSWR<{ groups: Group[] }>("/api/coach/groups", fetcher)
@@ -281,7 +285,9 @@ export function PlanBuilder() {
           name: planName || `Week of ${weekStartDate}`,
           weekStartDate,
           hideExercises: true,
-          dayIntensities,
+          dayIntensities: Object.fromEntries(
+            Object.entries(dayIntensities).map(([day, level]) => [day, { level, time: dayTimes[day] || null }])
+          ),
           // Create a minimal parsed plan with one "practice" session per day that has intensity set
           parsedPlan: {
             days: Object.entries(dayIntensities)
@@ -292,7 +298,7 @@ export function PlanBuilder() {
                 sessions: [{
                   type: "practice",
                   title: `${intensity.charAt(0).toUpperCase() + intensity.slice(1)} Intensity`,
-                  startTime: null,
+                  startTime: dayTimes[day] || null,
                   endTime: null,
                   location: null,
                   isOptional: false,
@@ -341,7 +347,9 @@ export function PlanBuilder() {
           sourceText: planText,
           parsedPlan,
           hideExercises: false,
-          dayIntensities,
+          dayIntensities: Object.fromEntries(
+            Object.entries(dayIntensities).map(([day, level]) => [day, { level, time: dayTimes[day] || null }])
+          ),
         }),
       })
 
@@ -489,6 +497,14 @@ export function PlanBuilder() {
                           )
                         })}
                       </div>
+                      {/* Time input */}
+                      <input
+                        type="time"
+                        value={dayTimes[day] || ""}
+                        onChange={(e) => setDayTimes((prev) => ({ ...prev, [day]: e.target.value }))}
+                        className="w-full text-[10px] text-center rounded border border-border bg-secondary/30 py-0.5 text-muted-foreground"
+                        placeholder="Time"
+                      />
                     </div>
                   )
                 })}

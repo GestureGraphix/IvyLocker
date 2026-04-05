@@ -262,7 +262,7 @@ export function AthleteDetailView({ athleteId }: { athleteId: string }) {
         {/* Recent Check-ins */}
         <GlassCard>
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Brain className="h-5 w-5 text-accent" />
+            <Heart className="h-5 w-5 text-destructive" />
             Recent Check-ins (7 days)
           </h2>
 
@@ -284,12 +284,8 @@ export function AthleteDetailView({ athleteId }: { athleteId: string }) {
                   </span>
                   <div className="flex gap-3 text-sm">
                     <span className="flex items-center gap-1">
-                      <Brain className="h-3 w-3 text-accent" />
-                      {checkin.mental_state}/10
-                    </span>
-                    <span className="flex items-center gap-1">
                       <Heart className="h-3 w-3 text-destructive" />
-                      {checkin.physical_state}/10
+                      Physical: {checkin.physical_state}/10
                     </span>
                   </div>
                 </div>

@@ -77,17 +77,6 @@ export function CoachDashboard() {
   )
 
   const athletesWithCheckin = athletes.filter((a) => a.todays_checkin).length
-  const averageWellness =
-    athletes.length > 0
-      ? Math.round(
-          athletes
-            .filter((a) => a.todays_checkin)
-            .reduce((sum, a) => {
-              const checkin = a.todays_checkin!
-              return sum + (checkin.mental_state + checkin.physical_state) / 2
-            }, 0) / (athletesWithCheckin || 1)
-        )
-      : null
 
   const toggleAthleteSelection = (id: string) => {
     setSelectedAthletes((prev) =>
@@ -112,13 +101,12 @@ export function CoachDashboard() {
 
       {/* Stats strip */}
       <div
-        className="grid grid-cols-2 md:grid-cols-4 bg-white overflow-hidden"
+        className="grid grid-cols-3 bg-white overflow-hidden"
         style={{ border: "1px solid var(--rule)", borderRadius: "8px" }}
       >
         <StatCell label="Athletes"    value={athletes.length}          sub="on roster"    />
         <StatCell label="Checked In"  value={athletesWithCheckin}      sub="today"        accent="var(--ivy-mid)" />
-        <StatCell label="Avg Wellness" value={averageWellness !== null ? `${averageWellness}/10` : "—"} sub="out of 10" accent="var(--gold)" />
-        <StatCell label="Sessions"    value={athletes.reduce((s, a) => s + a.upcoming_sessions, 0)} sub="this week" />
+        <StatCell label="Sessions"    value={athletes.reduce((s, a) => s + a.upcoming_sessions, 0)} sub="this week" accent="var(--gold)" />
       </div>
 
       {/* Search + controls */}

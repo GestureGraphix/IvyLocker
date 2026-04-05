@@ -220,19 +220,32 @@ export function AssignedWorkoutCard({ workout, onUpdate, showDate = false }: Ass
           {workout.hide_exercises && (() => {
             const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
             const workoutDay = dayNames[new Date(workout.workout_date.slice(0, 10) + "T12:00:00").getDay()]
-            const intensity = workout.day_intensities?.[workoutDay]
+            const raw = workout.day_intensities?.[workoutDay]
+            // Handle both old format (string) and new format ({level, time})
+            const intensity = typeof raw === "object" && raw !== null ? raw.level : raw
+            const time = typeof raw === "object" && raw !== null ? raw.time : null
             const intensityColors: Record<string, string> = {
               high: "bg-red-500/20 text-red-400 border-red-500/30",
               medium: "bg-yellow-500/20 text-yellow-500 border-yellow-500/30",
               low: "bg-green-500/20 text-green-400 border-green-500/30",
             }
+            const formatTime = (t: string) => {
+              const [h, m] = t.split(":").map(Number)
+              const ampm = h >= 12 ? "PM" : "AM"
+              return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${ampm}`
+            }
             return (
-              <div className="mt-2 flex items-center gap-2">
+              <div className="mt-2 flex items-center gap-2 flex-wrap">
                 {intensity && intensity !== "n/a" ? (
                   <span className={`text-xs font-medium px-2.5 py-1 rounded-md border ${intensityColors[intensity] || ""}`}>
                     {intensity.charAt(0).toUpperCase() + intensity.slice(1)} Intensity
                   </span>
                 ) : null}
+                {time && (
+                  <span className="text-xs text-muted-foreground">
+                    {formatTime(time)}
+                  </span>
+                )}
                 <span className="text-xs text-muted-foreground italic">
                   Workout details will be revealed at the session
                 </span>

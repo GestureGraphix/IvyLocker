@@ -12,7 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MoreVertical, User, Calendar, Heart, Brain, Trash2, ExternalLink } from "lucide-react"
+import { MoreVertical, User, Calendar, Heart, Trash2, ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface Athlete {
@@ -58,19 +58,6 @@ export function AthleteCard({ athlete, selected, onSelect, onRemove }: AthleteCa
       setIsRemoving(false)
     }
   }
-
-  const wellnessScore = athlete.todays_checkin
-    ? Math.round((athlete.todays_checkin.mental_state + athlete.todays_checkin.physical_state) / 2)
-    : null
-
-  const wellnessColor =
-    wellnessScore === null
-      ? "text-muted-foreground"
-      : wellnessScore >= 7
-        ? "text-success"
-        : wellnessScore >= 4
-          ? "text-warning"
-          : "text-destructive"
 
   return (
     <GlassCard
@@ -144,13 +131,7 @@ export function AthleteCard({ athlete, selected, onSelect, onRemove }: AthleteCa
       </div>
 
       {/* Stats Row */}
-      <div className="mt-4 pt-3 border-t border-border/50 grid grid-cols-3 gap-2 text-center">
-        <div>
-          <div className={cn("text-lg font-bold", wellnessColor)}>
-            {wellnessScore !== null ? wellnessScore : "—"}
-          </div>
-          <div className="text-xs text-muted-foreground">Wellness</div>
-        </div>
+      <div className="mt-4 pt-3 border-t border-border/50 grid grid-cols-2 gap-2 text-center">
         <div>
           <div className="text-lg font-bold" style={{ color: "var(--gold)" }}>{athlete.upcoming_sessions}</div>
           <div className="text-xs text-muted-foreground">Sessions</div>
@@ -162,29 +143,6 @@ export function AthleteCard({ athlete, selected, onSelect, onRemove }: AthleteCa
           <div className="text-xs text-muted-foreground">Checked In</div>
         </div>
       </div>
-
-      {/* Check-in Details */}
-      {athlete.todays_checkin && (
-        <div className="mt-3 flex gap-4 text-sm">
-          <span className="flex items-center gap-1 text-muted-foreground">
-            <Brain className="h-3 w-3" />
-            Mental: {athlete.todays_checkin.mental_state}/10
-          </span>
-          <span className="flex items-center gap-1 text-muted-foreground">
-            <Heart className="h-3 w-3" />
-            Physical: {athlete.todays_checkin.physical_state}/10
-          </span>
-        </div>
-      )}
-
-      {/* View Details Link */}
-      <Link
-        href={`/coach/athletes/${athlete.id}`}
-        className="mt-3 block text-center text-sm hover:underline" style={{ color: "var(--gold)" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        View Full Dashboard →
-      </Link>
     </GlassCard>
   )
 }
