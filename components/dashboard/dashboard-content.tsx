@@ -5,7 +5,7 @@ import { CheckInWidget } from "./check-in-widget"
 import { DailyRecommendationCard } from "./daily-recommendation-card"
 import { UpcomingItems } from "./upcoming-items"
 import { DashboardSkeleton } from "@/components/ui/skeletons"
-import { PhysioAssignmentsCard } from "./physio-assignments-card"
+import { PhysioSessionsCard } from "./physio-sessions-card"
 import useSWR from "swr"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
@@ -182,7 +182,7 @@ export function DashboardContent({ userName = "Athlete" }: DashboardContentProps
               isLoading={false}
             />
             {/* Physio prehab/rehab assignments */}
-            <PhysioAssignmentsCard />
+            <PhysioSessionsCard />
           </div>
         </div>
       </div>
