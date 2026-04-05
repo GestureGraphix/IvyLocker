@@ -151,6 +151,7 @@ export function PlanBuilder() {
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [hideExercises, setHideExercises] = useState(false)
 
   // Fetch coach's groups
   const { data: groupsData } = useSWR<{ groups: Group[] }>("/api/coach/groups", fetcher)
@@ -274,6 +275,7 @@ export function PlanBuilder() {
           weekStartDate,
           sourceText: planText,
           parsedPlan,
+          hideExercises,
         }),
       })
 
@@ -435,6 +437,28 @@ export function PlanBuilder() {
                 className="bg-secondary/50"
               />
             </div>
+
+            {/* Hide exercises toggle */}
+            <label className="flex items-center gap-3 cursor-pointer select-none py-1">
+              <div
+                onClick={() => setHideExercises(!hideExercises)}
+                className={`relative w-9 h-5 rounded-full transition-colors ${
+                  hideExercises ? "bg-primary" : "bg-muted"
+                }`}
+              >
+                <div
+                  className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                    hideExercises ? "translate-x-4" : ""
+                  }`}
+                />
+              </div>
+              <div>
+                <span className="text-sm font-medium">Surprise workout</span>
+                <p className="text-xs text-muted-foreground">
+                  Athletes only see session type and intensity, not exercises
+                </p>
+              </div>
+            </label>
 
             {/* Text Input Mode */}
             {inputMode === "text" && (

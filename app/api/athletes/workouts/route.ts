@@ -70,8 +70,10 @@ export async function GET(request: Request) {
         ps.location,
         ps.is_optional,
         wp.name as plan_name,
+        wp.hide_exercises,
         u.name as coach_name,
-        (
+        CASE WHEN wp.hide_exercises = true THEN NULL
+        ELSE (
           SELECT json_agg(
             json_build_object(
               'id', pe.id,
@@ -82,7 +84,8 @@ export async function GET(request: Request) {
           )
           FROM plan_exercises pe
           WHERE pe.plan_session_id = ps.id
-        ) as exercises
+        )
+        END as exercises
       FROM assigned_workouts aw
       JOIN plan_sessions ps ON ps.id = aw.plan_session_id
       JOIN plan_days pd ON pd.id = ps.plan_day_id

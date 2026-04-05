@@ -44,6 +44,7 @@ interface AssignedWorkout {
   plan_name: string
   coach_name: string
   exercises: Exercise[] | null
+  hide_exercises: boolean
 }
 
 interface AssignedWorkoutCardProps {
@@ -198,7 +199,7 @@ export function AssignedWorkoutCard({ workout, onUpdate, showDate = false }: Ass
             </div>
 
             {/* Expand Button */}
-            {workout.exercises && workout.exercises.length > 0 && (
+            {!workout.hide_exercises && workout.exercises && workout.exercises.length > 0 && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -214,8 +215,15 @@ export function AssignedWorkoutCard({ workout, onUpdate, showDate = false }: Ass
             )}
           </div>
 
+          {/* Hidden exercises message */}
+          {workout.hide_exercises && (
+            <p className="text-sm text-muted-foreground mt-2 italic">
+              Workout details will be revealed at the session
+            </p>
+          )}
+
           {/* Exercises (Expandable) */}
-          {expanded && workout.exercises && workout.exercises.length > 0 && (
+          {!workout.hide_exercises && expanded && workout.exercises && workout.exercises.length > 0 && (
             <div className="mt-3 pt-3 border-t border-border/50">
               <p className="text-xs font-medium text-muted-foreground mb-2">EXERCISES</p>
               <ul className="space-y-2">
@@ -234,7 +242,7 @@ export function AssignedWorkoutCard({ workout, onUpdate, showDate = false }: Ass
           )}
 
           {/* Quick exercise preview when collapsed */}
-          {!expanded && workout.exercises && workout.exercises.length > 0 && (
+          {!workout.hide_exercises && !expanded && workout.exercises && workout.exercises.length > 0 && (
             <p className="text-sm text-muted-foreground mt-2 truncate">
               {workout.exercises.length} exercise{workout.exercises.length !== 1 ? "s" : ""}: {" "}
               {workout.exercises.slice(0, 2).map(e => e.name).join(", ")}
