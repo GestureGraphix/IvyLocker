@@ -5,10 +5,11 @@ import useSWR from "swr"
 import {
   X, Check, Loader2, Trash2, ChevronLeft, ChevronRight, Plus,
   AlertTriangle, Users, CalendarDays, ClipboardList, LayoutDashboard, LogOut,
+  Search, Save, Pause, Play,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/hooks/use-auth"
-import { ProgramBuilder } from "./program-builder"
+import { toast } from "sonner"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -783,9 +784,293 @@ function PlansTab({
   assignments: PhysioAssignment[]
   onUpdate: () => void
 }) {
+  const [search, setSearch] = useState("")
+  const [selectedAthlete, setSelectedAthlete] = useState<PhysioAthlete | null>(null)
+  const [showNew, setShowNew] = useState(false)
+  const [newType, setNewType] = useState<"prehab" | "rehab">("prehab")
+  const [newTitle, setNewTitle] = useState("")
+  const [newText, setNewText] = useState("")
+  const [creating, setCreating] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editText, setEditText] = useState("")
+  const [saving, setSaving] = useState(false)
+
+  const showDropdown = search.length > 0 && !selectedAthlete
+  const filtered = athletes.filter(
+    (a) => a.name.toLowerCase().includes(search.toLowerCase()) ||
+      (a.sport ?? "").toLowerCase().includes(search.toLowerCase())
+  )
+
+  const athleteAssignments = selectedAthlete
+    ? assignments.filter((a) => a.athlete_id === selectedAthlete.id)
+    : []
+
+  function selectAthlete(a: PhysioAthlete) {
+    setSelectedAthlete(a)
+    setSearch(a.name)
+    setShowNew(false)
+    setEditingId(null)
+  }
+
+  function clearAthlete() {
+    setSelectedAthlete(null)
+    setSearch("")
+    setShowNew(false)
+    setEditingId(null)
+  }
+
+  async function handleCreate() {
+    if (!selectedAthlete || !newTitle.trim()) return
+    setCreating(true)
+    try {
+      const res = await fetch("/api/physio/assignments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          athleteId: selectedAthlete.id,
+          title: newTitle.trim(),
+          type: newType,
+          description: newText.trim() || null,
+          exercises: [],
+        }),
+      })
+      if (!res.ok) throw new Error()
+      toast.success("Plan created")
+      setShowNew(false)
+      setNewTitle("")
+      setNewText("")
+      onUpdate()
+    } catch {
+      toast.error("Failed to create plan")
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  async function handleSaveEdit(id: string) {
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/physio/assignments/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: editText }),
+      })
+      if (!res.ok) throw new Error()
+      toast.success("Plan updated")
+      setEditingId(null)
+      onUpdate()
+    } catch {
+      toast.error("Failed to update plan")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleStatus(id: string, status: string) {
+    await fetch(`/api/physio/assignments/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    })
+    onUpdate()
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("Delete this plan?")) return
+    await fetch(`/api/physio/assignments/${id}`, { method: "DELETE" })
+    onUpdate()
+  }
+
+  const typeColor = (t: string) => t === "rehab" ? "#f97316" : "#a78bfa"
+
   return (
     <div className="space-y-5 pt-1">
-      <ProgramBuilder athletes={athletes} assignments={assignments} onUpdate={onUpdate} />
+      {/* Athlete search */}
+      <div className="relative">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            placeholder="Search athletes..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); if (selectedAthlete) clearAthlete() }}
+            className="w-full rounded-md border px-3 py-2 pl-9 text-sm bg-background text-foreground outline-none"
+            style={{ borderColor: "var(--rule)" }}
+          />
+          {selectedAthlete && (
+            <button onClick={clearAthlete} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+        {showDropdown && filtered.length > 0 && (
+          <div className="absolute z-10 w-full mt-1 bg-white overflow-hidden" style={{ border: "1px solid var(--rule)", borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>
+            {filtered.map((a) => (
+              <button
+                key={a.id}
+                onClick={() => selectAthlete(a)}
+                className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-secondary/40 transition-colors"
+              >
+                <span className="text-sm font-medium" style={{ color: "var(--ink)" }}>{a.name}</span>
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "1px", color: "var(--muted-foreground)" }}>
+                  {[a.sport, a.team].filter(Boolean).join(" · ").toUpperCase()}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Selected athlete plans */}
+      {selectedAthlete && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-muted-foreground">
+              Plans for {selectedAthlete.name}
+            </span>
+            <Button variant="outline" size="sm" onClick={() => setShowNew((v) => !v)} className="text-xs">
+              <Plus className="h-3 w-3 mr-1" /> New Plan
+            </Button>
+          </div>
+
+          {/* New plan form */}
+          {showNew && (
+            <div className="bg-white overflow-hidden" style={{ border: "1px solid var(--rule)", borderRadius: "8px" }}>
+              <div className="flex gap-0" style={{ borderBottom: "1px solid var(--rule)" }}>
+                {(["prehab", "rehab"] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setNewType(t)}
+                    className="flex-1 py-2.5 text-xs font-medium uppercase tracking-wider transition-colors"
+                    style={{
+                      background: newType === t ? typeColor(t) : "transparent",
+                      color: newType === t ? "#fff" : "var(--muted-foreground)",
+                    }}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+              <div className="p-4 space-y-3">
+                <input
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  placeholder="Plan title (e.g., Hip Stability Protocol)"
+                  className="w-full rounded-md border px-3 py-2 text-sm bg-background text-foreground outline-none"
+                  style={{ borderColor: "var(--rule)" }}
+                />
+                <textarea
+                  value={newText}
+                  onChange={(e) => setNewText(e.target.value)}
+                  placeholder="Type the full plan here — exercises, sets, reps, cues, notes..."
+                  rows={8}
+                  className="w-full rounded-md border px-3 py-2 text-sm bg-background text-foreground outline-none resize-none"
+                  style={{ borderColor: "var(--rule)", fontFamily: "'DM Mono', monospace", fontSize: "12px", lineHeight: "1.8" }}
+                />
+                <div className="flex gap-2 justify-end">
+                  <Button variant="ghost" size="sm" onClick={() => setShowNew(false)}>Cancel</Button>
+                  <Button
+                    size="sm"
+                    onClick={handleCreate}
+                    disabled={creating || !newTitle.trim()}
+                    style={{ background: typeColor(newType), color: "#fff" }}
+                  >
+                    {creating ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Check className="h-3.5 w-3.5 mr-1.5" />}
+                    Save Plan
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Existing plans */}
+          {athleteAssignments.length === 0 && !showNew && (
+            <div className="bg-white py-10 text-center" style={{ border: "1px solid var(--rule)", borderRadius: "8px" }}>
+              <ClipboardList className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">No plans yet. Click "New Plan" to get started.</p>
+            </div>
+          )}
+
+          {athleteAssignments.map((a) => (
+            <div key={a.id} className="bg-white overflow-hidden" style={{ border: "1px solid var(--rule)", borderRadius: "8px" }}>
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--rule)" }}>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-1 h-6 rounded-full" style={{ background: typeColor(a.type) }} />
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: "var(--ink)" }}>{a.title}</p>
+                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "1px", color: "var(--muted-foreground)", marginTop: "1px" }}>
+                      {a.type.toUpperCase()} {a.frequency ? `· ${a.frequency}` : ""}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {a.status === "active" ? (
+                    <button onClick={() => handleStatus(a.id, "paused")} className="p-1.5 text-muted-foreground hover:text-foreground" title="Pause">
+                      <Pause className="h-3.5 w-3.5" />
+                    </button>
+                  ) : (
+                    <button onClick={() => handleStatus(a.id, "active")} className="p-1.5 text-muted-foreground hover:text-green-500" title="Activate">
+                      <Play className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                  <button onClick={() => handleDelete(a.id)} className="p-1.5 text-muted-foreground hover:text-destructive" title="Delete">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Plan notepad */}
+              <div className="p-4">
+                {editingId === a.id ? (
+                  <div className="space-y-3">
+                    <textarea
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      rows={10}
+                      autoFocus
+                      className="w-full rounded-md border px-3 py-2 text-sm bg-background text-foreground outline-none resize-none"
+                      style={{ borderColor: typeColor(a.type), fontFamily: "'DM Mono', monospace", fontSize: "12px", lineHeight: "1.8" }}
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>Cancel</Button>
+                      <Button
+                        size="sm"
+                        onClick={() => handleSaveEdit(a.id)}
+                        disabled={saving}
+                        style={{ background: typeColor(a.type), color: "#fff" }}
+                      >
+                        {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
+                        Save
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => { setEditingId(a.id); setEditText(a.description || "") }}
+                    className="cursor-text min-h-[120px] rounded-md px-3 py-2 hover:bg-secondary/20 transition-colors"
+                    style={{ fontFamily: "'DM Mono', monospace", fontSize: "12px", lineHeight: "1.8", color: a.description ? "var(--ink)" : "var(--muted-foreground)", whiteSpace: "pre-wrap" }}
+                  >
+                    {a.description || "Click to type your plan..."}
+                  </div>
+                )}
+              </div>
+
+              {a.status !== "active" && (
+                <div className="px-4 pb-3">
+                  <span className="text-xs capitalize px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">{a.status}</span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!selectedAthlete && assignments.length === 0 && (
+        <div className="bg-white py-12 text-center" style={{ border: "1px solid var(--rule)", borderRadius: "8px" }}>
+          <ClipboardList className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+          <p className="text-sm text-muted-foreground">Search for an athlete above to write a plan.</p>
+        </div>
+      )}
     </div>
   )
 }
