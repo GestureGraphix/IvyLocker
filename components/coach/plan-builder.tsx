@@ -129,7 +129,7 @@ const getSessionIcon = (type: string) => {
 
 export function PlanBuilder() {
   const router = useRouter()
-  const [step, setStep] = useState<1 | 2 | 3>(1)
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1) // 1=intensity, 2=workout input, 3=review, 4=publish
   const [inputMode, setInputMode] = useState<"text" | "image">("text")
   const [planText, setPlanText] = useState("")
   const [planName, setPlanName] = useState("")
@@ -260,7 +260,7 @@ export function PlanBuilder() {
         scheduleInfo: data.plan?.scheduleInfo || null,
       }
       setParsedPlan(safePlan)
-      setStep(2)
+      setStep(3)
       toast.success("Plan parsed successfully!")
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to parse plan"
@@ -340,7 +340,8 @@ export function PlanBuilder() {
           weekStartDate,
           sourceText: planText,
           parsedPlan,
-          hideExercises,
+          hideExercises: false,
+          dayIntensities,
         }),
       })
 
@@ -351,7 +352,7 @@ export function PlanBuilder() {
       }
 
       setSavedPlanId(data.planId)
-      setStep(3)
+      setStep(4)
       toast.success("Plan saved as draft!")
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to save plan"
@@ -425,36 +426,116 @@ export function PlanBuilder() {
         </div>
       </div>
 
-      {/* Progress Steps */}
-      <div className="flex items-center justify-center gap-2">
-        {[1, 2, 3].map((s) => (
-          <div key={s} className="flex items-center">
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                step >= s
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground"
-              }`}
-            >
-              {step > s ? <Check className="h-4 w-4" /> : s}
-            </div>
-            {s < 3 && (
-              <div
-                className={`w-12 h-1 mx-1 ${
-                  step > s ? "bg-primary" : "bg-muted"
-                }`}
-              />
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Step 1: Input Plan */}
+      {/* Step 1: Intensity + Plan Info */}
       {step === 1 && (
         <div className="space-y-6">
           <GlassCard className="space-y-4">
-            {/* Input Mode Toggle (hidden in intensity-only mode) */}
-            {!hideExercises && <div className="flex items-center gap-2">
+            <div className="space-y-2">
+              <Label htmlFor="planName">Plan Name (optional)</Label>
+              <Input
+                id="planName"
+                placeholder="e.g., Week 5 - Speed Development"
+                value={planName}
+                onChange={(e) => setPlanName(e.target.value)}
+                className="bg-secondary/50"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="weekStartDate">Week Start Date</Label>
+              <Input
+                id="weekStartDate"
+                type="date"
+                value={weekStartDate}
+                onChange={(e) => setWeekStartDate(e.target.value)}
+                className="bg-secondary/50"
+              />
+            </div>
+
+            {/* Intensity grid — always shown */}
+            <div className="space-y-3">
+              <Label>Daily Intensity</Label>
+              <div className="grid grid-cols-7 gap-2">
+                {(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const).map((day) => {
+                  const intensity = dayIntensities[day] || "n/a"
+                  const colors: Record<string, { bg: string; text: string; border: string }> = {
+                    high: { bg: "bg-red-500/20", text: "text-red-400", border: "border-red-500/40" },
+                    medium: { bg: "bg-yellow-500/20", text: "text-yellow-400", border: "border-yellow-500/40" },
+                    low: { bg: "bg-green-500/20", text: "text-green-400", border: "border-green-500/40" },
+                    "n/a": { bg: "bg-secondary/50", text: "text-muted-foreground", border: "border-border" },
+                  }
+
+                  return (
+                    <div key={day} className="text-center space-y-1.5">
+                      <p className="text-[10px] font-medium text-muted-foreground uppercase">
+                        {day.slice(0, 3)}
+                      </p>
+                      <div className="space-y-1">
+                        {(["high", "medium", "low", "n/a"] as const).map((level) => {
+                          const isSelected = intensity === level
+                          const lc = colors[level]
+                          return (
+                            <button
+                              key={level}
+                              onClick={() => setDayIntensities((prev) => ({ ...prev, [day]: level }))}
+                              className={`w-full py-1 rounded text-[10px] font-medium border transition-colors ${
+                                isSelected
+                                  ? `${lc.bg} ${lc.text} ${lc.border}`
+                                  : "bg-transparent text-muted-foreground/40 border-transparent hover:border-border"
+                              }`}
+                            >
+                              {level === "n/a" ? "N/A" : level.charAt(0).toUpperCase() + level.slice(1)}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex gap-3 pt-2">
+              <Button
+                onClick={handleSaveIntensityOnly}
+                disabled={isSaving}
+                className="flex-1 gradient-primary"
+              >
+                {isSaving ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                Publish Intensity Only
+              </Button>
+              <Button
+                onClick={() => setStep(2)}
+                variant="outline"
+                className="flex-1"
+              >
+                Add Workout Details
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </div>
+          </GlassCard>
+        </div>
+      )}
+
+      {/* Step 2: Workout Details (text/image/excel) */}
+      {step === 2 && (
+        <div className="space-y-6">
+          <GlassCard className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Workout Details</h2>
+              <Button variant="ghost" size="sm" onClick={() => setStep(1)}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+            </div>
+
+            {/* Input Mode Toggle */}
+            <div className="flex items-center gap-2">
               <div className="flex rounded-lg border border-border overflow-hidden">
                 <button
                   onClick={() => setInputMode("text")}
@@ -479,100 +560,10 @@ export function PlanBuilder() {
                   Upload File
                 </button>
               </div>
-            </div>}
-
-            <div className="space-y-2">
-              <Label htmlFor="planName">Plan Name (optional)</Label>
-              <Input
-                id="planName"
-                placeholder="e.g., Week 5 - Speed Development"
-                value={planName}
-                onChange={(e) => setPlanName(e.target.value)}
-                className="bg-secondary/50"
-              />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="weekStartDate">Week Start Date</Label>
-              <Input
-                id="weekStartDate"
-                type="date"
-                value={weekStartDate}
-                onChange={(e) => setWeekStartDate(e.target.value)}
-                className="bg-secondary/50"
-              />
-            </div>
-
-            {/* Hide exercises toggle */}
-            <label className="flex items-center gap-3 cursor-pointer select-none py-1">
-              <div
-                onClick={() => setHideExercises(!hideExercises)}
-                className={`relative w-9 h-5 rounded-full transition-colors ${
-                  hideExercises ? "bg-primary" : "bg-muted"
-                }`}
-              >
-                <div
-                  className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-                    hideExercises ? "translate-x-4" : ""
-                  }`}
-                />
-              </div>
-              <div>
-                <span className="text-sm font-medium">Intensity only</span>
-                <p className="text-xs text-muted-foreground">
-                  Athletes only see daily intensity level, not the workout
-                </p>
-              </div>
-            </label>
-
-            {/* Intensity-only mode */}
-            {hideExercises && (
-              <div className="space-y-3">
-                <Label>Daily Intensity</Label>
-                <div className="grid grid-cols-7 gap-2">
-                  {(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const).map((day) => {
-                    const intensity = dayIntensities[day] || "n/a"
-                    const colors: Record<string, { bg: string; text: string; border: string }> = {
-                      high: { bg: "bg-red-500/20", text: "text-red-400", border: "border-red-500/40" },
-                      medium: { bg: "bg-yellow-500/20", text: "text-yellow-400", border: "border-yellow-500/40" },
-                      low: { bg: "bg-green-500/20", text: "text-green-400", border: "border-green-500/40" },
-                      "n/a": { bg: "bg-secondary/50", text: "text-muted-foreground", border: "border-border" },
-                    }
-                    const c = colors[intensity] || colors["n/a"]
-
-                    return (
-                      <div key={day} className="text-center space-y-1.5">
-                        <p className="text-[10px] font-medium text-muted-foreground uppercase">
-                          {day.slice(0, 3)}
-                        </p>
-                        <div className="space-y-1">
-                          {(["high", "medium", "low", "n/a"] as const).map((level) => {
-                            const isSelected = intensity === level
-                            const lc = colors[level]
-                            return (
-                              <button
-                                key={level}
-                                onClick={() => setDayIntensities((prev) => ({ ...prev, [day]: level }))}
-                                className={`w-full py-1 rounded text-[10px] font-medium border transition-colors ${
-                                  isSelected
-                                    ? `${lc.bg} ${lc.text} ${lc.border}`
-                                    : "bg-transparent text-muted-foreground/40 border-transparent hover:border-border"
-                                }`}
-                              >
-                                {level === "n/a" ? "N/A" : level.charAt(0).toUpperCase() + level.slice(1)}
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Text Input Mode (only when not intensity-only) */}
-            {!hideExercises && inputMode === "text" && (
+            {/* Text Input Mode */}
+            {inputMode === "text" && (
               <div className="space-y-2">
                 <Label htmlFor="planText">Workout Plan Text</Label>
                 <Textarea
@@ -604,7 +595,7 @@ Practice 4:45-5:45
             )}
 
             {/* Image Upload Mode (only when not intensity-only) */}
-            {!hideExercises && inputMode === "image" && (
+            {inputMode === "image" && (
               <div className="space-y-2">
                 <Label>Workout Plan File</Label>
                 {!imageFile ? (
@@ -686,54 +677,34 @@ Practice 4:45-5:45
               </div>
             )}
 
-            {!hideExercises && parseError && (
+            {parseError && (
               <div className="flex items-center gap-2 text-destructive text-sm">
                 <AlertCircle className="h-4 w-4" />
                 {parseError}
               </div>
             )}
 
-            {hideExercises ? (
-              <Button
-                onClick={handleSaveIntensityOnly}
-                disabled={isSaving}
-                className="w-full gradient-primary"
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Save & Publish Intensity
-                  </>
-                )}
-              </Button>
-            ) : (
-              <Button
-                onClick={handleParse}
-                disabled={isParsing || (inputMode === "text" ? !planText.trim() : !imageFile)}
-                className="w-full gradient-primary"
-              >
-                {isParsing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    {inputMode === "image" ? "Analyzing file..." : "Parsing with AI..."}
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Parse Plan with AI
-                  </>
-                )}
-              </Button>
-            )}
+            <Button
+              onClick={handleParse}
+              disabled={isParsing || (inputMode === "text" ? !planText.trim() : !imageFile)}
+              className="w-full gradient-primary"
+            >
+              {isParsing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {inputMode === "image" ? "Analyzing file..." : "Parsing with AI..."}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Parse Plan with AI
+                </>
+              )}
+            </Button>
           </GlassCard>
 
-          {/* Tips (hidden in intensity-only mode) */}
-          {!hideExercises && (
+          {/* Tips */}
+          {(
             <GlassCard className="bg-primary/5 border-primary/20">
               <h3 className="font-semibold mb-2">Tips for best results:</h3>
               <ul className="text-sm text-muted-foreground space-y-1">
@@ -760,7 +731,7 @@ Practice 4:45-5:45
       )}
 
       {/* Step 2: Review Parsed Plan */}
-      {step === 2 && parsedPlan && (
+      {step === 3 && parsedPlan && (
         <div className="space-y-6">
           <GlassCard className="space-y-4">
             <div className="flex items-center justify-between">
@@ -768,7 +739,7 @@ Practice 4:45-5:45
                 <Check className="h-5 w-5 text-success" />
                 <h2 className="text-lg font-semibold">Review Parsed Plan</h2>
               </div>
-              <Button variant="ghost" onClick={() => setStep(1)}>
+              <Button variant="ghost" onClick={() => setStep(2)}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Edit
               </Button>
@@ -905,7 +876,7 @@ Practice 4:45-5:45
 
           {/* Save Button */}
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => setStep(1)} className="flex-1">
+            <Button variant="outline" onClick={() => setStep(2)} className="flex-1">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Edit Text
             </Button>
@@ -931,7 +902,7 @@ Practice 4:45-5:45
       )}
 
       {/* Step 3: Publish */}
-      {step === 3 && (
+      {step === 4 && (
         <div className="space-y-6">
           <GlassCard className="text-center py-8">
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-success/20 flex items-center justify-center">
