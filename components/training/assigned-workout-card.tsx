@@ -77,7 +77,7 @@ export function AssignedWorkoutCard({ workout, onUpdate, showDate = false }: Ass
   const [isUpdating, setIsUpdating] = useState(false)
 
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr + "T00:00:00")
+    const date = new Date(dateStr.slice(0, 10) + "T00:00:00")
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     const tomorrow = new Date(today)
@@ -219,7 +219,7 @@ export function AssignedWorkoutCard({ workout, onUpdate, showDate = false }: Ass
           {/* Hidden exercises — show intensity */}
           {workout.hide_exercises && (() => {
             const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
-            const workoutDay = dayNames[new Date(workout.workout_date + "T12:00:00").getDay()]
+            const workoutDay = dayNames[new Date(workout.workout_date.slice(0, 10) + "T12:00:00").getDay()]
             const intensity = workout.day_intensities?.[workoutDay]
             const intensityColors: Record<string, string> = {
               high: "bg-red-500/20 text-red-400 border-red-500/30",

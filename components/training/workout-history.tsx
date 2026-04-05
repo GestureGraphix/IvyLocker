@@ -339,7 +339,7 @@ export function WorkoutHistory() {
     .map((w) => ({
       ...w,
       source: "coach" as const,
-      sortDate: w.workout_date,
+      sortDate: (w.workout_date || "").slice(0, 10),
     }))
 
   const selfSessions: HistoryItem[] = (sessionsData?.sessions || [])
