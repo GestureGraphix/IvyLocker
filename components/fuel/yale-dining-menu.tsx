@@ -221,6 +221,7 @@ export function YaleDiningMenu({ onLogMeal }: YaleDiningMenuProps) {
         protein_grams: item.proteinG,
         carbs_grams: item.carbsG,
         fat_grams: item.fatG,
+        date: selectedDate,
       })
 
       setLoggedItems((prev) => new Set([...prev, item.menuItemId]))

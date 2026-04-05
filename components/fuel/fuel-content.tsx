@@ -207,12 +207,17 @@ export function FuelContent() {
         <TabsContent value="yale-dining">
           <YaleDiningMenu
             onLogMeal={async (meal) => {
+              const { date, ...mealData } = meal
+              // Use the selected date from Yale menu, keep current time
+              const date_time = date
+                ? new Date(`${date}T${new Date().toTimeString().slice(0, 8)}`).toISOString()
+                : new Date().toISOString()
               await fetch("/api/athletes/meal-logs", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  ...meal,
-                  date_time: new Date().toISOString(),
+                  ...mealData,
+                  date_time,
                 }),
               })
               mutateMeals()
