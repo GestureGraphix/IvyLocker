@@ -50,7 +50,7 @@ export function ProgramComplianceView({ programId }: ProgramComplianceViewProps)
     return <div className="text-xs text-muted-foreground py-2">Loading compliance data...</div>
   }
 
-  if (!data || data.sessions.length === 0) {
+  if (!data || !data.sessions || data.sessions.length === 0) {
     return <div className="text-xs text-muted-foreground py-2">No sessions yet</div>
   }
 

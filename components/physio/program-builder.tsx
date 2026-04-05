@@ -461,7 +461,7 @@ export function ProgramBuilder({ athletes, assignments, onUpdate }: ProgramBuild
                         initialDate={session.session_date}
                         initialTitle={session.title || ""}
                         initialNotes={session.notes || ""}
-                        initialExercises={session.exercises}
+                        initialExercises={Array.isArray(session.exercises) ? session.exercises : []}
                         onSave={() => {
                           setEditingSessionId(null)
                           mutateSessions()
@@ -516,7 +516,7 @@ export function ProgramBuilder({ athletes, assignments, onUpdate }: ProgramBuild
 
                         {/* Exercise summary */}
                         <ul className="space-y-0.5 text-xs text-muted-foreground">
-                          {session.exercises.map((ex, i) => (
+                          {(Array.isArray(session.exercises) ? session.exercises : []).map((ex, i) => (
                             <li key={i} className="flex gap-1">
                               <span className="text-muted-foreground/50">-</span>
                               <span>
