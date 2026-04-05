@@ -24,7 +24,8 @@ export async function GET() {
     return NextResponse.json({ review: null })
   } catch (error) {
     console.error('Get week review error:', error)
-    return NextResponse.json({ error: 'Failed to get review' }, { status: 500 })
+    const msg = error instanceof Error ? error.message : 'Failed to get review'
+    return NextResponse.json({ error: msg.includes('does not exist') ? 'Database table missing. Run migration 023.' : msg }, { status: 500 })
   }
 }
 
@@ -270,7 +271,8 @@ Output ONLY valid JSON:
     return NextResponse.json({ review: wrapped, generatedAt: new Date().toISOString(), cached: false })
   } catch (error) {
     console.error('Generate week review error:', error)
-    return NextResponse.json({ error: 'Failed to generate review' }, { status: 500 })
+    const msg = error instanceof Error ? error.message : 'Failed to generate review'
+    return NextResponse.json({ error: msg.includes('does not exist') ? 'Database table missing. Run migration 023.' : msg }, { status: 500 })
   }
 }
 

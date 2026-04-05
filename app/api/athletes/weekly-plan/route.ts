@@ -22,7 +22,11 @@ export async function GET() {
     return NextResponse.json({ plan: null })
   } catch (error) {
     console.error('Get weekly plan error:', error)
-    return NextResponse.json({ error: 'Failed to get plan' }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Failed to get plan'
+    if (message.includes('does not exist')) {
+      return NextResponse.json({ error: 'Database table missing. Run migration 023-weekly-plans-cache.sql.' }, { status: 500 })
+    }
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
 
@@ -297,7 +301,11 @@ Output ONLY valid JSON:
     return NextResponse.json({ plan, generatedAt: new Date().toISOString(), cached: false })
   } catch (error) {
     console.error('Generate weekly plan error:', error)
-    return NextResponse.json({ error: 'Failed to generate plan' }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Failed to generate plan'
+    if (message.includes('does not exist')) {
+      return NextResponse.json({ error: 'Database table missing. Run migration 023-weekly-plans-cache.sql.' }, { status: 500 })
+    }
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
 
