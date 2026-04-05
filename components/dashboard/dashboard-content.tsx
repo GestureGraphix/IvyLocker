@@ -8,6 +8,7 @@ import { DashboardSkeleton } from "@/components/ui/skeletons"
 import { PhysioSessionsCard } from "./physio-sessions-card"
 import { WeeklySummaryCard } from "./weekly-summary-card"
 import { LogCoreCard } from "./log-core-card"
+import { WeeklyPlanCard } from "./weekly-plan-card"
 import useSWR from "swr"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
@@ -98,6 +99,9 @@ export function DashboardContent({ userName = "Athlete" }: DashboardContentProps
   return (
     <div>
       <div className="p-6 md:p-7 space-y-5">
+        {/* Weekly Plan */}
+        <WeeklyPlanCard />
+
         {/* AI Coach Note */}
         <DailyRecommendationCard />
 
