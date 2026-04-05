@@ -69,6 +69,14 @@ export function ProgramBuilder({ athletes, assignments, onUpdate }: ProgramBuild
   const [showDuplicate, setShowDuplicate] = useState<string | null>(null)
   const [duplicateDate, setDuplicateDate] = useState("")
   const [duplicating, setDuplicating] = useState(false)
+  // New program creation
+  const [showNewProgram, setShowNewProgram] = useState(false)
+  const [newProgramTitle, setNewProgramTitle] = useState("")
+  const [newProgramType, setNewProgramType] = useState<"prehab" | "rehab">("prehab")
+  const [newProgramFrequency, setNewProgramFrequency] = useState("")
+  const [newProgramDuration, setNewProgramDuration] = useState("")
+  const [newProgramDescription, setNewProgramDescription] = useState("")
+  const [creatingProgram, setCreatingProgram] = useState(false)
 
   const showDropdown = search.length > 0 && !selectedAthlete
   const filtered = athletes.filter(
@@ -105,6 +113,46 @@ export function ProgramBuilder({ athletes, assignments, onUpdate }: ProgramBuild
     setSelectedProgram(null)
     setShowNewSession(false)
     setEditingSessionId(null)
+    setShowNewProgram(false)
+  }
+
+  async function handleCreateProgram() {
+    if (!selectedAthlete || !newProgramTitle.trim()) {
+      toast.error("Please enter a program title")
+      return
+    }
+    setCreatingProgram(true)
+    try {
+      const res = await fetch("/api/physio/assignments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          athleteId: selectedAthlete.id,
+          title: newProgramTitle.trim(),
+          type: newProgramType,
+          description: newProgramDescription.trim() || null,
+          frequency: newProgramFrequency.trim() || null,
+          duration_weeks: newProgramDuration ? parseInt(newProgramDuration) : null,
+          exercises: [],
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || "Failed to create program")
+      }
+      toast.success("Program created!")
+      setShowNewProgram(false)
+      setNewProgramTitle("")
+      setNewProgramType("prehab")
+      setNewProgramFrequency("")
+      setNewProgramDuration("")
+      setNewProgramDescription("")
+      onUpdate()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to create program")
+    } finally {
+      setCreatingProgram(false)
+    }
   }
 
   function selectProgram(a: PhysioAssignment) {
@@ -227,11 +275,100 @@ export function ProgramBuilder({ athletes, assignments, onUpdate }: ProgramBuild
             <span className="text-sm font-medium text-muted-foreground">
               Programs for {selectedAthlete.name}
             </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowNewProgram((v) => !v)}
+              className="text-xs"
+            >
+              <Plus className="h-3 w-3 mr-1" />
+              New Program
+            </Button>
           </div>
 
-          {athleteAssignments.length === 0 && (
+          {/* Create New Program Form */}
+          {showNewProgram && (
+            <div className="p-4 rounded-lg border border-primary/30 bg-card space-y-3">
+              <div className="flex gap-2">
+                {(["prehab", "rehab"] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setNewProgramType(t)}
+                    className="flex-1 py-1.5 rounded text-xs font-medium transition-colors border capitalize"
+                    style={{
+                      background: newProgramType === t
+                        ? t === "rehab" ? "#f97316" : "#a78bfa"
+                        : "transparent",
+                      color: newProgramType === t ? "#fff" : "var(--muted-foreground)",
+                      borderColor: newProgramType === t
+                        ? t === "rehab" ? "#f97316" : "#a78bfa"
+                        : "var(--border)",
+                    }}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+              <Input
+                value={newProgramTitle}
+                onChange={(e) => setNewProgramTitle(e.target.value)}
+                placeholder="Program title (e.g., Hip Stability Protocol)"
+                className="h-8 text-sm bg-secondary/50"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  value={newProgramFrequency}
+                  onChange={(e) => setNewProgramFrequency(e.target.value)}
+                  placeholder="Frequency (e.g., Daily)"
+                  className="h-8 text-sm bg-secondary/50"
+                />
+                <Input
+                  type="number"
+                  value={newProgramDuration}
+                  onChange={(e) => setNewProgramDuration(e.target.value)}
+                  placeholder="Duration (weeks)"
+                  className="h-8 text-sm bg-secondary/50"
+                />
+              </div>
+              <textarea
+                value={newProgramDescription}
+                onChange={(e) => setNewProgramDescription(e.target.value)}
+                placeholder="Description or notes (optional)..."
+                rows={2}
+                className="w-full rounded-md border border-input bg-secondary/50 px-3 py-2 text-sm resize-none"
+              />
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowNewProgram(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleCreateProgram}
+                  disabled={creatingProgram || !newProgramTitle.trim()}
+                  className="ml-auto"
+                  style={{
+                    background: newProgramType === "rehab" ? "#f97316" : "#a78bfa",
+                    color: "#fff",
+                  }}
+                >
+                  {creatingProgram ? (
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  ) : (
+                    <Plus className="h-3 w-3 mr-1" />
+                  )}
+                  Create Program
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {athleteAssignments.length === 0 && !showNewProgram && (
             <p className="text-sm text-muted-foreground py-4 text-center">
-              No programs yet. Create one from the existing Plans interface.
+              No programs yet. Click "New Program" above to get started.
             </p>
           )}
 
