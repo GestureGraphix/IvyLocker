@@ -6,10 +6,11 @@ import { GlassCard } from "@/components/ui/glass-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { UserPlus, Search, Calendar, Activity } from "lucide-react"
+import { UserPlus, Search, Calendar, Activity, Video } from "lucide-react"
 import { AthleteCard } from "./athlete-card"
 import { AddAthleteDialog } from "./add-athlete-dialog"
 import { AssignWorkoutDialog } from "./assign-workout-dialog"
+import { ScheduleMeetingDialog } from "./schedule-meeting-dialog"
 
 interface Athlete {
   id: string
@@ -59,6 +60,7 @@ export function CoachDashboard() {
   const [searchQuery, setSearchQuery] = useState("")
   const [addAthleteOpen, setAddAthleteOpen] = useState(false)
   const [assignWorkoutOpen, setAssignWorkoutOpen] = useState(false)
+  const [meetingOpen, setMeetingOpen] = useState(false)
   const [selectedAthletes, setSelectedAthletes] = useState<string[]>([])
 
   const { data, error, isLoading, mutate } = useSWR<{ athletes: Athlete[] }>(
@@ -142,6 +144,10 @@ export function CoachDashboard() {
               Clear
             </Button>
           )}
+          <Button onClick={() => setMeetingOpen(true)} variant="outline">
+            <Video className="h-4 w-4 mr-2" />
+            Schedule Meeting
+          </Button>
           <Button onClick={() => setAddAthleteOpen(true)} variant="outline">
             <UserPlus className="h-4 w-4 mr-2" />
             Add Athlete
@@ -216,6 +222,12 @@ export function CoachDashboard() {
           mutate()
           clearSelection()
         }}
+      />
+      <ScheduleMeetingDialog
+        open={meetingOpen}
+        onOpenChange={setMeetingOpen}
+        athletes={athletes}
+        onSuccess={() => mutate()}
       />
     </div>
   )
