@@ -26,7 +26,10 @@ const DAY_LABELS: Record<string, string> = {
 }
 
 export function WeeklyPlanCard() {
-  const { data, mutate } = useSWR<{ plan: WeeklyPlan | null; generatedAt?: string }>("/api/athletes/weekly-plan", fetcher)
+  const localDate = new Date().toISOString().split("T")[0]
+  const { data, mutate } = useSWR<{ plan: WeeklyPlan | null; generatedAt?: string }>(
+    `/api/athletes/weekly-plan?localDate=${localDate}`, fetcher
+  )
   const [generating, setGenerating] = useState(false)
   const [expandedDay, setExpandedDay] = useState<string | null>(null)
 
@@ -37,7 +40,7 @@ export function WeeklyPlanCard() {
   async function generate() {
     setGenerating(true)
     try {
-      const res = await fetch("/api/athletes/weekly-plan", { method: "POST" })
+      const res = await fetch(`/api/athletes/weekly-plan?localDate=${localDate}`, { method: "POST" })
       const d = await res.json()
       if (!res.ok) throw new Error(d.error || "Failed to generate")
       mutate()

@@ -3,13 +3,14 @@ import { getCurrentUser } from '@/lib/auth'
 import { sql } from '@/lib/db'
 import Anthropic from '@anthropic-ai/sdk'
 
-// GET /api/athletes/weekly-plan
-export async function GET() {
+// GET /api/athletes/weekly-plan?localDate=YYYY-MM-DD
+export async function GET(request: Request) {
   try {
     const user = await getCurrentUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const weekStart = getSunday()
+    const { searchParams } = new URL(request.url)
+    const weekStart = getSunday(searchParams.get('localDate'))
     const cached = await sql`
       SELECT plan_json, generated_at FROM weekly_plan_cache
       WHERE user_id = ${user.id} AND week_start = ${weekStart}
@@ -31,7 +32,7 @@ export async function GET() {
 }
 
 // POST /api/athletes/weekly-plan
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const user = await getCurrentUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -40,13 +41,14 @@ export async function POST() {
       return NextResponse.json({ error: 'AI not configured' }, { status: 500 })
     }
 
-    const weekStart = getSunday()
+    const { searchParams } = new URL(request.url)
+    const weekStart = getSunday(searchParams.get('localDate'))
     const weekEnd = new Date(weekStart + 'T00:00:00')
     weekEnd.setDate(weekEnd.getDate() + 7)
     const weekEndStr = weekEnd.toISOString().split('T')[0]
 
     // Pull ALL relevant data in parallel
-    const [profile, workouts, courses, academics, checkins, physioPlans, lastWeekNutrition, lastWeekHydration] = await Promise.all([
+    const [profile, workouts, selfSessions, courses, academics, checkins, physioPlans, lastWeekNutrition, lastWeekHydration] = await Promise.all([
       // Profile + goals
       sql`
         SELECT u.name, ap.sport, ap.position, ap.team,
@@ -75,6 +77,17 @@ export async function POST() {
           AND aw.workout_date >= ${weekStart} AND aw.workout_date < ${weekEndStr}
         GROUP BY aw.id, ps.id, wp.id
         ORDER BY aw.workout_date, ps.start_time
+      `,
+      // Self-created sessions
+      sql`
+        SELECT type, title, start_at, intensity, focus, scheduled_date, completed
+        FROM sessions
+        WHERE user_id = ${user.id}
+          AND (
+            (start_at >= ${weekStart} AND start_at < ${weekEndStr})
+            OR (scheduled_date >= ${weekStart} AND scheduled_date < ${weekEndStr})
+          )
+        ORDER BY start_at
       `,
       // Course schedule
       sql`
@@ -192,13 +205,17 @@ export async function POST() {
       const dayKey = dayKeys[d.getDay()]
 
       const dayWorkouts = workouts.filter((w: any) => String(w.workout_date || '').slice(0, 10) === dateStr)
+      const daySessions = selfSessions.filter((s: any) => {
+        const sDate = String(s.scheduled_date || s.start_at || '').slice(0, 10)
+        return sDate === dateStr
+      })
 
-      if (dayWorkouts.length === 0) {
+      if (dayWorkouts.length === 0 && daySessions.length === 0) {
         // Check if there's intensity data
-        const intensity = dayWorkouts.length === 0
-          ? workouts.find((w: any) => w.day_intensities)?.[dayKey] || null
-          : null
-        ctx += `${dayName}: No assigned workouts${intensity ? ` (planned intensity: ${intensity})` : ''}\n`
+        const intensityData = workouts.find((w: any) => w.day_intensities)?.day_intensities
+        const intensity = intensityData?.[dayKey]
+        const intensityLevel = typeof intensity === 'object' ? intensity?.level : intensity
+        ctx += `${dayName}: Rest day / no training${intensityLevel && intensityLevel !== 'n/a' ? ` (planned intensity: ${intensityLevel})` : ''}\n`
       } else {
         const parts = dayWorkouts.map((w: any) => {
           let s = `${w.title || w.session_type}`
@@ -215,7 +232,15 @@ export async function POST() {
           }
           return s
         })
-        ctx += `${dayName}: ${parts.join(' | ')}\n`
+        // Add self-created sessions
+        const selfParts = daySessions.map((s: any) => {
+          let str = `${s.title || s.type}`
+          if (s.intensity) str += ` [${s.intensity}]`
+          if (s.focus) str += ` (${s.focus})`
+          return str
+        })
+        const allParts = [...parts, ...selfParts]
+        ctx += `${dayName}: ${allParts.join(' | ')}\n`
       }
     }
 
@@ -309,8 +334,9 @@ Output ONLY valid JSON:
   }
 }
 
-function getSunday(): string {
-  const today = new Date()
+function getSunday(localDate?: string | null): string {
+  // Use client's local date if provided, otherwise best-effort server date
+  const today = localDate ? new Date(localDate + 'T12:00:00') : new Date()
   const day = today.getDay() // 0=Sun
   const sunday = new Date(today)
   sunday.setDate(today.getDate() - day)

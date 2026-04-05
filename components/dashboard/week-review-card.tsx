@@ -18,13 +18,16 @@ interface WeekReview {
 }
 
 export function WeekReviewCard() {
-  const { data, mutate } = useSWR<{ review: WeekReview | null }>("/api/athletes/week-review", fetcher)
+  const localDate = new Date().toISOString().split("T")[0]
+  const { data, mutate } = useSWR<{ review: WeekReview | null }>(
+    `/api/athletes/week-review?localDate=${localDate}`, fetcher
+  )
   const [generating, setGenerating] = useState(false)
 
   async function generate() {
     setGenerating(true)
     try {
-      const res = await fetch("/api/athletes/week-review", { method: "POST" })
+      const res = await fetch(`/api/athletes/week-review?localDate=${localDate}`, { method: "POST" })
       const d = await res.json()
       if (!res.ok) throw new Error(d.error || "Failed")
       mutate()

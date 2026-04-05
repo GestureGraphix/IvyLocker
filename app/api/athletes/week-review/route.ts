@@ -3,14 +3,14 @@ import { getCurrentUser } from '@/lib/auth'
 import { sql } from '@/lib/db'
 import Anthropic from '@anthropic-ai/sdk'
 
-// GET /api/athletes/week-review - Get cached week review
-export async function GET() {
+// GET /api/athletes/week-review
+export async function GET(request: Request) {
   try {
     const user = await getCurrentUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    // Get last week's Monday
-    const lastSunday = getLastSunday()
+    const { searchParams } = new URL(request.url)
+    const lastSunday = getLastSunday(searchParams.get('localDate'))
     const cached = await sql`
       SELECT plan_json, generated_at FROM weekly_plan_cache
       WHERE user_id = ${user.id} AND week_start = ${lastSunday}
@@ -30,7 +30,7 @@ export async function GET() {
 }
 
 // POST /api/athletes/week-review - Generate week review
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const user = await getCurrentUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -39,7 +39,8 @@ export async function POST() {
       return NextResponse.json({ error: 'Not configured' }, { status: 500 })
     }
 
-    const lastSunday = getLastSunday()
+    const { searchParams } = new URL(request.url)
+    const lastSunday = getLastSunday(searchParams.get('localDate'))
     const lastSatEnd = new Date(lastSunday + 'T00:00:00')
     lastSatEnd.setDate(lastSatEnd.getDate() + 7)
     const lastSundayEnd = lastSatEnd.toISOString().split('T')[0]
@@ -276,10 +277,9 @@ Output ONLY valid JSON:
   }
 }
 
-function getLastSunday(): string {
-  const today = new Date()
+function getLastSunday(localDate?: string | null): string {
+  const today = localDate ? new Date(localDate + 'T12:00:00') : new Date()
   const day = today.getDay() // 0=Sun
-  // Last week's Sunday
   const sunday = new Date(today)
   sunday.setDate(today.getDate() - day - 7)
   return sunday.toISOString().split('T')[0]
