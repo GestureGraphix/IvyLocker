@@ -60,7 +60,7 @@ export function ProgramComplianceView({ programId }: ProgramComplianceViewProps)
     pct >= 80 ? "text-green-500" : pct >= 50 ? "text-yellow-500" : "text-red-400"
 
   const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr + "T12:00:00")
+    const d = new Date((dateStr || "").slice(0, 10) + "T12:00:00")
     return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
   }
 

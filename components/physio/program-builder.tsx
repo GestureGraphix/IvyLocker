@@ -224,8 +224,10 @@ export function ProgramBuilder({ athletes, assignments, onUpdate }: ProgramBuild
     }
   }
 
+  const toDateOnly = (s: string) => s ? s.slice(0, 10) : s
+
   const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr + "T12:00:00")
+    const d = new Date(toDateOnly(dateStr) + "T12:00:00")
     return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
   }
 
@@ -458,7 +460,7 @@ export function ProgramBuilder({ athletes, assignments, onUpdate }: ProgramBuild
                         key={session.id}
                         programId={a.id}
                         sessionId={session.id}
-                        initialDate={session.session_date}
+                        initialDate={session.session_date?.slice(0, 10)}
                         initialTitle={session.title || ""}
                         initialNotes={session.notes || ""}
                         initialExercises={Array.isArray(session.exercises) ? session.exercises : []}
@@ -606,7 +608,9 @@ function getNextDate(sessions: SessionData[]): string {
     return new Date().toISOString().split("T")[0]
   }
   const latest = sessions[sessions.length - 1].session_date
-  const d = new Date(latest + "T12:00:00")
+  const dateOnly = latest ? latest.slice(0, 10) : new Date().toISOString().split("T")[0]
+  const d = new Date(dateOnly + "T12:00:00")
+  if (isNaN(d.getTime())) return new Date().toISOString().split("T")[0]
   d.setDate(d.getDate() + 1)
   return d.toISOString().split("T")[0]
 }
