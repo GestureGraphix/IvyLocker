@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Sparkles, Loader2, ChevronDown, Utensils, Moon, Activity, BookOpen, RefreshCw } from "lucide-react"
+import { CalendarDays, Loader2, ChevronDown, Utensils, Moon, Activity, BookOpen, RefreshCw } from "lucide-react"
 import useSWR from "swr"
 import { toast } from "sonner"
 
@@ -62,7 +62,7 @@ export function WeeklyPlanCard() {
         style={{ borderBottom: "1px solid var(--rule)" }}
       >
         <div className="flex items-center gap-2">
-          <Sparkles className="h-3.5 w-3.5" style={{ color: "var(--gold)" }} />
+          <CalendarDays className="h-3.5 w-3.5" style={{ color: "var(--gold)" }} />
           <span
             className="uppercase"
             style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "2px", color: "var(--muted)" }}
@@ -101,7 +101,7 @@ export function WeeklyPlanCard() {
             {generating ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Sparkles className="h-4 w-4" />
+              <CalendarDays className="h-4 w-4" />
             )}
             Generate Plan
           </button>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Loader2, RefreshCw, ChevronDown, ChevronUp, Moon, Utensils, Activity, Droplets, BookOpen, Sparkles } from "lucide-react"
+import { Loader2, RefreshCw, ChevronDown, ChevronUp, Moon, Utensils, Activity, Droplets, BookOpen, ClipboardList } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface Recommendation {
@@ -98,7 +98,7 @@ export function DailyRecommendationCard() {
             {isGenerating ? (
               <><Loader2 className="h-3.5 w-3.5 animate-spin" />Generating...</>
             ) : (
-              <><Sparkles className="h-3.5 w-3.5" />Generate Recommendations</>
+              <><ClipboardList className="h-3.5 w-3.5" />Generate Recommendations</>
             )}
           </Button>
         </div>
@@ -262,7 +262,7 @@ function getSectionIcon(title: string) {
   if (t.includes("recovery")) return <Activity style={{ ...style, color: "var(--ivy-mid)" }} />
   if (t.includes("hydration")) return <Droplets style={{ ...style, color: "#2563eb" }} />
   if (t.includes("student") || t.includes("academic")) return <BookOpen style={{ ...style, color: "var(--ivy)" }} />
-  return <Sparkles style={{ ...style, color: "var(--gold)" }} />
+  return <ClipboardList style={{ ...style, color: "var(--gold)" }} />
 }
 
 function formatTime(dateString: string): string {

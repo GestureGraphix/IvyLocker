@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import {
   ArrowLeft,
   ArrowRight,
-  Sparkles,
+  Wand2,
   Calendar,
   ClipboardPaste,
   Check,
@@ -699,7 +699,7 @@ Practice 4:45-5:45
                 </>
               ) : (
                 <>
-                  <Sparkles className="h-4 w-4 mr-2" />
+                  <Wand2 className="h-4 w-4 mr-2" />
                   Parse Plan with AI
                 </>
               )}
