@@ -202,8 +202,10 @@ export async function POST(request: Request) {
     }
 
     // Physio
-    if (physioLogs.length > 0) {
-      ctx += `\nPHYSIO SESSIONS (${physioLogs.length}):\n`
+    ctx += `\nPHYSIO:\n`
+    if (physioLogs.length === 0) {
+      ctx += `No physio sessions logged.\n`
+    } else {
       physioLogs.forEach((pl: any) => {
         ctx += `- ${pl.plan_title} (${pl.plan_type})`
         if (pl.pain_level != null) ctx += ` — pain: ${pl.pain_level}/10`
@@ -215,21 +217,37 @@ export async function POST(request: Request) {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
     const message = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
-      max_tokens: 1200,
-      system: `You write concise, honest weekly reviews for student-athletes. You analyze their actual data and give specific, actionable advice for the coming week.
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 3000,
+      system: `You are an elite sports performance coach writing a weekly review for a student-athlete. Use ONLY the data provided — never invent classes, workouts, meals, or any information not explicitly listed.
 
-Your review has exactly these sections:
+STRICT RULES:
+- Only reference data that exists. If no nutrition was tracked, say "No meals were logged this week" — don't invent numbers.
+- If no check-ins exist, say so. Don't assume wellness scores.
+- If no classes/academics are listed, don't mention academic performance.
+- Reference exact numbers from the data (e.g., "You averaged 1,800 calories vs your 2,500 goal").
+- Workouts: only count what the data shows as completed. Don't assume completion.
 
-1. **overview**: 2-3 sentences summarizing the week — what went well, what didn't. Reference specific numbers.
+YOUR REVIEW MUST INCLUDE:
 
-2. **wins**: Array of 2-3 specific things they did well (e.g., "Hit protein goal 5 of 7 days", "Completed all assigned lifts"). Only include if the data supports it.
+1. **overview**: 3-4 sentences. Honest assessment of the week. What patterns do you see? Reference specific numbers. If data is sparse, acknowledge that tracking more would help.
 
-3. **concerns**: Array of 1-3 areas needing attention. Be direct but compassionate. If mental scores were low, acknowledge it gently and suggest self-care. If under-eating, give a specific calorie target. If soreness is recurring, name the body part and suggest action.
+2. **wins**: Array of things they did well — ONLY if supported by data. If they have no data, this can be an empty array. Examples: "Checked in 5 of 7 days — great consistency", "Hydration averaged 95oz, close to your 100oz goal."
 
-4. **next_week**: Array of 3-4 specific, actionable recommendations for next week. Each must reference their actual data (e.g., "Increase daily protein by 25g — you averaged 120g vs your 150g goal. Add a protein shake after practice.", "Your hamstrings were sore 4 times — add 10 min foam rolling after every session").
+3. **concerns**: Array of areas needing attention. Be specific and actionable:
+   - Under-eating: "You averaged X cal/day vs your Y goal. That's a Z cal deficit. Try adding a post-training snack — a protein shake + banana adds ~400 cal and 30g protein."
+   - Soreness: "Your [body part] was sore X times. Add 10 minutes of targeted foam rolling after each session, focusing on [specific area]."
+   - Low physical state: "Physical scores dipped to X on [days]. Consider lighter recovery sessions the day after intense training."
+   - Dehydration: "Hydration averaged Xoz vs your Yoz goal. Keep a water bottle during class and set hourly reminders."
+   - If no concerning data, this can be empty.
 
-5. **mood_check**: If mental wellness averaged below 5, include a supportive message. Otherwise null.
+4. **nutrition_focus**: 2-3 sentences of specific nutritional advice for next week based on their gaps. What foods to add, when to eat them, how to close calorie/protein gaps. Example: "You're consistently 30g short on protein. Add Greek yogurt (15g) at breakfast and a protein shake (25g) post-training. For dinner, prioritize chicken, fish, or beans over lighter options." If no nutrition data, say "Start logging meals to get personalized nutrition advice."
+
+5. **recovery_focus**: 2-3 sentences about recovery priorities. Based on soreness patterns, training load, and physical scores. What specific mobility work, when to foam roll, sleep adjustments. If no data, give general advice based on their sport.
+
+6. **next_week**: Array of 3-5 specific, numbered action items for the coming week. Each should be one concrete thing they can do. Not vague — include quantities, timing, specific foods or exercises.
+
+7. **mood_check**: If mental wellness averaged below 5, include a supportive 2-3 sentence message. Acknowledge the difficulty without being preachy. Suggest one specific self-care action. If scores are fine or no data, set to null.
 
 Output ONLY valid JSON:
 {
@@ -237,11 +255,13 @@ Output ONLY valid JSON:
     "overview": "...",
     "wins": ["...", "..."],
     "concerns": ["...", "..."],
-    "next_week": ["...", "...", "..."],
+    "nutrition_focus": "...",
+    "recovery_focus": "...",
+    "next_week": ["1. ...", "2. ...", "3. ..."],
     "mood_check": "..." or null
   }
 }`,
-      messages: [{ role: 'user', content: `Analyze this athlete's week and create their review:\n\n${ctx}` }],
+      messages: [{ role: 'user', content: `Analyze this athlete's week and write their performance review:\n\n${ctx}` }],
     })
 
     const textContent = message.content.find((c) => c.type === 'text')

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ClipboardCheck, Loader2, Trophy, AlertTriangle, ArrowRight, Heart } from "lucide-react"
+import { ClipboardCheck, Loader2, Trophy, AlertTriangle, ArrowRight, Heart, Utensils, Activity, RefreshCw } from "lucide-react"
 import useSWR from "swr"
 import { toast } from "sonner"
 
@@ -12,6 +12,8 @@ interface WeekReview {
     overview: string
     wins: string[]
     concerns: string[]
+    nutrition_focus: string
+    recovery_focus: string
     next_week: string[]
     mood_check: string | null
   }
@@ -60,12 +62,26 @@ export function WeekReviewCard() {
             Week in Review
           </span>
         </div>
+        {review && (
+          <button
+            onClick={generate}
+            disabled={generating}
+            className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+            title="Regenerate"
+          >
+            {generating ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3.5 w-3.5" />
+            )}
+          </button>
+        )}
       </div>
 
       {!review ? (
         <div className="px-[18px] py-5 text-center">
           <p className="text-sm text-muted-foreground mb-3">
-            Get your personalized weekly analysis with wins, concerns, and next week's goals
+            Get your weekly performance analysis with wins, concerns, and goals for next week
           </p>
           <button
             onClick={generate}
@@ -86,12 +102,12 @@ export function WeekReviewCard() {
             </p>
           </div>
 
-          {/* Mood check — if present, show first */}
+          {/* Mood check — show first if present */}
           {review.mood_check && (
             <div className="px-[18px] py-3" style={{ background: "#faf5ff" }}>
               <div className="flex items-start gap-2">
                 <Heart className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" style={{ color: "#a78bfa" }} />
-                <p className="text-sm" style={{ color: "#6d28d9" }}>
+                <p className="text-sm leading-relaxed" style={{ color: "#6d28d9" }}>
                   {review.mood_check}
                 </p>
               </div>
@@ -109,7 +125,7 @@ export function WeekReviewCard() {
               </div>
               <div className="space-y-1.5">
                 {review.wins.map((w, i) => (
-                  <p key={i} className="text-xs flex items-start gap-1.5" style={{ color: "var(--ink)" }}>
+                  <p key={i} className="text-xs leading-relaxed flex items-start gap-1.5" style={{ color: "var(--ink)" }}>
                     <span className="text-green-500 mt-px flex-shrink-0">+</span>
                     {w}
                   </p>
@@ -129,7 +145,7 @@ export function WeekReviewCard() {
               </div>
               <div className="space-y-1.5">
                 {review.concerns.map((c, i) => (
-                  <p key={i} className="text-xs" style={{ color: "var(--ink)" }}>
+                  <p key={i} className="text-xs leading-relaxed" style={{ color: "var(--ink)" }}>
                     {c}
                   </p>
                 ))}
@@ -137,19 +153,48 @@ export function WeekReviewCard() {
             </div>
           )}
 
-          {/* Next week recommendations */}
+          {/* Nutrition Focus */}
+          {review.nutrition_focus && (
+            <div className="px-[18px] py-3">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Utensils className="h-3 w-3" style={{ color: "#ca8a04" }} />
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "8px", letterSpacing: "1.5px", textTransform: "uppercase", color: "var(--muted)" }}>
+                  Nutrition Focus
+                </span>
+              </div>
+              <p className="text-xs leading-relaxed" style={{ color: "var(--ink)" }}>
+                {review.nutrition_focus}
+              </p>
+            </div>
+          )}
+
+          {/* Recovery Focus */}
+          {review.recovery_focus && (
+            <div className="px-[18px] py-3">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Activity className="h-3 w-3" style={{ color: "#16a34a" }} />
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "8px", letterSpacing: "1.5px", textTransform: "uppercase", color: "var(--muted)" }}>
+                  Recovery Focus
+                </span>
+              </div>
+              <p className="text-xs leading-relaxed" style={{ color: "var(--ink)" }}>
+                {review.recovery_focus}
+              </p>
+            </div>
+          )}
+
+          {/* Next week action items */}
           {review.next_week?.length > 0 && (
             <div className="px-[18px] py-3">
               <div className="flex items-center gap-1.5 mb-2">
                 <ArrowRight className="h-3 w-3" style={{ color: "var(--ivy-mid)" }} />
                 <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "8px", letterSpacing: "1.5px", textTransform: "uppercase", color: "var(--muted)" }}>
-                  This Week's Focus
+                  Action Items for This Week
                 </span>
               </div>
               <div className="space-y-1.5">
                 {review.next_week.map((r, i) => (
-                  <p key={i} className="text-xs flex items-start gap-1.5" style={{ color: "var(--ink)" }}>
-                    <span className="font-bold flex-shrink-0" style={{ color: "var(--ivy-mid)" }}>{i + 1}.</span>
+                  <p key={i} className="text-xs leading-relaxed" style={{ color: "var(--ink)" }}>
                     {r}
                   </p>
                 ))}
