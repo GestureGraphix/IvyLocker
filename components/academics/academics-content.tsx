@@ -9,8 +9,9 @@ import { AcademicItemList } from "./academic-item-list"
 import { CourseList } from "./course-list"
 import { AddAcademicItemDialog } from "./add-academic-item-dialog"
 import { AddCourseDialog } from "./add-course-dialog"
-import { Plus, GraduationCap, BookOpen, Calendar, AlertCircle, CheckCircle } from "lucide-react"
+import { Plus, GraduationCap, BookOpen, Calendar, AlertCircle, CheckCircle, Upload, Loader2 } from "lucide-react"
 import useSWR from "swr"
+import { toast } from "sonner"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -71,6 +72,36 @@ const demoAcademicItems = [
 export function AcademicsContent() {
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false)
   const [isCourseDialogOpen, setIsCourseDialogOpen] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
+
+  const handleImportICS = async () => {
+    const input = document.createElement("input")
+    input.type = "file"
+    input.accept = ".ics"
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (!file) return
+
+      setIsImporting(true)
+      try {
+        const formData = new FormData()
+        formData.append("file", file)
+        const res = await fetch("/api/athletes/courses/import", {
+          method: "POST",
+          body: formData,
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || "Failed to import")
+        toast.success(data.message)
+        mutateCourses()
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to import .ics file")
+      } finally {
+        setIsImporting(false)
+      }
+    }
+    input.click()
+  }
 
   const { data: coursesData, mutate: mutateCourses } = useSWR("/api/athletes/courses", fetcher, {
     fallbackData: { courses: demoCourses },
@@ -109,6 +140,10 @@ export function AcademicsContent() {
           <p className="text-muted-foreground text-sm">Track your courses, assignments, and exams</p>
         </div>
         <div className="flex gap-2">
+          <Button onClick={handleImportICS} variant="outline" className="border-border/50" disabled={isImporting}>
+            {isImporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+            Import .ics
+          </Button>
           <Button onClick={() => setIsCourseDialogOpen(true)} variant="outline" className="border-border/50">
             <BookOpen className="h-4 w-4 mr-2" />
             Add Course
