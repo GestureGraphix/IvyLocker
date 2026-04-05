@@ -6,6 +6,7 @@ import { DailyRecommendationCard } from "./daily-recommendation-card"
 import { UpcomingItems } from "./upcoming-items"
 import { DashboardSkeleton } from "@/components/ui/skeletons"
 import { PhysioSessionsCard } from "./physio-sessions-card"
+import { WeeklySummaryCard } from "./weekly-summary-card"
 import useSWR from "swr"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
@@ -181,6 +182,8 @@ export function DashboardContent({ userName = "Athlete" }: DashboardContentProps
               academics={upcomingAcademics}
               isLoading={false}
             />
+            {/* Weekly summary */}
+            <WeeklySummaryCard />
             {/* Physio prehab/rehab assignments */}
             <PhysioSessionsCard />
           </div>
