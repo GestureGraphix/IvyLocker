@@ -139,6 +139,98 @@ export function PhysioContent() {
     setIsLogDialogOpen(true)
   }
 
+  const renderAssignedSessions = (type: "rehab" | "prehab") => {
+    const filtered = physioSessions.filter((s) => s.program_type === type)
+    if (filtered.length === 0) return null
+
+    const typeColor = type === "rehab" ? "#f97316" : "#a78bfa"
+
+    return (
+      <div className="space-y-3">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          Assigned by your physio — Today
+        </p>
+        {filtered.map((session) => {
+          const totalEx = (session.exercises || []).length
+          const doneEx = (session.exercises || []).filter((e) => e.completed).length
+          const allDone = totalEx > 0 && doneEx === totalEx
+          const sessionDone = !!session.session_completion_id
+
+          return (
+            <GlassCard key={session.session_id} className="overflow-hidden">
+              <div className="flex items-center justify-between p-4 pb-3">
+                <div>
+                  <p className="font-medium" style={{ opacity: sessionDone ? 0.5 : 1, textDecoration: sessionDone ? "line-through" : "none" }}>
+                    {session.program_title}
+                    {session.session_title && ` — ${session.session_title}`}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {session.physio_name} · {doneEx}/{totalEx} exercises
+                  </p>
+                </div>
+              </div>
+
+              {session.session_notes && (
+                <p className="px-4 pb-2 text-sm text-muted-foreground italic">{session.session_notes}</p>
+              )}
+
+              <div className="px-4 pb-3 space-y-2">
+                {(session.exercises || []).map((ex) => (
+                  <button
+                    key={ex.id}
+                    onClick={() => toggleExercise(session.session_id, ex.id, ex.completed)}
+                    className="w-full flex items-start gap-3 text-left py-1.5"
+                  >
+                    <div
+                      className="mt-0.5 h-5 w-5 rounded flex items-center justify-center flex-shrink-0 transition-colors"
+                      style={{
+                        border: `2px solid ${ex.completed ? typeColor : "var(--border)"}`,
+                        background: ex.completed ? typeColor : "transparent",
+                      }}
+                    >
+                      {ex.completed && <Check className="h-3 w-3 text-white" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-medium" style={{ textDecoration: ex.completed ? "line-through" : "none", opacity: ex.completed ? 0.5 : 1 }}>
+                          {ex.name}
+                        </span>
+                        <span className="text-xs text-muted-foreground font-mono">
+                          {[
+                            ex.sets && ex.reps && `${ex.sets}x${ex.reps}`,
+                            ex.hold_seconds && `${ex.hold_seconds}s hold`,
+                            ex.side && `[${ex.side}]`,
+                          ].filter(Boolean).join(" · ")}
+                        </span>
+                      </div>
+                      {ex.notes && <p className="text-xs text-muted-foreground mt-0.5">{ex.notes}</p>}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {totalEx > 0 && (
+                <div className="px-4 pb-4">
+                  <button
+                    onClick={() => toggleSession(session.session_id, sessionDone)}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                    style={{
+                      background: sessionDone ? "transparent" : allDone ? typeColor : "var(--border)",
+                      color: sessionDone ? "var(--muted-foreground)" : allDone ? "#fff" : "var(--foreground)",
+                      border: sessionDone ? "1px solid var(--border)" : "none",
+                    }}
+                  >
+                    {sessionDone ? "Completed" : (<><Check className="h-4 w-4" /> Mark Session Done</>)}
+                  </button>
+                </div>
+              )}
+            </GlassCard>
+          )
+        })}
+      </div>
+    )
+  }
+
   return (
     <div className="p-4 md:p-8 space-y-6">
       {/* Header */}
@@ -334,19 +426,25 @@ export function PhysioContent() {
         </TabsContent>
 
         <TabsContent value="rehab">
-          <MobilityHistory
-            logs={rehabLogs}
-            onUpdate={() => mutateLogs()}
-            emptyLabel="No rehab sessions logged"
-          />
+          <div className="space-y-4">
+            {renderAssignedSessions("rehab")}
+            <MobilityHistory
+              logs={rehabLogs}
+              onUpdate={() => mutateLogs()}
+              emptyLabel="No rehab sessions logged"
+            />
+          </div>
         </TabsContent>
 
         <TabsContent value="prehab">
-          <MobilityHistory
-            logs={prehabLogs}
-            onUpdate={() => mutateLogs()}
-            emptyLabel="No prehab sessions logged"
-          />
+          <div className="space-y-4">
+            {renderAssignedSessions("prehab")}
+            <MobilityHistory
+              logs={prehabLogs}
+              onUpdate={() => mutateLogs()}
+              emptyLabel="No prehab sessions logged"
+            />
+          </div>
         </TabsContent>
 
         <TabsContent value="library">
