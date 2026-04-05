@@ -5,7 +5,7 @@ import useSWR from "swr"
 import {
   X, Check, Loader2, Trash2, ChevronLeft, ChevronRight, Plus,
   AlertTriangle, Users, CalendarDays, ClipboardList, LayoutDashboard, LogOut,
-  Search, Save, Pause, Play, Link2, ExternalLink,
+  Search, Save, Pause, Play, Link2, ExternalLink, Pencil,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/hooks/use-auth"
@@ -883,6 +883,9 @@ function PlansTab({
   const [newText, setNewText] = useState("")
   const [creating, setCreating] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [editTitle, setEditTitle] = useState("")
+  const [editType, setEditType] = useState<"prehab" | "rehab">("prehab")
+  const [editFrequency, setEditFrequency] = useState("")
   const [editText, setEditText] = useState("")
   const [saving, setSaving] = useState(false)
 
@@ -938,13 +941,22 @@ function PlansTab({
     }
   }
 
+  function startEdit(a: PhysioAssignment) {
+    setEditingId(a.id)
+    setEditTitle(a.title)
+    setEditType(a.type)
+    setEditFrequency(a.frequency || "")
+    setEditText(a.description || "")
+  }
+
   async function handleSaveEdit(id: string) {
+    if (!editTitle.trim()) { toast.error("Title is required"); return }
     setSaving(true)
     try {
       const res = await fetch(`/api/physio/assignments/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ description: editText }),
+        body: JSON.stringify({ title: editTitle.trim(), type: editType, frequency: editFrequency.trim() || null, description: editText }),
       })
       if (!res.ok) throw new Error()
       toast.success("Plan updated")
@@ -1083,68 +1095,110 @@ function PlansTab({
 
           {athleteAssignments.map((a) => (
             <div key={a.id} className="bg-white overflow-hidden" style={{ border: "1px solid var(--rule)", borderRadius: "8px" }}>
-              {/* Header */}
-              <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--rule)" }}>
-                <div className="flex items-center gap-2.5">
-                  <div className="w-1 h-6 rounded-full" style={{ background: typeColor(a.type) }} />
-                  <div>
-                    <p className="text-sm font-semibold" style={{ color: "var(--ink)" }}>{a.title}</p>
-                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "1px", color: "var(--muted-foreground)", marginTop: "1px" }}>
-                      {a.type.toUpperCase()} {a.frequency ? `· ${a.frequency}` : ""}
-                    </p>
+              {editingId === a.id ? (
+                /* ── Full edit mode ── */
+                <div className="p-4 space-y-3">
+                  {/* Type toggle */}
+                  <div className="flex gap-0 rounded-md overflow-hidden border" style={{ borderColor: "var(--rule)" }}>
+                    {(["prehab", "rehab"] as const).map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => setEditType(t)}
+                        className="flex-1 py-2 text-xs font-medium uppercase tracking-wider transition-colors"
+                        style={{
+                          background: editType === t ? typeColor(t) : "transparent",
+                          color: editType === t ? "#fff" : "var(--muted-foreground)",
+                        }}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Title */}
+                  <input
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    placeholder="Plan title"
+                    className="w-full rounded-md border px-3 py-2 text-sm font-semibold bg-background text-foreground outline-none"
+                    style={{ borderColor: "var(--rule)" }}
+                  />
+
+                  {/* Frequency */}
+                  <input
+                    value={editFrequency}
+                    onChange={(e) => setEditFrequency(e.target.value)}
+                    placeholder="Frequency (e.g., Daily, 3x per week)"
+                    className="w-full rounded-md border px-3 py-2 text-sm bg-background text-foreground outline-none"
+                    style={{ borderColor: "var(--rule)" }}
+                  />
+
+                  {/* Description */}
+                  <textarea
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    rows={10}
+                    placeholder="Type the full plan here..."
+                    className="w-full rounded-md border px-3 py-2 text-sm bg-background text-foreground outline-none resize-none"
+                    style={{ borderColor: typeColor(editType), fontFamily: "'DM Mono', monospace", fontSize: "12px", lineHeight: "1.8" }}
+                  />
+
+                  <div className="flex gap-2 justify-end">
+                    <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>Cancel</Button>
+                    <Button
+                      size="sm"
+                      onClick={() => handleSaveEdit(a.id)}
+                      disabled={saving}
+                      style={{ background: typeColor(editType), color: "#fff" }}
+                    >
+                      {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
+                      Save Changes
+                    </Button>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  {a.status === "active" ? (
-                    <button onClick={() => handleStatus(a.id, "paused")} className="p-1.5 text-muted-foreground hover:text-foreground" title="Pause">
-                      <Pause className="h-3.5 w-3.5" />
-                    </button>
-                  ) : (
-                    <button onClick={() => handleStatus(a.id, "active")} className="p-1.5 text-muted-foreground hover:text-green-500" title="Activate">
-                      <Play className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                  <button onClick={() => handleDelete(a.id)} className="p-1.5 text-muted-foreground hover:text-destructive" title="Delete">
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Plan notepad */}
-              <div className="p-4">
-                {editingId === a.id ? (
-                  <div className="space-y-3">
-                    <textarea
-                      value={editText}
-                      onChange={(e) => setEditText(e.target.value)}
-                      rows={10}
-                      autoFocus
-                      className="w-full rounded-md border px-3 py-2 text-sm bg-background text-foreground outline-none resize-none"
-                      style={{ borderColor: typeColor(a.type), fontFamily: "'DM Mono', monospace", fontSize: "12px", lineHeight: "1.8" }}
-                    />
-                    <div className="flex gap-2 justify-end">
-                      <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>Cancel</Button>
-                      <Button
-                        size="sm"
-                        onClick={() => handleSaveEdit(a.id)}
-                        disabled={saving}
-                        style={{ background: typeColor(a.type), color: "#fff" }}
-                      >
-                        {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
-                        Save
-                      </Button>
+              ) : (
+                /* ── View mode ── */
+                <>
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--rule)" }}>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-1 h-6 rounded-full" style={{ background: typeColor(a.type) }} />
+                      <div>
+                        <p className="text-sm font-semibold" style={{ color: "var(--ink)" }}>{a.title}</p>
+                        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "1px", color: "var(--muted-foreground)", marginTop: "1px" }}>
+                          {a.type.toUpperCase()} {a.frequency ? `· ${a.frequency}` : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={() => startEdit(a)} className="p-1.5 text-muted-foreground hover:text-foreground" title="Edit">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      {a.status === "active" ? (
+                        <button onClick={() => handleStatus(a.id, "paused")} className="p-1.5 text-muted-foreground hover:text-foreground" title="Pause">
+                          <Pause className="h-3.5 w-3.5" />
+                        </button>
+                      ) : (
+                        <button onClick={() => handleStatus(a.id, "active")} className="p-1.5 text-muted-foreground hover:text-green-500" title="Activate">
+                          <Play className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                      <button onClick={() => handleDelete(a.id)} className="p-1.5 text-muted-foreground hover:text-destructive" title="Delete">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   </div>
-                ) : (
+
+                  {/* Plan text */}
                   <div
-                    onClick={() => { setEditingId(a.id); setEditText(a.description || "") }}
-                    className="cursor-text min-h-[120px] rounded-md px-3 py-2 hover:bg-secondary/20 transition-colors"
+                    onClick={() => startEdit(a)}
+                    className="p-4 cursor-text min-h-[80px] hover:bg-secondary/10 transition-colors"
                     style={{ fontFamily: "'DM Mono', monospace", fontSize: "12px", lineHeight: "1.8", color: a.description ? "var(--ink)" : "var(--muted-foreground)", whiteSpace: "pre-wrap" }}
                   >
                     {a.description || "Click to type your plan..."}
                   </div>
-                )}
-              </div>
+                </>
+              )}
 
               {/* Athlete notes */}
               <AthleteNotes assignmentId={a.id} />
