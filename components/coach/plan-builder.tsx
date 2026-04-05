@@ -607,9 +607,12 @@ Practice 4:45-5:45
                       const input = document.createElement("input")
                       input.type = "file"
                       input.accept = "image/jpeg,image/png,image/gif,image/webp,.xlsx,.xls,.csv"
+                      input.style.display = "none"
+                      document.body.appendChild(input)
                       input.onchange = (e) => {
                         const file = (e.target as HTMLInputElement).files?.[0]
                         if (file) handleImageSelect(file)
+                        document.body.removeChild(input)
                       }
                       input.click()
                     }}
