@@ -1240,7 +1240,7 @@ function AthleteNotes({ assignmentId }: { assignmentId: string }) {
       </p>
       <div className="space-y-2">
         {logs.slice(0, 10).map((log) => {
-          const dateStr = (log.logged_date || log.created_at || "").slice(0, 10)
+          const dateStr = String(log.logged_date || log.created_at || "").slice(0, 10)
           const dateDisplay = dateStr ? new Date(dateStr + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""
 
           return (

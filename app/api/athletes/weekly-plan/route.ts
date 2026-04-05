@@ -191,7 +191,7 @@ export async function POST() {
       const dayName = dayNames[d.getDay()]
       const dayKey = dayKeys[d.getDay()]
 
-      const dayWorkouts = workouts.filter((w: any) => (w.workout_date || '').slice(0, 10) === dateStr)
+      const dayWorkouts = workouts.filter((w: any) => String(w.workout_date || '').slice(0, 10) === dateStr)
 
       if (dayWorkouts.length === 0) {
         // Check if there's intensity data
@@ -231,7 +231,7 @@ export async function POST() {
     if (academics.length > 0) {
       ctx += `\n=== DEADLINES THIS WEEK ===\n`
       academics.forEach((a: any) => {
-        const d = new Date((a.due_date || '').slice(0, 10) + 'T12:00:00')
+        const d = new Date(String(a.due_date || '').slice(0, 10) + 'T12:00:00')
         ctx += `- ${dayNames[d.getDay()]}: ${a.title} (${a.type}${a.priority ? `, ${a.priority} priority` : ''})${a.course_code ? ` — ${a.course_code}` : ''}\n`
       })
     }

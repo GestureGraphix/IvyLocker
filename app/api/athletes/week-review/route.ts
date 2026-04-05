@@ -114,7 +114,7 @@ export async function POST() {
     } else {
       const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
       checkins.forEach((c: any) => {
-        const d = new Date((c.date || '').slice(0, 10) + 'T12:00:00')
+        const d = new Date(String(c.date || '').slice(0, 10) + 'T12:00:00')
         const dayLabel = dayNames[d.getDay()]
         ctx += `- ${dayLabel}: Mental ${c.mental_state}/10, Physical ${c.physical_state}/10`
         if (c.mental_state) mentalScores.push(c.mental_state)
@@ -155,7 +155,7 @@ export async function POST() {
         totalProtDiff += protDiff
         if (calDiff < -200) daysUnderCal++
         if (protDiff < -20) daysUnderProt++
-        ctx += `- ${(d.day || '').slice(0, 10)}: ${d.cals} cal (${calDiff >= 0 ? '+' : ''}${calDiff}), ${d.protein}g protein (${protDiff >= 0 ? '+' : ''}${protDiff}g), ${d.meals} meals\n`
+        ctx += `- ${String(d.day || '').slice(0, 10)}: ${d.cals} cal (${calDiff >= 0 ? '+' : ''}${calDiff}), ${d.protein}g protein (${protDiff >= 0 ? '+' : ''}${protDiff}g), ${d.meals} meals\n`
       })
       const avgCal = Math.round(nutrition.reduce((s: number, d: any) => s + d.cals, 0) / nutrition.length)
       const avgProt = Math.round(nutrition.reduce((s: number, d: any) => s + d.protein, 0) / nutrition.length)
