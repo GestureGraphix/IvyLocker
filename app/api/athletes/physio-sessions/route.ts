@@ -12,8 +12,9 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url)
     const date = searchParams.get('date') || new Date().toISOString().split('T')[0]
+    const history = searchParams.get('history') === 'true'
 
-    // Get all active programs for this athlete, then their sessions for the given date
+    // Get sessions — either for a specific date, or completed history
     const sessions = await sql`
       SELECT
         ps.id as session_id,
@@ -58,10 +59,13 @@ export async function GET(request: Request) {
       LEFT JOIN physio_session_exercises pse ON pse.session_id = ps.id
       LEFT JOIN physio_exercise_completions ec ON ec.exercise_id = pse.id AND ec.athlete_id = ${user.id}
       WHERE pa.athlete_id = ${user.id}
-        AND pa.status = 'active'
-        AND ps.session_date = ${date}
+        ${history
+          ? sql`AND sc.id IS NOT NULL`
+          : sql`AND pa.status = 'active' AND ps.session_date = ${date}`
+        }
       GROUP BY ps.id, pa.id, u.id, sc.id
-      ORDER BY pa.type, ps.session_date
+      ORDER BY ps.session_date DESC
+      ${history ? sql`LIMIT 50` : sql``}
     `
 
     return NextResponse.json({ sessions })

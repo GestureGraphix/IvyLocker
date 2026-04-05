@@ -77,6 +77,11 @@ export function PhysioContent() {
   )
   const physioSessions = sessionsData?.sessions || []
 
+  const { data: historyData } = useSWR<{ sessions: PhysioSession[] }>(
+    `/api/athletes/physio-sessions?history=true`, fetcher
+  )
+  const completedSessions = historyData?.sessions || []
+
   async function toggleExercise(sessionId: string, exerciseId: string, completed: boolean) {
     const url = `/api/athletes/physio-sessions/${sessionId}/exercises/${exerciseId}/complete`
     try {
@@ -456,11 +461,64 @@ export function PhysioContent() {
         </TabsContent>
 
         <TabsContent value="history">
-          <MobilityHistory
-            logs={allLogs}
-            onUpdate={() => mutateLogs()}
-            emptyLabel="No sessions logged yet"
-          />
+          <div className="space-y-4">
+            {/* Completed physio sessions */}
+            {completedSessions.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Completed Physio Sessions
+                </p>
+                {completedSessions.map((session) => {
+                  const totalEx = (session.exercises || []).length
+                  const doneEx = (session.exercises || []).filter((e) => e.completed).length
+                  const typeColor = session.program_type === "rehab" ? "#f97316" : "#a78bfa"
+                  const dateStr = (session.session_date || "").slice(0, 10)
+                  const dateDisplay = dateStr ? new Date(dateStr + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : ""
+
+                  return (
+                    <GlassCard key={session.session_id} className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            className="px-1.5 py-0.5 rounded text-white text-[10px] font-medium uppercase"
+                            style={{ background: typeColor }}
+                          >
+                            {session.program_type}
+                          </span>
+                          <div>
+                            <p className="text-sm font-medium">
+                              {session.program_title}
+                              {session.session_title && ` — ${session.session_title}`}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {dateDisplay} · {session.physio_name} · {doneEx}/{totalEx} exercises
+                            </p>
+                          </div>
+                        </div>
+                        <Check className="h-4 w-4 text-green-500" />
+                      </div>
+                      {(session.exercises || []).length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {(session.exercises || []).map((ex) => (
+                            <span key={ex.id} className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
+                              {ex.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </GlassCard>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Self-logged mobility history */}
+            <MobilityHistory
+              logs={allLogs}
+              onUpdate={() => mutateLogs()}
+              emptyLabel={completedSessions.length === 0 ? "No sessions logged yet" : ""}
+            />
+          </div>
         </TabsContent>
       </Tabs>
 
