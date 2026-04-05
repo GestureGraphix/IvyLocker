@@ -12,8 +12,8 @@ export async function GET() {
 
     // Get full user data with profile
     const result = await sql`
-      SELECT 
-        u.id, u.email, u.name, u.role,
+      SELECT
+        u.id, u.email, u.name, u.role, u.scheduling_link,
         ap.sport, ap.level, ap.team, ap.position, ap.jersey_number,
         ap.height_cm, ap.weight_kg, ap.phone, ap.location,
         ap.university, ap.graduation_year, ap.allergies, ap.tags,
@@ -27,5 +27,28 @@ export async function GET() {
   } catch (error) {
     console.error("Get user error:", error)
     return NextResponse.json({ error: "Failed to get user" }, { status: 500 })
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { scheduling_link } = body
+
+    if (scheduling_link !== undefined) {
+      await sql`
+        UPDATE users SET scheduling_link = ${scheduling_link || null} WHERE id = ${user.id}
+      `
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("Update user error:", error)
+    return NextResponse.json({ error: "Failed to update user" }, { status: 500 })
   }
 }

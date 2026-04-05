@@ -5,7 +5,7 @@ import useSWR from "swr"
 import {
   X, Check, Loader2, Trash2, ChevronLeft, ChevronRight, Plus,
   AlertTriangle, Users, CalendarDays, ClipboardList, LayoutDashboard, LogOut,
-  Search, Save, Pause, Play,
+  Search, Save, Pause, Play, Link2, ExternalLink,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/hooks/use-auth"
@@ -254,6 +254,37 @@ function DashboardTab({
   assignments: PhysioAssignment[]
   meetings: PhysioMeeting[]
 }) {
+  const { data: meData, mutate: mutateMe } = useSWR<{ user: { scheduling_link?: string } }>("/api/me", fetcher)
+  const [linkValue, setLinkValue] = useState("")
+  const [linkEditing, setLinkEditing] = useState(false)
+  const [linkSaving, setLinkSaving] = useState(false)
+
+  const currentLink = meData?.user?.scheduling_link || ""
+
+  const startEditLink = () => {
+    setLinkValue(currentLink)
+    setLinkEditing(true)
+  }
+
+  const saveLink = async () => {
+    setLinkSaving(true)
+    try {
+      const res = await fetch("/api/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scheduling_link: linkValue.trim() }),
+      })
+      if (!res.ok) throw new Error()
+      toast.success("Scheduling link saved")
+      setLinkEditing(false)
+      mutateMe()
+    } catch {
+      toast.error("Failed to save link")
+    } finally {
+      setLinkSaving(false)
+    }
+  }
+
   const flagged = athletes.filter((a) => getStatus(a.id, assignments) === "flagged")
   const upcoming = meetings
     .filter((m) => m.status === "scheduled" && new Date(m.scheduled_at) >= new Date())
@@ -261,7 +292,66 @@ function DashboardTab({
     .slice(0, 6)
 
   return (
-    <div className="grid md:grid-cols-2 gap-5 pt-1">
+    <div className="space-y-5 pt-1">
+
+    {/* Scheduling link */}
+    <div className="bg-white overflow-hidden" style={{ border: "1px solid var(--rule)", borderRadius: "8px" }}>
+      <div className="flex items-center gap-2 px-[18px] py-3" style={{ borderBottom: "1px solid var(--rule)" }}>
+        <Link2 className="h-3.5 w-3.5" style={{ color: "var(--ivy-mid)" }} />
+        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "2px", textTransform: "uppercase", color: "var(--muted-foreground)" }}>
+          Scheduling Link
+        </span>
+      </div>
+      <div className="px-[18px] py-4">
+        {linkEditing ? (
+          <div className="flex gap-2">
+            <input
+              value={linkValue}
+              onChange={(e) => setLinkValue(e.target.value)}
+              placeholder="https://calendly.com/your-name"
+              autoFocus
+              className="flex-1 rounded-md border px-3 py-2 text-sm bg-background text-foreground outline-none"
+              style={{ borderColor: "var(--rule)" }}
+              onKeyDown={(e) => { if (e.key === "Enter") saveLink() }}
+            />
+            <Button size="sm" onClick={saveLink} disabled={linkSaving} style={{ background: "var(--ivy)", color: "#fff" }}>
+              {linkSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setLinkEditing(false)}>
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        ) : currentLink ? (
+          <div className="flex items-center justify-between">
+            <a
+              href={currentLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm flex items-center gap-1.5 hover:underline"
+              style={{ color: "var(--ivy-mid)" }}
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              {currentLink.replace(/^https?:\/\//, "")}
+            </a>
+            <button
+              onClick={startEditLink}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Edit
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={startEditLink}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            + Add your Calendly or scheduling link — athletes will see it on their Physio page
+          </button>
+        )}
+      </div>
+    </div>
+
+    <div className="grid md:grid-cols-2 gap-5">
       {/* Flagged athletes */}
       <div className="bg-white overflow-hidden" style={{ border: "1px solid var(--rule)", borderRadius: "8px" }}>
         <div className="flex items-center gap-2 px-[18px] py-3" style={{ borderBottom: "1px solid var(--rule)" }}>
@@ -340,6 +430,7 @@ function DashboardTab({
           </div>
         )}
       </div>
+    </div>
     </div>
   )
 }

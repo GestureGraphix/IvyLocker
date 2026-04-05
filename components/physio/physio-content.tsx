@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ExerciseLibrary } from "@/components/mobility/exercise-library"
 import { MobilityHistory } from "@/components/mobility/mobility-history"
 import { LogMobilityDialog } from "@/components/mobility/log-mobility-dialog"
-import { Plus, Activity, Calendar, Clock, Target, Stethoscope } from "lucide-react"
+import { Plus, Activity, Calendar, Clock, Target, Stethoscope, ExternalLink } from "lucide-react"
 import useSWR from "swr"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
@@ -21,6 +21,7 @@ interface Assignment {
   description: string | null
   frequency: string | null
   physio_name: string
+  physio_scheduling_link: string | null
   status: string
 }
 
@@ -154,6 +155,34 @@ export function PhysioContent() {
           </Button>
         )}
       </div>
+
+      {/* Scheduling link from physio */}
+      {(() => {
+        const link = assignments.find((a) => a.physio_scheduling_link)?.physio_scheduling_link
+        const physioName = assignments.find((a) => a.physio_scheduling_link)?.physio_name
+        if (!link) return null
+        return (
+          <GlassCard className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Stethoscope className="h-5 w-5 flex-shrink-0" style={{ color: "#a78bfa" }} />
+              <div>
+                <p className="text-sm font-medium">Schedule with {physioName}</p>
+                <p className="text-xs text-muted-foreground">Book an appointment</p>
+              </div>
+            </div>
+            <a
+              href={link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors"
+              style={{ background: "#a78bfa" }}
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              Book
+            </a>
+          </GlassCard>
+        )
+      })()}
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">

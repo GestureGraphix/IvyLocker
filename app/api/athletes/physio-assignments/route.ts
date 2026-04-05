@@ -12,7 +12,8 @@ export async function GET() {
     const assignments = await sql`
       SELECT
         pa.*,
-        u.name as physio_name
+        u.name as physio_name,
+        u.scheduling_link as physio_scheduling_link
       FROM physio_assignments pa
       JOIN users u ON pa.physio_id = u.id
       WHERE pa.athlete_id = ${user.id}
