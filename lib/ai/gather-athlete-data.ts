@@ -1,5 +1,82 @@
 import { sql } from '@/lib/db'
 
+interface DiningMenuItem {
+  name: string
+  calories: number
+  proteinG: number
+  carbsG: number
+  section?: string
+}
+
+interface DiningMeal {
+  mealType: string
+  items: DiningMenuItem[]
+}
+
+async function fetchYaleMenuForRecommendation(): Promise<DiningMeal[]> {
+  const today = new Date().toISOString().split('T')[0]
+  const API_BASE = 'https://yalehospitality.api.nutrislice.com/menu/api'
+  const headers = {
+    'User-Agent': 'Mozilla/5.0',
+    'Referer': 'https://yalehospitality.nutrislice.com/',
+  }
+  // Fetch from one hall (branford) for all meals — representative of what's available
+  const hall = 'branford-college'
+  const meals: DiningMeal[] = []
+
+  for (const mealType of ['breakfast', 'lunch', 'dinner']) {
+    try {
+      const [year, month, day] = today.split('-')
+      const res = await fetch(
+        `${API_BASE}/weeks/school/${hall}/menu-type/${mealType}/${year}/${month}/${day}`,
+        { headers, signal: AbortSignal.timeout(8000) }
+      )
+      if (!res.ok) continue
+      const data = await res.json()
+      const dayData = data.days?.find((d: any) => d.date === today)
+      if (!dayData?.menu_items?.length) continue
+
+      const items: DiningMenuItem[] = []
+      let currentSection = ''
+
+      for (const item of dayData.menu_items) {
+        if (item.is_section_title && item.text) {
+          currentSection = item.text
+          continue
+        }
+        const food = item.food
+        if (!food?.name) continue
+        // Skip "Smart Meal" items
+        if (currentSection.toLowerCase().includes('smart meal')) continue
+        if (food.name.toLowerCase().includes('smart meal')) continue
+
+        const nutrition = food.rounded_nutrition_info || {}
+        items.push({
+          name: food.name,
+          calories: Math.round(nutrition.calories || 0),
+          proteinG: Math.round(nutrition.g_protein || 0),
+          carbsG: Math.round(nutrition.g_carbs || 0),
+          section: currentSection || undefined,
+        })
+      }
+
+      // Deduplicate
+      const seen = new Set<string>()
+      const unique = items.filter((i) => {
+        const k = i.name.toLowerCase()
+        if (seen.has(k)) return false
+        seen.add(k)
+        return true
+      })
+
+      if (unique.length > 0) meals.push({ mealType, items: unique })
+    } catch {
+      // Skip on error
+    }
+  }
+  return meals
+}
+
 export interface AthleteContext {
   profile: {
     name: string
@@ -41,6 +118,7 @@ export interface AthleteContext {
     priority: string
     course_name: string | null
   }>
+  diningMenu: DiningMeal[]
 }
 
 export async function gatherAthleteData(userId: string): Promise<AthleteContext> {
@@ -66,6 +144,7 @@ export async function gatherAthleteData(userId: string): Promise<AthleteContext>
         ap.level,
         ap.height_cm,
         ap.weight_kg,
+        ap.university,
         COALESCE(ap.calorie_goal, 2500) as calorie_goal,
         COALESCE(ap.protein_goal_grams, 150) as protein_goal_grams,
         COALESCE(ap.hydration_goal_oz, 100) as hydration_goal_oz
@@ -131,6 +210,11 @@ export async function gatherAthleteData(userId: string): Promise<AthleteContext>
     `,
   ])
 
+  // Fetch dining menu if athlete is at Yale
+  const universityRaw = profileResult[0]?.university || ''
+  const isYale = universityRaw.toLowerCase().includes('yale')
+  const diningMenu = isYale ? await fetchYaleMenuForRecommendation() : []
+
   const profile = profileResult[0] || {
     name: 'Athlete',
     sport: null,
@@ -193,11 +277,12 @@ export async function gatherAthleteData(userId: string): Promise<AthleteContext>
       priority: a.priority,
       course_name: a.course_name,
     })),
+    diningMenu,
   }
 }
 
 export function formatAthleteDataForPrompt(data: AthleteContext): string {
-  const { profile, todaySessions, recentCheckIns, todayNutrition, todayHydration, upcomingAcademics } = data
+  const { profile, todaySessions, recentCheckIns, todayNutrition, todayHydration, upcomingAcademics, diningMenu } = data
 
   let prompt = `ATHLETE CONTEXT:
 - Name: ${profile.name}
@@ -248,6 +333,18 @@ export function formatAthleteDataForPrompt(data: AthleteContext): string {
       const due = new Date(a.due_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
       prompt += `- ${due}: ${a.title} (${a.type}, ${a.priority} priority${a.course_name ? `, ${a.course_name}` : ''})\n`
     })
+  }
+
+  // Dining hall menu (Yale)
+  if (diningMenu.length > 0) {
+    prompt += `\nTODAY'S DINING HALL MENU (use these REAL foods for meal recommendations):\n`
+    for (const meal of diningMenu) {
+      prompt += `\n${meal.mealType.toUpperCase()}:\n`
+      for (const item of meal.items) {
+        prompt += `- ${item.name} (${item.calories} cal, ${item.proteinG}g protein, ${item.carbsG}g carbs)${item.section ? ` [${item.section}]` : ''}\n`
+      }
+    }
+    prompt += `\n⚠️ IMPORTANT: Your nutrition recommendations MUST reference specific foods from this menu. Tell the athlete exactly what to eat from the dining hall for each meal.\n`
   }
 
   return prompt

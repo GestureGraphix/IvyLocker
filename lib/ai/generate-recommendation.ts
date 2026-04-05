@@ -23,6 +23,8 @@ You must stay within the scope of:
 - Recovery prioritisation
 - Hydration reminders
 
+CRITICAL: If a dining hall menu is provided, you MUST recommend specific foods from that menu by name. Do NOT give generic advice like "eat a balanced meal" — instead say exactly which items to pick (e.g., "At lunch, grab the Grilled Chicken and Brown Rice for 45g protein"). Build actual plate recommendations from the available menu items to hit their macro goals.
+
 If information is missing, make reasonable assumptions and state them briefly.
 
 Provide recommendations in this format:
@@ -42,7 +44,7 @@ Provide recommendations in this format:
 
 **Student Life Note**: [Any adjustment for academic schedule, if relevant]
 
-Keep the total response under 300 words. Be direct and practical.`
+Keep the total response under 400 words. Be direct and practical.`
 
 export interface GenerationResult {
   success: boolean
@@ -71,7 +73,7 @@ export async function generateRecommendation(userId: string): Promise<Generation
     // Generate recommendation
     const message = await anthropic.messages.create({
       model: 'claude-3-haiku-20240307',
-      max_tokens: 500,
+      max_tokens: 800,
       system: SYSTEM_PROMPT,
       messages: [
         {
