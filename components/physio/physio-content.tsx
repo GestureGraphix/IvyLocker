@@ -7,8 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ExerciseLibrary } from "@/components/mobility/exercise-library"
 import { MobilityHistory } from "@/components/mobility/mobility-history"
 import { LogMobilityDialog } from "@/components/mobility/log-mobility-dialog"
-import { Plus, Activity, Calendar, Clock, Target, Stethoscope, ExternalLink } from "lucide-react"
+import { Plus, Activity, Calendar, Clock, Target, Stethoscope, ExternalLink, UserPlus, X, Check } from "lucide-react"
 import useSWR from "swr"
+import { toast } from "sonner"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -46,6 +47,14 @@ interface Exercise {
   duration_seconds: number | null
 }
 
+interface Physio {
+  id: string
+  name: string
+  email: string
+  scheduling_link: string | null
+  linked: boolean
+}
+
 export function PhysioContent() {
   const today = new Date().toISOString().split("T")[0]
 
@@ -55,11 +64,52 @@ export function PhysioContent() {
 
   const { data: exercisesData, mutate: mutateExercises } = useSWR("/api/athletes/mobility-exercises", fetcher)
   const { data: logsData, mutate: mutateLogs } = useSWR("/api/athletes/mobility-logs", fetcher)
-  const { data: assignmentsData } = useSWR("/api/athletes/physio-assignments", fetcher)
+  const { data: assignmentsData, mutate: mutateAssignments } = useSWR("/api/athletes/physio-assignments", fetcher)
+  const { data: physiosData, mutate: mutatePhysios } = useSWR<{ physios: Physio[] }>("/api/athletes/physio", fetcher)
+
+  const [showPhysioPicker, setShowPhysioPicker] = useState(false)
+  const [linkingPhysio, setLinkingPhysio] = useState<string | null>(null)
 
   const exercises: Exercise[] = exercisesData?.exercises || []
   const logs: LogEntry[] = logsData?.logs || []
   const assignments: Assignment[] = assignmentsData?.assignments || []
+  const allPhysios = physiosData?.physios || []
+  const linkedPhysios = allPhysios.filter((p) => p.linked)
+  const unlinkedPhysios = allPhysios.filter((p) => !p.linked)
+
+  async function linkPhysio(physioId: string) {
+    setLinkingPhysio(physioId)
+    try {
+      const res = await fetch("/api/athletes/physio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ physioId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to link")
+      toast.success(data.message)
+      mutatePhysios()
+      mutateAssignments()
+      setShowPhysioPicker(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to add physio")
+    } finally {
+      setLinkingPhysio(null)
+    }
+  }
+
+  async function unlinkPhysio(physioId: string) {
+    if (!confirm("Remove this physio? Their plans will no longer appear.")) return
+    try {
+      const res = await fetch(`/api/athletes/physio?physioId=${physioId}`, { method: "DELETE" })
+      if (!res.ok) throw new Error()
+      toast.success("Physio removed")
+      mutatePhysios()
+      mutateAssignments()
+    } catch {
+      toast.error("Failed to remove physio")
+    }
+  }
 
   const rehabLogs = logs.filter((l) => l.category === "rehab")
   const prehabLogs = logs.filter((l) => l.category === "prehab")
@@ -155,6 +205,82 @@ export function PhysioContent() {
           </Button>
         )}
       </div>
+
+      {/* My Physios */}
+      <GlassCard className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">My Physios</p>
+          <button
+            onClick={() => setShowPhysioPicker((v) => !v)}
+            className="flex items-center gap-1 text-xs font-medium transition-colors hover:text-foreground"
+            style={{ color: "var(--ivy-mid)" }}
+          >
+            <UserPlus className="h-3.5 w-3.5" />
+            Add Physio
+          </button>
+        </div>
+
+        {/* Physio picker dropdown */}
+        {showPhysioPicker && (
+          <div className="mb-3 rounded-lg border border-border bg-secondary/20 overflow-hidden">
+            {unlinkedPhysios.length === 0 ? (
+              <p className="px-3 py-4 text-sm text-muted-foreground text-center">
+                {allPhysios.length === 0 ? "No physios available yet" : "You're linked to all available physios"}
+              </p>
+            ) : (
+              unlinkedPhysios.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => linkPhysio(p.id)}
+                  disabled={linkingPhysio === p.id}
+                  className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-secondary/50 transition-colors"
+                  style={{ borderBottom: "1px solid var(--border)" }}
+                >
+                  <div>
+                    <p className="text-sm font-medium">{p.name}</p>
+                    <p className="text-xs text-muted-foreground">{p.email}</p>
+                  </div>
+                  {linkingPhysio === p.id ? (
+                    <div className="h-4 w-4 border-2 border-t-transparent border-current rounded-full animate-spin text-muted-foreground" />
+                  ) : (
+                    <Plus className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </button>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* Linked physios */}
+        {linkedPhysios.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No physio linked yet. Click "Add Physio" to connect with your physical therapist.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {linkedPhysios.map((p) => (
+              <div key={p.id} className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: "#a78bfa" }}>
+                    {p.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">{p.name}</p>
+                    <p className="text-xs text-muted-foreground">{p.email}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => unlinkPhysio(p.id)}
+                  className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                  title="Remove physio"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </GlassCard>
 
       {/* Scheduling link from physio */}
       {(() => {
