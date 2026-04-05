@@ -23,7 +23,7 @@ export async function GET(request: Request) {
         pa.id as program_id,
         pa.title as program_title,
         pa.type as program_type,
-        u.first_name || ' ' || u.last_name as physio_name,
+        u.name as physio_name,
         -- Session completion
         sc.id as session_completion_id,
         sc.completed_at as session_completed_at,

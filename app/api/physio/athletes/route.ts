@@ -29,6 +29,10 @@ export async function GET() {
     return NextResponse.json({ athletes })
   } catch (error) {
     console.error("Get physio athletes error:", error)
+    const message = error instanceof Error ? error.message : "Failed to get athletes"
+    if (message.includes('does not exist')) {
+      return NextResponse.json({ error: `Database table missing. Run migration 008-physio.sql first.` }, { status: 500 })
+    }
     return NextResponse.json({ error: "Failed to get athletes" }, { status: 500 })
   }
 }
@@ -67,6 +71,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, athlete: { id: athlete.id, name: athlete.name, email: athlete.email } })
   } catch (error) {
     console.error("Link physio athlete error:", error)
+    const message = error instanceof Error ? error.message : "Failed to link athlete"
+    // Surface table-missing errors to help with migration debugging
+    if (message.includes('does not exist')) {
+      return NextResponse.json({ error: `Database table missing. Run migration 008-physio.sql first.` }, { status: 500 })
+    }
     return NextResponse.json({ error: "Failed to link athlete" }, { status: 500 })
   }
 }
