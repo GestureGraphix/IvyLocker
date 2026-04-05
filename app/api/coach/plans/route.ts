@@ -67,12 +67,13 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { name, weekStartDate, sourceText, parsedPlan, hideExercises } = body as {
+    const { name, weekStartDate, sourceText, parsedPlan, hideExercises, dayIntensities } = body as {
       name?: string
       weekStartDate: string
       sourceText?: string
       parsedPlan: ParsedPlan
       hideExercises?: boolean
+      dayIntensities?: Record<string, string>
     }
 
     if (!weekStartDate || !parsedPlan) {
@@ -151,14 +152,15 @@ export async function POST(request: Request) {
 
     // Create the weekly plan
     const planResult = await sql`
-      INSERT INTO weekly_plans (coach_id, name, week_start_date, source_text, status, hide_exercises)
+      INSERT INTO weekly_plans (coach_id, name, week_start_date, source_text, status, hide_exercises, day_intensities)
       VALUES (
         ${user.id},
         ${name || `Week of ${weekStartDate}`},
         ${weekStartDate},
         ${sourceText || null},
         'draft',
-        ${hideExercises || false}
+        ${hideExercises || false},
+        ${dayIntensities ? JSON.stringify(dayIntensities) : null}
       )
       RETURNING id
     `

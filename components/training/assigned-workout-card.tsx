@@ -45,6 +45,7 @@ interface AssignedWorkout {
   coach_name: string
   exercises: Exercise[] | null
   hide_exercises: boolean
+  day_intensities: Record<string, string> | null
 }
 
 interface AssignedWorkoutCardProps {
@@ -215,12 +216,29 @@ export function AssignedWorkoutCard({ workout, onUpdate, showDate = false }: Ass
             )}
           </div>
 
-          {/* Hidden exercises message */}
-          {workout.hide_exercises && (
-            <p className="text-sm text-muted-foreground mt-2 italic">
-              Workout details will be revealed at the session
-            </p>
-          )}
+          {/* Hidden exercises — show intensity */}
+          {workout.hide_exercises && (() => {
+            const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+            const workoutDay = dayNames[new Date(workout.workout_date + "T12:00:00").getDay()]
+            const intensity = workout.day_intensities?.[workoutDay]
+            const intensityColors: Record<string, string> = {
+              high: "bg-red-500/20 text-red-400 border-red-500/30",
+              medium: "bg-yellow-500/20 text-yellow-500 border-yellow-500/30",
+              low: "bg-green-500/20 text-green-400 border-green-500/30",
+            }
+            return (
+              <div className="mt-2 flex items-center gap-2">
+                {intensity && intensity !== "n/a" ? (
+                  <span className={`text-xs font-medium px-2.5 py-1 rounded-md border ${intensityColors[intensity] || ""}`}>
+                    {intensity.charAt(0).toUpperCase() + intensity.slice(1)} Intensity
+                  </span>
+                ) : null}
+                <span className="text-xs text-muted-foreground italic">
+                  Workout details will be revealed at the session
+                </span>
+              </div>
+            )
+          })()}
 
           {/* Exercises (Expandable) */}
           {!workout.hide_exercises && expanded && workout.exercises && workout.exercises.length > 0 && (

@@ -71,6 +71,7 @@ export async function GET(request: Request) {
         ps.is_optional,
         wp.name as plan_name,
         wp.hide_exercises,
+        wp.day_intensities,
         u.name as coach_name,
         CASE WHEN wp.hide_exercises = true THEN NULL
         ELSE (
