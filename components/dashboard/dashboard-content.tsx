@@ -1,6 +1,5 @@
 "use client"
 
-import { ProgressBar } from "@/components/ui/progress-bar"
 import { CheckInWidget } from "./check-in-widget"
 import { DailyRecommendationCard } from "./daily-recommendation-card"
 import { UpcomingItems } from "./upcoming-items"
@@ -159,28 +158,6 @@ export function DashboardContent({ userName = "Athlete" }: DashboardContentProps
             {/* Daily Check-in */}
             <CheckInWidget />
 
-            {/* Progress */}
-            <div
-              className="bg-white overflow-hidden"
-              style={{ border: "1px solid var(--rule)", borderRadius: "8px" }}
-            >
-              <div
-                className="flex items-center justify-between px-[18px] py-3"
-                style={{ borderBottom: "1px solid var(--rule)" }}
-              >
-                <span
-                  className="uppercase text-muted-foreground"
-                  style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "2px" }}
-                >
-                  Nutrition Progress
-                </span>
-              </div>
-              <div className="p-[18px] space-y-4">
-                <ProgressBar value={mealTotals.calories} max={goals.calories} label="Calories" variant="primary" size="md" />
-                <ProgressBar value={mealTotals.protein} max={goals.protein} label="Protein (g)" variant="success" size="md" />
-                <ProgressBar value={todayHydration} max={goals.hydration} label="Hydration (oz)" variant="warning" size="md" />
-              </div>
-            </div>
           </div>
 
           {/* Right column */}
