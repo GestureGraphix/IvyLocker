@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Loader2, RefreshCw, ChevronDown, ChevronUp, Moon, Utensils, Activity, Droplets, BookOpen, ClipboardList } from "lucide-react"
+import { Loader2, RefreshCw, ChevronDown, Moon, Utensils, Activity, Droplets, BookOpen, ClipboardList } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface Recommendation {
@@ -17,7 +17,7 @@ export function DailyRecommendationCard() {
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isGenerating, setIsGenerating] = useState(false)
-  const [isExpanded, setIsExpanded] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -50,7 +50,7 @@ export function DailyRecommendationCard() {
         const data = await res.json()
         setRecommendation(data.recommendation)
         if (!data.cached) toast.success("Recommendation generated!")
-        setIsExpanded(true)
+        setIsCollapsed(false)
       } else {
         const data = await res.json()
         setError(data.error || "Failed to generate recommendation")
@@ -65,145 +65,124 @@ export function DailyRecommendationCard() {
     }
   }
 
-  if (isLoading) {
-    return (
-      <ParchmentCard>
-        <div className="flex items-center justify-center py-6">
-          <Loader2 className="h-5 w-5 animate-spin" style={{ color: "var(--soft)" }} />
-        </div>
-      </ParchmentCard>
-    )
-  }
-
-  if (!recommendation) {
-    return (
-      <ParchmentCard>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Eyebrow>Today's Game Plan</Eyebrow>
-          </div>
-          <p className="text-[13px] italic" style={{ color: "var(--soft)", lineHeight: 1.65 }}>
-            Get a personalized daily recommendation based on your training, nutrition, and wellness data.
-          </p>
-          {error && (
-            <p className="text-[12px]" style={{ color: "var(--red, #b83232)" }}>{error}</p>
-          )}
-          <Button
-            onClick={handleGenerate}
-            disabled={isGenerating}
-            variant="outline"
-            size="sm"
-            className="mt-1"
-          >
-            {isGenerating ? (
-              <><Loader2 className="h-3.5 w-3.5 animate-spin" />Generating...</>
-            ) : (
-              <><ClipboardList className="h-3.5 w-3.5" />Generate Recommendations</>
-            )}
-          </Button>
-        </div>
-      </ParchmentCard>
-    )
-  }
-
   return (
-    <ParchmentCard>
-      <div className="space-y-2">
-        <div
-          className="flex items-center justify-between cursor-pointer"
-          onClick={() => setIsExpanded(!isExpanded)}
-        >
-          <Eyebrow>{recommendation.priorityFocus || "Today's Game Plan"}</Eyebrow>
-          <div className="flex items-center gap-1.5">
+    <div
+      className="bg-white overflow-hidden"
+      style={{ border: "1px solid var(--rule)", borderRadius: "8px" }}
+    >
+      {/* Header */}
+      <div
+        className="flex items-center justify-between px-[18px] py-3 cursor-pointer select-none"
+        style={{ borderBottom: isCollapsed ? "none" : "1px solid var(--rule)" }}
+        onClick={() => setIsCollapsed(!isCollapsed)}
+      >
+        <div className="flex items-center gap-2">
+          <ClipboardList className="h-3.5 w-3.5" style={{ color: "var(--gold)" }} />
+          <span
+            className="uppercase"
+            style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "2px", color: "var(--muted)" }}
+          >
+            {recommendation?.priorityFocus || "Today's Game Plan"}
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          {recommendation && (
             <button
               onClick={(e) => { e.stopPropagation(); handleGenerate() }}
               disabled={isGenerating}
-              className="p-1 rounded transition-opacity opacity-40 hover:opacity-70"
+              className="p-1 text-muted-foreground hover:text-foreground transition-colors"
               title="Regenerate"
             >
-              <RefreshCw className={cn("h-3.5 w-3.5", isGenerating && "animate-spin")} style={{ color: "var(--soft)" }} />
+              <RefreshCw className={cn("h-3.5 w-3.5", isGenerating && "animate-spin")} />
             </button>
-            {isExpanded
-              ? <ChevronUp className="h-4 w-4" style={{ color: "var(--muted)" }} />
-              : <ChevronDown className="h-4 w-4" style={{ color: "var(--muted)" }} />
-            }
-          </div>
+          )}
+          <button
+            className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+            title={isCollapsed ? "Expand" : "Collapse"}
+            tabIndex={-1}
+          >
+            <ChevronDown
+              className="h-3.5 w-3.5 transition-transform duration-200"
+              style={{ transform: isCollapsed ? "rotate(-90deg)" : "none" }}
+            />
+          </button>
         </div>
+      </div>
 
-        {isExpanded && (
-          <div className="space-y-3 pt-1" style={{ borderTop: "1px solid var(--cream-dd)" }}>
+      {/* Body */}
+      {!isCollapsed && (
+        isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-5 w-5 animate-spin" style={{ color: "var(--soft)" }} />
+          </div>
+        ) : !recommendation ? (
+          <div className="px-[18px] py-5 space-y-3">
+            <p className="text-[13px] italic" style={{ color: "var(--soft)", lineHeight: 1.65 }}>
+              Get a personalized daily recommendation based on your training, nutrition, and wellness data.
+            </p>
+            {error && (
+              <p className="text-[12px]" style={{ color: "var(--red, #b83232)" }}>{error}</p>
+            )}
+            <Button
+              onClick={handleGenerate}
+              disabled={isGenerating}
+              variant="outline"
+              size="sm"
+            >
+              {isGenerating ? (
+                <><Loader2 className="h-3.5 w-3.5 animate-spin" />Generating...</>
+              ) : (
+                <><ClipboardList className="h-3.5 w-3.5" />Generate Recommendations</>
+              )}
+            </Button>
+          </div>
+        ) : (
+          <ParchmentCard>
             <RecommendationContent text={recommendation.text} />
             <p
-              className="text-right"
+              className="text-right mt-3"
               style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", color: "var(--muted)" }}
             >
               Generated {formatTime(recommendation.generatedAt)}
             </p>
-          </div>
-        )}
-
-        {!isExpanded && recommendation.text && (
-          <p
-            className="text-[13px] italic line-clamp-2"
-            style={{ color: "var(--soft)", lineHeight: 1.65 }}
-          >
-            {recommendation.text.replace(/\*\*[^*]+\*\*/g, "").trim().split("\n")[0]}
-          </p>
-        )}
-      </div>
-    </ParchmentCard>
+          </ParchmentCard>
+        )
+      )}
+    </div>
   )
 }
 
 function ParchmentCard({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="relative"
+      className="relative mx-[18px] my-[14px]"
       style={{
         background: "var(--parchment)",
         border: "1px solid var(--cream-dd)",
         borderRadius: "2px",
-        padding: "16px 20px 16px 46px",
+        padding: "14px 18px 14px 42px",
         boxShadow: "inset -1px 0 0 rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.05)",
       }}
     >
       {/* Red margin line */}
       <div
         className="absolute top-0 bottom-0"
-        style={{ left: "36px", width: "1px", background: "rgba(184,50,50,0.2)" }}
+        style={{ left: "32px", width: "1px", background: "rgba(184,50,50,0.2)" }}
       />
       {/* Hole-punch dots */}
       <div
         className="absolute rounded-full"
         style={{
-          left: "12px",
+          left: "10px",
           top: "50%",
           transform: "translateY(-50%)",
           width: "8px",
           height: "8px",
           background: "var(--cream-d)",
-          boxShadow: "0 -24px 0 var(--cream-d), 0 24px 0 var(--cream-d)",
+          boxShadow: "0 -22px 0 var(--cream-d), 0 22px 0 var(--cream-d)",
         }}
       />
       {children}
-    </div>
-  )
-}
-
-function Eyebrow({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      className="flex items-center gap-2 mb-1.5"
-      style={{
-        fontFamily: "'DM Mono', monospace",
-        fontSize: "8px",
-        letterSpacing: "2px",
-        textTransform: "uppercase",
-        color: "var(--muted)",
-      }}
-    >
-      {children}
-      <div className="flex-1 h-px" style={{ background: "var(--cream-dd)" }} />
     </div>
   )
 }

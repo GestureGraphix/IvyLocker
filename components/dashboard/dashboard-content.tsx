@@ -193,12 +193,13 @@ export function DashboardContent({ userName = "Athlete" }: DashboardContentProps
             />
             {/* Quick core workout */}
             <LogCoreCard />
-            {/* Weekly summary */}
-            <WeeklySummaryCard />
             {/* Physio prehab/rehab assignments */}
             <PhysioSessionsCard />
           </div>
         </div>
+
+        {/* This Week — full-width bottom section */}
+        <WeeklySummaryCard />
       </div>
     </div>
   )

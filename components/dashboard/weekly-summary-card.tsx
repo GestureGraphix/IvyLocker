@@ -132,147 +132,157 @@ export function WeeklySummaryCard() {
         </div>
       </div>
 
-      <div className="divide-y" style={{ borderColor: "var(--rule)" }}>
-        {/* Wellness */}
-        <div className="px-[18px] py-3">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 flex-1">
-              <Brain className="h-3.5 w-3.5" style={{ color: "#a78bfa" }} />
-              <span className="text-xs text-muted-foreground">Mental</span>
-              <span className="text-sm font-bold ml-auto" style={{ color: wellnessColor(data.wellness.mentalAvg) }}>
-                {data.wellness.mentalAvg ?? "—"}<span className="text-[10px] font-normal text-muted-foreground">/10</span>
-              </span>
+      {/* Two-column layout at md+ */}
+      <div className="md:flex">
+        {/* Left column */}
+        <div className="flex-1 divide-y" style={{ borderColor: "var(--rule)" }}>
+          {/* Wellness */}
+          <div className="px-[18px] py-3">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 flex-1">
+                <Brain className="h-3.5 w-3.5" style={{ color: "#a78bfa" }} />
+                <span className="text-xs text-muted-foreground">Mental</span>
+                <span className="text-sm font-bold ml-auto" style={{ color: wellnessColor(data.wellness.mentalAvg) }}>
+                  {data.wellness.mentalAvg ?? "—"}<span className="text-[10px] font-normal text-muted-foreground">/10</span>
+                </span>
+              </div>
+              <div className="w-px h-5 bg-border" />
+              <div className="flex items-center gap-2 flex-1">
+                <Heart className="h-3.5 w-3.5" style={{ color: "#f97316" }} />
+                <span className="text-xs text-muted-foreground">Physical</span>
+                <span className="text-sm font-bold ml-auto" style={{ color: wellnessColor(data.wellness.physicalAvg) }}>
+                  {data.wellness.physicalAvg ?? "—"}<span className="text-[10px] font-normal text-muted-foreground">/10</span>
+                </span>
+              </div>
             </div>
-            <div className="w-px h-5 bg-border" />
-            <div className="flex items-center gap-2 flex-1">
-              <Heart className="h-3.5 w-3.5" style={{ color: "#f97316" }} />
-              <span className="text-xs text-muted-foreground">Physical</span>
-              <span className="text-sm font-bold ml-auto" style={{ color: wellnessColor(data.wellness.physicalAvg) }}>
-                {data.wellness.physicalAvg ?? "—"}<span className="text-[10px] font-normal text-muted-foreground">/10</span>
-              </span>
-            </div>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              {data.wellness.checkInDays} check-in{data.wellness.checkInDays !== 1 ? "s" : ""} this week
+            </p>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-1">
-            {data.wellness.checkInDays} check-in{data.wellness.checkInDays !== 1 ? "s" : ""} this week
-          </p>
-        </div>
 
-        {/* Nutrition */}
-        <div className="px-[18px] py-3">
-          <div className="flex items-center gap-1.5 mb-2">
-            <Utensils className="h-3.5 w-3.5" style={{ color: "#ca8a04" }} />
-            <span className="text-xs text-muted-foreground">Nutrition</span>
-            <span className="text-[10px] text-muted-foreground ml-auto">{data.nutrition.daysTracked}d tracked</span>
-          </div>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px]">Calories</span>
-              <span className="text-[11px] font-medium flex items-center gap-1" style={{ color: gapColor(data.nutrition.calorieGap) }}>
-                {gapIcon(data.nutrition.calorieGap)}
-                {data.nutrition.avgCalories > 0 ? `${data.nutrition.avgCalories}` : "—"}<span className="text-muted-foreground font-normal">/{data.nutrition.calorieGoal}</span>
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-[11px]">Protein</span>
-              <span className="text-[11px] font-medium flex items-center gap-1" style={{ color: gapColor(data.nutrition.proteinGap) }}>
-                {gapIcon(data.nutrition.proteinGap)}
-                {data.nutrition.avgProtein > 0 ? `${data.nutrition.avgProtein}g` : "—"}<span className="text-muted-foreground font-normal">/{data.nutrition.proteinGoal}g</span>
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-[11px]">Carbs</span>
-              <span className="text-[11px] text-muted-foreground">{data.nutrition.avgCarbs > 0 ? `${data.nutrition.avgCarbs}g avg` : "—"}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-[11px]">Fat</span>
-              <span className="text-[11px] text-muted-foreground">{data.nutrition.avgFat > 0 ? `${data.nutrition.avgFat}g avg` : "—"}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Hydration */}
-        <div className="px-[18px] py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <Droplets className="h-3.5 w-3.5" style={{ color: "#3b82f6" }} />
-              <span className="text-xs text-muted-foreground">Hydration</span>
-            </div>
-            <span className="text-[11px] font-medium flex items-center gap-1" style={{ color: gapColor(data.hydration.gap) }}>
-              {gapIcon(data.hydration.gap)}
-              {data.hydration.avgOz > 0 ? `${data.hydration.avgOz}oz` : "—"}<span className="text-muted-foreground font-normal">/{data.hydration.goal}oz avg</span>
-            </span>
-          </div>
-        </div>
-
-        {/* Workouts */}
-        <div className="px-[18px] py-3">
-          <div className="flex items-center gap-1.5 mb-2">
-            <Dumbbell className="h-3.5 w-3.5" style={{ color: "var(--ivy-mid)" }} />
-            <span className="text-xs text-muted-foreground">Workouts</span>
-            {completionPct !== null && (
-              <span
-                className="text-[10px] font-medium ml-auto px-1.5 py-0.5 rounded"
-                style={{
-                  background: completionPct >= 80 ? "#dcfce7" : completionPct >= 50 ? "#fef9c3" : "#fee2e2",
-                  color: completionPct >= 80 ? "#16a34a" : completionPct >= 50 ? "#ca8a04" : "#dc2626",
-                }}
-              >
-                {completionPct}% complete
-              </span>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(data.workouts.byType).map(([type, counts]) => (
-              <span key={type} className="text-[11px] px-2 py-0.5 rounded-full bg-secondary text-foreground">
-                <span className="capitalize">{type}</span>{" "}
-                <span className="text-muted-foreground">{counts.completed}/{counts.total}</span>
-              </span>
-            ))}
-            {data.workouts.totalAssigned === 0 && (
-              <span className="text-[11px] text-muted-foreground">No workouts this week</span>
-            )}
-          </div>
-        </div>
-
-        {/* Physio */}
-        {data.physio.sessionsLogged > 0 && (
+          {/* Hydration */}
           <div className="px-[18px] py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
-                <Stethoscope className="h-3.5 w-3.5" style={{ color: "#a78bfa" }} />
-                <span className="text-xs text-muted-foreground">Physio</span>
+                <Droplets className="h-3.5 w-3.5" style={{ color: "#3b82f6" }} />
+                <span className="text-xs text-muted-foreground">Hydration</span>
               </div>
-              <div className="flex gap-2">
-                {Object.entries(data.physio.byType).map(([type, count]) => (
-                  <span key={type} className="text-[11px] capitalize">
-                    {count} {type}
+              <span className="text-[11px] font-medium flex items-center gap-1" style={{ color: gapColor(data.hydration.gap) }}>
+                {gapIcon(data.hydration.gap)}
+                {data.hydration.avgOz > 0 ? `${data.hydration.avgOz}oz` : "—"}<span className="text-muted-foreground font-normal">/{data.hydration.goal}oz avg</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Physio */}
+          {data.physio.sessionsLogged > 0 && (
+            <div className="px-[18px] py-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Stethoscope className="h-3.5 w-3.5" style={{ color: "#a78bfa" }} />
+                  <span className="text-xs text-muted-foreground">Physio</span>
+                </div>
+                <div className="flex gap-2">
+                  {Object.entries(data.physio.byType).map(([type, count]) => (
+                    <span key={type} className="text-[11px] capitalize">
+                      {count} {type}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Divider */}
+        <div className="hidden md:block w-px" style={{ background: "var(--rule)" }} />
+
+        {/* Right column */}
+        <div className="flex-1 divide-y" style={{ borderColor: "var(--rule)" }}>
+          {/* Nutrition */}
+          <div className="px-[18px] py-3">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Utensils className="h-3.5 w-3.5" style={{ color: "#ca8a04" }} />
+              <span className="text-xs text-muted-foreground">Nutrition</span>
+              <span className="text-[10px] text-muted-foreground ml-auto">{data.nutrition.daysTracked}d tracked</span>
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px]">Calories</span>
+                <span className="text-[11px] font-medium flex items-center gap-1" style={{ color: gapColor(data.nutrition.calorieGap) }}>
+                  {gapIcon(data.nutrition.calorieGap)}
+                  {data.nutrition.avgCalories > 0 ? `${data.nutrition.avgCalories}` : "—"}<span className="text-muted-foreground font-normal">/{data.nutrition.calorieGoal}</span>
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px]">Protein</span>
+                <span className="text-[11px] font-medium flex items-center gap-1" style={{ color: gapColor(data.nutrition.proteinGap) }}>
+                  {gapIcon(data.nutrition.proteinGap)}
+                  {data.nutrition.avgProtein > 0 ? `${data.nutrition.avgProtein}g` : "—"}<span className="text-muted-foreground font-normal">/{data.nutrition.proteinGoal}g</span>
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px]">Carbs</span>
+                <span className="text-[11px] text-muted-foreground">{data.nutrition.avgCarbs > 0 ? `${data.nutrition.avgCarbs}g avg` : "—"}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px]">Fat</span>
+                <span className="text-[11px] text-muted-foreground">{data.nutrition.avgFat > 0 ? `${data.nutrition.avgFat}g avg` : "—"}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Workouts */}
+          <div className="px-[18px] py-3">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Dumbbell className="h-3.5 w-3.5" style={{ color: "var(--ivy-mid)" }} />
+              <span className="text-xs text-muted-foreground">Workouts</span>
+              {completionPct !== null && (
+                <span
+                  className="text-[10px] font-medium ml-auto px-1.5 py-0.5 rounded"
+                  style={{
+                    background: completionPct >= 80 ? "#dcfce7" : completionPct >= 50 ? "#fef9c3" : "#fee2e2",
+                    color: completionPct >= 80 ? "#16a34a" : completionPct >= 50 ? "#ca8a04" : "#dc2626",
+                  }}
+                >
+                  {completionPct}% complete
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(data.workouts.byType).map(([type, counts]) => (
+                <span key={type} className="text-[11px] px-2 py-0.5 rounded-full bg-secondary text-foreground">
+                  <span className="capitalize">{type}</span>{" "}
+                  <span className="text-muted-foreground">{counts.completed}/{counts.total}</span>
+                </span>
+              ))}
+              {data.workouts.totalAssigned === 0 && (
+                <span className="text-[11px] text-muted-foreground">No workouts this week</span>
+              )}
+            </div>
+          </div>
+
+          {/* Soreness */}
+          {data.wellness.soreness.length > 0 && (
+            <div className="px-[18px] py-3">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <AlertTriangle className="h-3.5 w-3.5" style={{ color: "#dc2626" }} />
+                <span className="text-xs text-muted-foreground">Sore Areas</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {data.wellness.soreness.map((s) => (
+                  <span
+                    key={s.area}
+                    className="text-[10px] px-2 py-0.5 rounded-full capitalize"
+                    style={{ background: "#fee2e2", color: "#dc2626" }}
+                  >
+                    {s.area} ({s.count}x)
                   </span>
                 ))}
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Soreness */}
-        {data.wellness.soreness.length > 0 && (
-          <div className="px-[18px] py-3">
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <AlertTriangle className="h-3.5 w-3.5" style={{ color: "#dc2626" }} />
-              <span className="text-xs text-muted-foreground">Sore Areas</span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {data.wellness.soreness.map((s) => (
-                <span
-                  key={s.area}
-                  className="text-[10px] px-2 py-0.5 rounded-full capitalize"
-                  style={{ background: "#fee2e2", color: "#dc2626" }}
-                >
-                  {s.area} ({s.count}x)
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )

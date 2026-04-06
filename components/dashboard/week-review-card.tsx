@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ClipboardCheck, Loader2, Trophy, AlertTriangle, ArrowRight, Heart, Utensils, Activity, RefreshCw } from "lucide-react"
+import { ClipboardCheck, Loader2, Trophy, AlertTriangle, ArrowRight, Heart, Utensils, Activity, RefreshCw, ChevronDown } from "lucide-react"
 import useSWR from "swr"
 import { toast } from "sonner"
 
@@ -25,6 +25,7 @@ export function WeekReviewCard() {
     `/api/athletes/week-review?localDate=${localDate}`, fetcher
   )
   const [generating, setGenerating] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(false)
 
   async function generate() {
     setGenerating(true)
@@ -62,23 +63,35 @@ export function WeekReviewCard() {
             Week in Review
           </span>
         </div>
-        {review && (
+        <div className="flex items-center gap-1">
+          {review && (
+            <button
+              onClick={generate}
+              disabled={generating}
+              className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+              title="Regenerate"
+            >
+              {generating ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3.5 w-3.5" />
+              )}
+            </button>
+          )}
           <button
-            onClick={generate}
-            disabled={generating}
+            onClick={() => setIsCollapsed(!isCollapsed)}
             className="p-1 text-muted-foreground hover:text-foreground transition-colors"
-            title="Regenerate"
+            title={isCollapsed ? "Expand" : "Collapse"}
           >
-            {generating ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <RefreshCw className="h-3.5 w-3.5" />
-            )}
+            <ChevronDown
+              className="h-3.5 w-3.5 transition-transform duration-200"
+              style={{ transform: isCollapsed ? "rotate(-90deg)" : "none" }}
+            />
           </button>
-        )}
+        </div>
       </div>
 
-      {!review ? (
+      {!isCollapsed && (!review ? (
         <div className="px-[18px] py-5 text-center">
           <p className="text-sm text-muted-foreground mb-3">
             Get your weekly performance analysis with wins, concerns, and goals for next week
@@ -202,7 +215,7 @@ export function WeekReviewCard() {
             </div>
           )}
         </div>
-      )}
+      ))}
     </div>
   )
 }
