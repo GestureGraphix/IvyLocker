@@ -157,7 +157,8 @@ export function DashboardContent({ userName = "Athlete" }: DashboardContentProps
           <div className="space-y-5">
             {/* Daily Check-in */}
             <CheckInWidget />
-
+            {/* This Week */}
+            <WeeklySummaryCard />
           </div>
 
           {/* Right column */}
@@ -174,9 +175,6 @@ export function DashboardContent({ userName = "Athlete" }: DashboardContentProps
             <PhysioSessionsCard />
           </div>
         </div>
-
-        {/* This Week — full-width bottom section */}
-        <WeeklySummaryCard />
       </div>
     </div>
   )

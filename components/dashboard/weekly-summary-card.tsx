@@ -132,10 +132,7 @@ export function WeeklySummaryCard() {
         </div>
       </div>
 
-      {/* Two-column layout at md+ */}
-      <div className="md:flex">
-        {/* Left column */}
-        <div className="flex-1 divide-y" style={{ borderColor: "var(--rule)" }}>
+      <div className="divide-y" style={{ borderColor: "var(--rule)" }}>
           {/* Wellness */}
           <div className="px-[18px] py-3">
             <div className="flex items-center gap-4">
@@ -192,13 +189,7 @@ export function WeeklySummaryCard() {
               </div>
             </div>
           )}
-        </div>
 
-        {/* Divider */}
-        <div className="hidden md:block w-px" style={{ background: "var(--rule)" }} />
-
-        {/* Right column */}
-        <div className="flex-1 divide-y" style={{ borderColor: "var(--rule)" }}>
           {/* Nutrition */}
           <div className="px-[18px] py-3">
             <div className="flex items-center gap-1.5 mb-2">
@@ -282,7 +273,6 @@ export function WeeklySummaryCard() {
               </div>
             </div>
           )}
-        </div>
       </div>
     </div>
   )
