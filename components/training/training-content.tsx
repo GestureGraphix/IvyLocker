@@ -9,7 +9,7 @@ import { TemplateDialog } from "./template-dialog"
 import { TemplateCard } from "./template-card"
 import { FormAnalysisButton } from "./form-analysis"
 import { AssignedWorkoutCard } from "./assigned-workout-card"
-import { Plus, Calendar, Dumbbell, Trophy, Filter, LayoutTemplate, ChevronDown, ClipboardList, History } from "lucide-react"
+import { Plus, Calendar, Dumbbell, Trophy, Filter, LayoutTemplate, ChevronDown, History } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import useSWR from "swr"
@@ -25,7 +25,6 @@ export function TrainingContent() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false)
   const [templatesOpen, setTemplatesOpen] = useState(false)
-  const [coachWorkoutsOpen, setCoachWorkoutsOpen] = useState(true)
 
   // Fetch only incomplete sessions for the training page
   const { data: sessionsData, mutate: mutateSessions, isLoading: sessionsLoading } = useSWR("/api/athletes/sessions?excludeCompleted=true", fetcher)
@@ -43,21 +42,41 @@ export function TrainingContent() {
   const completedSessionsCount = completedSessionsData?.sessions?.length || 0
   const totalCompletedCount = completedWorkoutsCount + completedSessionsCount
 
-  if (sessionsLoading) {
+  if (sessionsLoading || workoutsLoading) {
     return <TrainingSkeleton />
   }
 
-  const filteredSessions = filter === "all" ? sessions : sessions.filter((s: { type: string }) => s.type === filter)
+  const todayStr = new Date().toDateString()
 
-  const todaySessions = sessions.filter((s: { start_at: string }) => {
-    const sessionDate = new Date(s.start_at).toDateString()
-    return sessionDate === new Date().toDateString()
-  })
+  const todaySessions = sessions.filter((s: { start_at: string }) =>
+    new Date(s.start_at).toDateString() === todayStr
+  )
+  const todayAssigned = assignedWorkouts.filter((w: { workout_date: string }) =>
+    new Date(String(w.workout_date).slice(0, 10) + "T00:00:00").toDateString() === todayStr
+  )
+  const todayCount = todaySessions.length + todayAssigned.length
 
-  const completedThisWeek = sessions.filter((s: { completed: boolean; start_at: string }) => {
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-    return s.completed && new Date(s.start_at) > weekAgo
-  }).length
+  // Merge sessions + assigned workouts into one sorted list
+  type UnifiedItem =
+    | { kind: "session"; date: Date; sessionType: string; data: (typeof sessions)[0] }
+    | { kind: "assigned"; date: Date; sessionType: string; data: (typeof assignedWorkouts)[0] }
+
+  const allItems: UnifiedItem[] = [
+    ...sessions.map((s: { type: string; start_at: string }) => ({
+      kind: "session" as const,
+      date: new Date(s.start_at),
+      sessionType: s.type,
+      data: s,
+    })),
+    ...assignedWorkouts.map((w: { session_type: string; workout_date: string }) => ({
+      kind: "assigned" as const,
+      date: new Date(String(w.workout_date).slice(0, 10) + "T00:00:00"),
+      sessionType: w.session_type,
+      data: w,
+    })),
+  ].sort((a, b) => a.date.getTime() - b.date.getTime())
+
+  const filteredItems = filter === "all" ? allItems : allItems.filter((item) => item.sessionType === filter)
 
   const filters: { value: SessionType; label: string }[] = [
     { value: "all", label: "All" },
@@ -110,9 +129,9 @@ export function TrainingContent() {
         style={{ border: "1px solid var(--rule)", borderRadius: "8px" }}
       >
         {[
-          { icon: Calendar, label: "Today", value: todaySessions.length, color: "var(--gold)" },
-          { icon: Trophy, label: "This Week", value: completedThisWeek, color: "var(--ivy-mid)" },
-          { icon: Dumbbell, label: "Scheduled", value: sessions.length, color: "var(--ivy)" },
+          { icon: Calendar, label: "Today", value: todayCount, color: "var(--gold)" },
+          { icon: Trophy, label: "Completed", value: totalCompletedCount, color: "var(--ivy-mid)" },
+          { icon: Dumbbell, label: "Scheduled", value: allItems.length, color: "var(--ivy)" },
         ].map(({ icon: Icon, label, value, color }, i) => (
           <div
             key={label}
@@ -134,82 +153,6 @@ export function TrainingContent() {
         ))}
       </div>
 
-      {/* Coach Assigned Workouts Section */}
-      {(assignedWorkouts.length > 0 || completedWorkoutsCount > 0) && (
-        <Collapsible open={coachWorkoutsOpen} onOpenChange={setCoachWorkoutsOpen}>
-          <CollapsibleTrigger asChild>
-            <Button
-              variant="outline"
-              className="w-full justify-between"
-              style={{ background: "var(--ivy-pale)", borderColor: "rgba(22,46,34,0.2)" }}
-            >
-              <span className="flex items-center gap-2">
-                <ClipboardList className="h-4 w-4" style={{ color: "var(--ivy-mid)" }} />
-                <span style={{ color: "var(--ivy)", fontWeight: 500 }}>
-                  Coach Assigned Workouts ({assignedWorkouts.length} remaining)
-                </span>
-              </span>
-              <ChevronDown className={cn("h-4 w-4 transition-transform", coachWorkoutsOpen && "rotate-180")} style={{ color: "var(--ivy-mid)" }} />
-            </Button>
-          </CollapsibleTrigger>
-
-          <CollapsibleContent className="pt-4">
-            {assignedWorkouts.length === 0 ? (
-              <GlassCard className="text-center py-6">
-                <Trophy className="h-8 w-8 text-success mx-auto mb-2" />
-                <p className="text-foreground font-medium">All workouts completed this week!</p>
-                <p className="text-sm text-muted-foreground mb-3">
-                  You've completed {completedWorkoutsCount} workout{completedWorkoutsCount !== 1 ? "s" : ""}
-                </p>
-                <Link href="/training/history">
-                  <Button variant="outline" size="sm">
-                    <History className="h-4 w-4 mr-2" />
-                    View History
-                  </Button>
-                </Link>
-              </GlassCard>
-            ) : (
-              <div className="space-y-3">
-                {assignedWorkouts.map((workout: {
-                  id: string
-                  workout_date: string
-                  completed: boolean
-                  completed_at: string | null
-                  athlete_notes: string | null
-                  perceived_effort: number | null
-                  session_id: string
-                  session_type: string
-                  session_title: string | null
-                  start_time: string | null
-                  end_time: string | null
-                  location: string | null
-                  is_optional: boolean
-                  plan_name: string
-                  coach_name: string
-                  exercises: Array<{ id: string; name: string; details: string | null; sort_order: number }> | null
-                }) => (
-                  <AssignedWorkoutCard
-                    key={workout.id}
-                    workout={workout}
-                    onUpdate={() => mutateWorkouts()}
-                    showDate
-                  />
-                ))}
-                {completedWorkoutsCount > 0 && (
-                  <div className="text-center pt-2">
-                    <Link href="/training/history">
-                      <Button variant="ghost" size="sm" className="text-muted-foreground">
-                        <History className="h-4 w-4 mr-2" />
-                        View {completedWorkoutsCount} completed workout{completedWorkoutsCount !== 1 ? "s" : ""}
-                      </Button>
-                    </Link>
-                  </div>
-                )}
-              </div>
-            )}
-          </CollapsibleContent>
-        </Collapsible>
-      )}
 
       {/* Templates Section */}
       {templates.length > 0 && (
@@ -305,9 +248,9 @@ export function TrainingContent() {
         ))}
       </div>
 
-      {/* Sessions List */}
+      {/* Sessions List — all items sorted by date */}
       <div className="space-y-4">
-        {filteredSessions.length === 0 ? (
+        {filteredItems.length === 0 ? (
           <GlassCard className="text-center py-12">
             <Dumbbell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium text-foreground mb-2">No sessions found</h3>
@@ -320,25 +263,32 @@ export function TrainingContent() {
             </Button>
           </GlassCard>
         ) : (
-          filteredSessions.map(
-            (session: {
-              id: string
-              type: string
-              title: string
-              start_at: string
-              end_at: string
-              intensity: string
-              focus: string
-              notes: string
-              completed: boolean
-              exercises?: Array<{
-                id: string
-                name: string
-                notes?: string
-                sets: Array<{ id: string; reps: number; weight?: number; rpe?: number; completed: boolean }>
-              }>
-            }) => <SessionCard key={session.id} session={session} onUpdate={() => mutateSessions()} />,
+          filteredItems.map((item) =>
+            item.kind === "assigned" ? (
+              <AssignedWorkoutCard
+                key={`assigned-${item.data.id}`}
+                workout={item.data}
+                onUpdate={() => mutateWorkouts()}
+                showDate
+              />
+            ) : (
+              <SessionCard
+                key={`session-${item.data.id}`}
+                session={item.data}
+                onUpdate={() => mutateSessions()}
+              />
+            )
           )
+        )}
+        {totalCompletedCount > 0 && (
+          <div className="text-center pt-2">
+            <Link href="/training/history">
+              <Button variant="ghost" size="sm" className="text-muted-foreground">
+                <History className="h-4 w-4 mr-2" />
+                View {totalCompletedCount} completed workout{totalCompletedCount !== 1 ? "s" : ""}
+              </Button>
+            </Link>
+          </div>
         )}
       </div>
 
