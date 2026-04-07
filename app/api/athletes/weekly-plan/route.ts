@@ -215,11 +215,9 @@ export async function POST(request: Request) {
       return isNaN(d.getTime()) ? '' : d.toISOString().split('T')[0]
     }
 
-    // This week's workouts by day — formatted explicitly so the AI uses them
-    ctx += `\n=== TRAINING SCHEDULE FOR WEEK OF ${weekStart} ===\n`
-    ctx += `Coach-assigned workouts: ${(workouts as any[]).length} | Self-created sessions: ${(selfSessions as any[]).length}\n`
-    ctx += `NOTE: Every training day MUST inform food/sleep/mobility for that day AND the night before. Cross-day prep is critical.\n\n`
-
+    // This week's workouts by day
+    ctx += `\n=== THIS WEEK'S TRAINING SCHEDULE ===\n`
+    ctx += `(Week: ${weekStart} to ${weekEndStr}, ${(workouts as any[]).length} assigned workouts found, ${(selfSessions as any[]).length} self sessions)\n`
     for (let i = 0; i < 7; i++) {
       const d = new Date(weekStart + 'T12:00:00')
       d.setDate(d.getDate() + i)
@@ -233,47 +231,39 @@ export async function POST(request: Request) {
         return sDate === dateStr
       })
 
-      // Determine intensity: check day_intensities first, then self-session intensity
-      const intensityFromPlan = getIntensityLevel(
-        (dayWorkouts[0]?.day_intensities)?.[dayKey] ??
-        (workouts as any[]).find((w: any) => w.day_intensities)?.[dayKey]
-      )
-      const intensityFromSession = daySessions[0]?.intensity || null
-      const intensity = intensityFromPlan || intensityFromSession
-
       if (dayWorkouts.length === 0 && daySessions.length === 0) {
-        if (intensity && intensity !== 'n/a') {
-          ctx += `${dayName} [TRAINING - ${intensity.toUpperCase()} INTENSITY]: Scheduled training\n`
+        // Check if there's intensity data from any workout in this plan
+        const intensityData = (workouts as any[]).find((w: any) => w.day_intensities)?.day_intensities
+        const intensityLevel = getIntensityLevel(intensityData?.[dayKey])
+        if (intensityLevel && intensityLevel !== 'n/a') {
+          ctx += `${dayName}: ${intensityLevel.charAt(0).toUpperCase() + intensityLevel.slice(1)} intensity training day\n`
         } else {
-          ctx += `${dayName} [REST DAY]: No training scheduled\n`
+          ctx += `${dayName}: Rest day\n`
         }
       } else {
-        const intensityLabel = intensity && intensity !== 'n/a'
-          ? ` [${intensity.toUpperCase()} INTENSITY]`
-          : ''
-        ctx += `${dayName} [TRAINING DAY${intensityLabel}]:\n`
-
-        for (const w of dayWorkouts) {
-          const wIntensity = getIntensityLevel(w.day_intensities?.[dayKey])
-          ctx += `  • ${w.title || w.session_type}`
-          if (w.start_time) ctx += ` at ${w.start_time}`
-          if (w.location) ctx += ` @ ${w.location}`
-          if (wIntensity && wIntensity !== 'n/a') ctx += ` — ${wIntensity} intensity`
-          ctx += '\n'
+        const parts = dayWorkouts.map((w: any) => {
+          let s = `${w.title || w.session_type}`
+          if (w.start_time) s += ` at ${w.start_time}`
+          if (w.location) s += ` (${w.location})`
+          const intensityData = w.day_intensities?.[dayKey]
+          const level = getIntensityLevel(intensityData)
+          if (level && level !== 'n/a') {
+            s += ` [${level} intensity]`
+          }
           const exList = Array.isArray(w.exercises) ? w.exercises : []
           if (exList.length > 0 && exList[0]?.name) {
-            ctx += `    Exercises: ${exList.map((e: any) => e.name + (e.details ? ` (${e.details})` : '')).join(', ')}\n`
-          } else if (w.hide_exercises) {
-            ctx += `    (Exercise details hidden — use intensity to guide nutrition/recovery)\n`
+            s += ` — ${exList.slice(0, 4).map((e: any) => e.name).join(', ')}`
+            if (exList.length > 4) s += `... (+${exList.length - 4} more)`
           }
-        }
-
-        for (const s of daySessions) {
-          ctx += `  • ${s.title || s.type}`
-          if (s.intensity) ctx += ` — ${s.intensity} intensity`
-          if (s.focus) ctx += ` (${s.focus})`
-          ctx += '\n'
-        }
+          return s
+        })
+        const selfParts = daySessions.map((s: any) => {
+          let str = `${s.title || s.type}`
+          if (s.intensity) str += ` [${s.intensity}]`
+          if (s.focus) str += ` (${s.focus})`
+          return str
+        })
+        ctx += `${dayName}: ${[...parts, ...selfParts].join(' | ')}\n`
       }
     }
 
@@ -316,93 +306,60 @@ export async function POST(request: Request) {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
     const message = await anthropic.messages.create({
-      model: 'claude-opus-4-6',
-      max_tokens: 6000,
-      system: `You are an elite NCAA sports performance director building a hyper-specific weekly plan for a student-athlete. Use ONLY the data provided. Never invent classes, deadlines, workouts, or any information not explicitly listed.
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4000,
+      system: `You are an elite sports performance coach creating a detailed weekly plan for a student-athlete. Use ONLY the data provided — never invent classes, assignments, workouts, or any data not explicitly listed.
 
-YOUR EXPERTISE: Sports nutrition timing, sleep science, periodization, recovery protocols, student-athlete time management.
+YOUR EXPERTISE: Sports nutrition timing, sleep science for athletes, periodization, recovery protocols.
 
-════════════════════════════════════
-DATA RULES
-════════════════════════════════════
-- Training days are explicitly labelled [TRAINING DAY] in the schedule. Every field for those days MUST reflect the actual session.
-- The "summary" line MUST name the actual session (e.g., "High-intensity practice at 4pm + lift session", "Medium conditioning + 4 classes").
-- Rest days: focus on recovery, anti-inflammatory eating, extended mobility, study blocks.
-- Workouts are SCHEDULED. Write "before your session" / "after your session", never "after you complete".
-- NO CLASSES registered → study field = "No classes registered this week."
-- NO DEADLINES → never mention academic work beyond study blocks.
-- If physio protocols exist, reference them by name in mobility.
-- If soreness areas are listed, target those exact areas in mobility.
+STRICT DATA RULES:
+- If NO CLASSES are listed, the "study" field must say "No classes registered" — never invent courses.
+- If NO DEADLINES are listed, do not mention academic work.
+- If a day has a workout in the TRAINING SCHEDULE → it is a training day. Match the exact intensity.
+- If a day has NO workout → it is a rest day.
+- Workouts are SCHEDULED, not completed. Don't say "after you complete" — say "before/after your session."
+- If a dining hall menu is provided, recommend specific items by name.
 
-════════════════════════════════════
-CROSS-DAY RULE (NON-NEGOTIABLE)
-════════════════════════════════════
-Every day's food AND sleep fields must look FORWARD to tomorrow:
-- Tomorrow HIGH intensity → tonight: carb-heavy dinner + "in bed by 10pm, 8–9 hours"
-- Tomorrow MEDIUM intensity → tonight: moderate carb dinner + "in bed by 10:30pm, 7–8 hours"
-- Tomorrow LOW intensity / rest → tonight: lighter eating is fine, flexible bedtime but still 7+ hours, good study night
-- Two back-to-back hard days: explicitly call out the sleep between them as critical
+FOOD GUIDANCE (be specific, not "eat X calories"):
+- Night before a high-intensity day: Complex carbs for glycogen loading — pasta, rice, sweet potato. Moderate protein. Example: "Dinner: grilled chicken with brown rice and roasted vegetables. Aim for a carb-heavy plate."
+- Breakfast before training: Easily digestible carbs + moderate protein 2-3hrs before. Example: "Oatmeal with banana and peanut butter, or eggs with toast."
+- Pre-training snack (1hr before): Light, fast-digesting. "Banana, granola bar, or handful of pretzels."
+- Post-training (within 30min): Protein + carbs for recovery. "Chocolate milk, protein shake with banana, or Greek yogurt with granola."
+- Lunch on training days: Balanced plate — protein source, complex carb, vegetables.
+- Rest day food: Slightly lower carbs, maintain protein. Focus on anti-inflammatory foods if sore.
+- If dining hall menu available: Name specific menu items that fit these patterns.
 
-════════════════════════════════════
-FOOD — FULL DAY TIMELINE, EVERY TRAINING DAY
-════════════════════════════════════
-For each training day, the food field must walk through the FULL DAY in order:
-1. Morning (2–3hrs before session if morning session, or just breakfast): Oatmeal with banana + peanut butter, eggs on toast, smoothie with protein. Keep fiber/fat low.
-2. Pre-session snack (60–90min before): Fast carbs — banana, granola bar, pretzels, rice cakes with honey.
-3. Post-session recovery (within 30min): Protein + simple carbs — chocolate milk, protein shake + banana, Greek yogurt + granola, turkey sandwich.
-4. Main meal after training: Full recovery meal — grilled chicken/salmon/lean beef + brown rice/pasta/sweet potato + vegetables.
-5. Tonight's dinner (looking ahead to tomorrow): If tomorrow is hard, load up on carbs. If tomorrow is rest, keep it lighter.
+SLEEP GUIDANCE (be specific with times):
+- Night before high-intensity: "In bed by 10pm, aim for 8-9 hours. No screens after 9:30pm."
+- Night before medium-intensity: "In bed by 10:30pm, 7-8 hours."
+- Night before rest day or low-intensity: "Flexible — good night to stay up slightly later for studying if needed. Still aim for 7+ hours."
+- After high-intensity day: "Prioritize sleep tonight for recovery. In bed by 10pm."
+- Consider next day: If tomorrow is heavy, tonight's sleep matters more.
 
-For REST days:
-- Focus on anti-inflammatory foods (salmon, leafy greens, berries, walnuts, turmeric, olive oil).
-- Keep protein high for muscle repair. Don't skip meals even without training.
-- Name specific foods: "Breakfast: eggs with spinach and avocado. Lunch: salmon with quinoa and mixed greens. Dinner tonight (prepping for tomorrow's [intensity] session): grilled chicken breast, large portion of pasta, roasted broccoli."
+MOBILITY GUIDANCE:
+- High-intensity training days: "15min dynamic warmup before, 10min static stretching + foam roll after. Focus on [relevant muscle groups for their sport]."
+- Medium days: "10min mobility work post-session."
+- Rest days: "20-30min extended mobility session — foam roll, hip openers, thoracic spine work."
+- If soreness data exists: Target those specific areas.
+- If physio protocol exists: Reference it by name.
 
-════════════════════════════════════
-SLEEP — SPECIFIC TIMES, SPECIFIC REASONS
-════════════════════════════════════
-Always give: (1) target bedtime, (2) hours needed, (3) why (what tomorrow holds).
-- HIGH intensity tomorrow: "In bed by 10pm — 8–9 hours. No screens after 9:30pm. [Tomorrow's session] demands full glycogen restoration and muscle repair overnight."
-- MEDIUM tomorrow: "In bed by 10:30pm — 7–8 hours. A moderate session tomorrow, but consistency in sleep is what compounds over a season."
-- REST / LOW tomorrow: "Flexible tonight — this is your study window. Aim to be asleep by 11:30pm at the latest to bank 7 hours."
-- After HIGH intensity day: "Tonight is a recovery priority. Your body repairs in stage 3–4 sleep. In bed by 10pm."
-- Back-to-back hard days: "Two hard days in a row — tonight's sleep is your only recovery window. Non-negotiable 10pm bedtime."
+STUDY GUIDANCE:
+- Only if classes/deadlines exist in the data.
+- Rest days and low-intensity days = best study blocks.
+- "No classes registered" if no class data exists.
 
-════════════════════════════════════
-MOBILITY — SPECIFIC EXERCISES, MUSCLE GROUPS
-════════════════════════════════════
-- Before high-intensity: "10–15min dynamic warmup: leg swings x 15 each, hip circles, walking lunges, high knees, arm circles."
-- After high-intensity: "10–15min static stretch + foam roll: focus on [specific muscles used in session]. Hold each stretch 30–45 seconds."
-- Rest days: "20–30min full-body mobility: hip flexors (couch stretch 2min/side), hamstrings (seated forward fold), thoracic spine rotation, foam roll IT band and calves."
-- Reference soreness areas by name. Reference physio protocols by name.
-
-════════════════════════════════════
-ACADEMICS
-════════════════════════════════════
-- Only reference classes and deadlines from the data.
-- Training days with heavy class loads: "Protect your energy — pack food for between classes. Study window: [time after training/dinner]."
-- Rest days / low-intensity: "Best study block of the week. Block [X] hours for [type of work]."
-- Deadlines: name the specific assignment and course.
-- "No classes registered" if no data.
-
-════════════════════════════════════
-OUTPUT — 4–7 sentences per field, dense with actionable specifics
-════════════════════════════════════
+OUTPUT FORMAT — each field should be 2-4 sentences of actionable detail, not one-liners:
 
 {
   "days": {
     "sunday": { "summary": "...", "food": "...", "sleep": "...", "mobility": "...", "study": "..." },
-    "monday": { "summary": "...", "food": "...", "sleep": "...", "mobility": "...", "study": "..." },
-    "tuesday": { "summary": "...", "food": "...", "sleep": "...", "mobility": "...", "study": "..." },
-    "wednesday": { "summary": "...", "food": "...", "sleep": "...", "mobility": "...", "study": "..." },
-    "thursday": { "summary": "...", "food": "...", "sleep": "...", "mobility": "...", "study": "..." },
-    "friday": { "summary": "...", "food": "...", "sleep": "...", "mobility": "...", "study": "..." },
-    "saturday": { "summary": "...", "food": "...", "sleep": "...", "mobility": "...", "study": "..." }
+    "monday": { ... }, "tuesday": { ... }, "wednesday": { ... },
+    "thursday": { ... }, "friday": { ... }, "saturday": { ... }
   }
 }
 
-Output ONLY valid JSON. No markdown fences, no explanation outside the JSON.`,
-      messages: [{ role: 'user', content: `Create a detailed, hyper-specific weekly performance plan for the week of ${weekStart} (Sunday) through ${weekEndStr} (Saturday). Every training day needs a full meal timeline (pre-workout, post-workout recovery, tonight's dinner prep for tomorrow). Every sleep recommendation must include a bedtime and reason tied to the next day's training. Use the physio protocols and soreness data. Be the best performance coach this athlete has ever had.\n\nAthlete data:\n\n${ctx}` }],
+Output ONLY valid JSON.`,
+      messages: [{ role: 'user', content: `Create a detailed weekly performance plan using this athlete's data:\n\n${ctx}` }],
     })
 
     const textContent = message.content.find((c) => c.type === 'text')
