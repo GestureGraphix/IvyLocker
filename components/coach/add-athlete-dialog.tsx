@@ -77,7 +77,7 @@ export function AddAthleteDialog({ open, onOpenChange, onSuccess }: AddAthleteDi
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              The athlete must already have a Locker account with this email
+              The athlete must already have a Lockeroom account with this email
             </p>
           </div>
 

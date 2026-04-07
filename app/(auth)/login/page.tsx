@@ -50,7 +50,7 @@ export default function LoginPage() {
               color: "#f7f2ea",
             }}
           >
-            LOCKER
+            LOCKEROOM
           </p>
           <p
             style={{
@@ -110,7 +110,7 @@ export default function LoginPage() {
               color: "var(--ivy)",
             }}
           >
-            LOCKER
+            LOCKEROOM
           </p>
 
           <div className="mb-8">
@@ -134,7 +134,7 @@ export default function LoginPage() {
                 color: "var(--muted)",
               }}
             >
-              Sign in to your Locker account
+              Sign in to your Lockeroom account
             </p>
           </div>
 

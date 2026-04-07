@@ -36,7 +36,7 @@ export function CoachSidebar({ userName }: { userName?: string }) {
           className="block leading-none"
           style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "16px", letterSpacing: "4px", color: "#f7f2ea" }}
         >
-          LOCKER
+          LOCKEROOM
         </span>
         <span
           className="block mt-0.5"

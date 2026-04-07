@@ -56,7 +56,7 @@ export default function RegisterPage() {
               color: "#f7f2ea",
             }}
           >
-            LOCKER
+            LOCKEROOM
           </p>
           <p
             style={{
@@ -82,7 +82,7 @@ export default function RegisterPage() {
               letterSpacing: "1px",
             }}
           >
-            Your locker. Your data. Your edge.
+            Your lockeroom. Your data. Your edge.
           </p>
         </div>
 
@@ -114,7 +114,7 @@ export default function RegisterPage() {
               color: "var(--ivy)",
             }}
           >
-            LOCKER
+            LOCKEROOM
           </p>
 
           <div className="mb-8">

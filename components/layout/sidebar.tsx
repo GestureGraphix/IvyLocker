@@ -148,7 +148,7 @@ export function Sidebar({ userRole, userName }: SidebarProps) {
               color: "#f7f2ea",
             }}
           >
-            LOCKER
+            LOCKEROOM
           </span>
           <span
             className="block mt-0.5"

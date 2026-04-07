@@ -131,7 +131,7 @@ export function PhysioPortal({ userName }: { userName?: string }) {
         {/* Wordmark */}
         <div className="px-[18px] py-4 flex-shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
           <span className="block leading-none" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "16px", letterSpacing: "4px", color: "#f7f2ea" }}>
-            LOCKER
+            LOCKEROOM
           </span>
           <span className="block mt-0.5" style={{ fontFamily: "'DM Mono', monospace", fontSize: "8px", letterSpacing: "2px", textTransform: "uppercase", color: "#a78bfa" }}>
             Physio

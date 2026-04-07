@@ -6,7 +6,7 @@ import { UniversityThemeProvider } from "@/components/university-theme-provider"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "Locker | Athlete Performance Dashboard",
+  title: "Lockeroom | Athlete Performance Dashboard",
   description:
     "Comprehensive personal performance dashboard for student-athletes. Track training, nutrition, academics, and wellness.",
   generator: "v0.app",
