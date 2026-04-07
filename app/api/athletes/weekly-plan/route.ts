@@ -203,9 +203,11 @@ export async function POST(request: Request) {
       return null
     }
 
-    // This week's workouts by day
+    // This week's workouts by day — formatted explicitly so the AI uses them
     ctx += `\n=== THIS WEEK'S TRAINING SCHEDULE ===\n`
-    ctx += `(Week: ${weekStart} to ${weekEndStr}, ${workouts.length} assigned workouts found, ${selfSessions.length} self sessions)\n`
+    ctx += `Coach-assigned workouts: ${(workouts as any[]).length} | Self-created sessions: ${(selfSessions as any[]).length}\n`
+    ctx += `NOTE: Every training day below MUST inform the food/sleep/mobility guidance for that day and the night before.\n\n`
+
     for (let i = 0; i < 7; i++) {
       const d = new Date(weekStart + 'T12:00:00')
       d.setDate(d.getDate() + i)
@@ -213,48 +215,53 @@ export async function POST(request: Request) {
       const dayName = dayNames[d.getDay()]
       const dayKey = dayKeys[d.getDay()]
 
-      const dayWorkouts = workouts.filter((w: any) => String(w.workout_date || '').slice(0, 10) === dateStr)
-      const daySessions = selfSessions.filter((s: any) => {
+      const dayWorkouts = (workouts as any[]).filter((w: any) => String(w.workout_date || '').slice(0, 10) === dateStr)
+      const daySessions = (selfSessions as any[]).filter((s: any) => {
         const sDate = String(s.scheduled_date || s.start_at || '').slice(0, 10)
         return sDate === dateStr
       })
 
+      // Determine intensity: check day_intensities first, then self-session intensity
+      const intensityFromPlan = getIntensityLevel(
+        (dayWorkouts[0]?.day_intensities)?.[dayKey] ??
+        (workouts as any[]).find((w: any) => w.day_intensities)?.[dayKey]
+      )
+      const intensityFromSession = daySessions[0]?.intensity || null
+      const intensity = intensityFromPlan || intensityFromSession
+
       if (dayWorkouts.length === 0 && daySessions.length === 0) {
-        // Check if there's intensity data from any workout in this plan
-        const intensityData = workouts.find((w: any) => w.day_intensities)?.day_intensities
-        const intensityLevel = getIntensityLevel(intensityData?.[dayKey])
-        if (intensityLevel && intensityLevel !== 'n/a') {
-          ctx += `${dayName}: ${intensityLevel.charAt(0).toUpperCase() + intensityLevel.slice(1)} intensity training day\n`
+        if (intensity && intensity !== 'n/a') {
+          ctx += `${dayName} [TRAINING - ${intensity.toUpperCase()} INTENSITY]: Scheduled training\n`
         } else {
-          ctx += `${dayName}: Rest day\n`
+          ctx += `${dayName} [REST DAY]: No training scheduled\n`
         }
       } else {
-        const parts = dayWorkouts.map((w: any) => {
-          let s = `${w.title || w.session_type}`
-          if (w.start_time) s += ` at ${w.start_time}`
-          if (w.location) s += ` (${w.location})`
-          // Get intensity from day_intensities or title
-          const intensityData = w.day_intensities?.[dayKey]
-          const level = getIntensityLevel(intensityData)
-          if (level && level !== 'n/a') {
-            s += ` [${level} intensity]`
-          }
+        const intensityLabel = intensity && intensity !== 'n/a'
+          ? ` [${intensity.toUpperCase()} INTENSITY]`
+          : ''
+        ctx += `${dayName} [TRAINING DAY${intensityLabel}]:\n`
+
+        for (const w of dayWorkouts) {
+          const wIntensity = getIntensityLevel(w.day_intensities?.[dayKey])
+          ctx += `  • ${w.title || w.session_type}`
+          if (w.start_time) ctx += ` at ${w.start_time}`
+          if (w.location) ctx += ` @ ${w.location}`
+          if (wIntensity && wIntensity !== 'n/a') ctx += ` — ${wIntensity} intensity`
+          ctx += '\n'
           const exList = Array.isArray(w.exercises) ? w.exercises : []
           if (exList.length > 0 && exList[0]?.name) {
-            s += ` — ${exList.slice(0, 4).map((e: any) => e.name).join(', ')}`
-            if (exList.length > 4) s += `... (+${exList.length - 4} more)`
+            ctx += `    Exercises: ${exList.map((e: any) => e.name + (e.details ? ` (${e.details})` : '')).join(', ')}\n`
+          } else if (w.hide_exercises) {
+            ctx += `    (Exercise details hidden — use intensity to guide nutrition/recovery)\n`
           }
-          return s
-        })
-        // Add self-created sessions
-        const selfParts = daySessions.map((s: any) => {
-          let str = `${s.title || s.type}`
-          if (s.intensity) str += ` [${s.intensity}]`
-          if (s.focus) str += ` (${s.focus})`
-          return str
-        })
-        const allParts = [...parts, ...selfParts]
-        ctx += `${dayName}: ${allParts.join(' | ')}\n`
+        }
+
+        for (const s of daySessions) {
+          ctx += `  • ${s.title || s.type}`
+          if (s.intensity) ctx += ` — ${s.intensity} intensity`
+          if (s.focus) ctx += ` (${s.focus})`
+          ctx += '\n'
+        }
       }
     }
 
@@ -306,7 +313,9 @@ YOUR EXPERTISE: Sports nutrition timing, sleep science for athletes, periodizati
 STRICT DATA RULES:
 - If NO CLASSES are listed, the "study" field must say "No classes registered" — never invent courses.
 - If NO DEADLINES are listed, do not mention academic work.
-- If a day has a workout in the TRAINING SCHEDULE → it is a training day. Match the exact intensity.
+- Every day labelled [TRAINING DAY] in the schedule MUST be reflected in that day's food/sleep/mobility guidance.
+- The summary field for every training day MUST mention what the session is (e.g., "Heavy lift day", "Practice at 4pm", "High-intensity conditioning").
+- If a day lists specific exercises, reference muscle groups in the mobility field and post-workout nutrition in the food field.
 - If a day has NO workout → it is a rest day.
 - Workouts are SCHEDULED, not completed. Don't say "after you complete" — say "before/after your session."
 - If a dining hall menu is provided, recommend specific items by name.
