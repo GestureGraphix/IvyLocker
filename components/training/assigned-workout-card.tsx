@@ -216,12 +216,11 @@ export function AssignedWorkoutCard({ workout, onUpdate, showDate = false }: Ass
             )}
           </div>
 
-          {/* Hidden exercises — show intensity */}
-          {workout.hide_exercises && (() => {
+          {/* Intensity — always show when available */}
+          {(() => {
             const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
             const workoutDay = dayNames[new Date(String(workout.workout_date).slice(0, 10) + "T12:00:00").getDay()]
             const raw = workout.day_intensities?.[workoutDay]
-            // Handle both old format (string) and new format ({level, time})
             const intensity = typeof raw === "object" && raw !== null ? raw.level : raw
             const time = typeof raw === "object" && raw !== null ? raw.time : null
             const intensityColors: Record<string, string> = {
@@ -234,21 +233,24 @@ export function AssignedWorkoutCard({ workout, onUpdate, showDate = false }: Ass
               const ampm = h >= 12 ? "PM" : "AM"
               return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${ampm}`
             }
+            if (!intensity && !time && !workout.hide_exercises) return null
             return (
               <div className="mt-2 flex items-center gap-2 flex-wrap">
-                {intensity && intensity !== "n/a" ? (
+                {intensity && intensity !== "n/a" && (
                   <span className={`text-xs font-medium px-2.5 py-1 rounded-md border ${intensityColors[intensity] || ""}`}>
                     {intensity.charAt(0).toUpperCase() + intensity.slice(1)} Intensity
                   </span>
-                ) : null}
+                )}
                 {time && (
                   <span className="text-xs text-muted-foreground">
                     {formatTime(time)}
                   </span>
                 )}
-                <span className="text-xs text-muted-foreground italic">
-                  Workout details will be revealed at the session
-                </span>
+                {workout.hide_exercises && (
+                  <span className="text-xs text-muted-foreground italic">
+                    Workout details will be revealed at the session
+                  </span>
+                )}
               </div>
             )
           })()}
