@@ -30,7 +30,7 @@ export function TrainingContent() {
   const { data: sessionsData, mutate: mutateSessions, isLoading: sessionsLoading } = useSWR("/api/athletes/sessions?excludeCompleted=true", fetcher)
   const { data: templatesData, mutate: mutateTemplates, isLoading: templatesLoading } = useSWR("/api/athletes/templates", fetcher)
   // Fetch only incomplete workouts for the training page
-  const { data: workoutsData, mutate: mutateWorkouts, isLoading: workoutsLoading } = useSWR("/api/athletes/workouts?week=current&excludeCompleted=true", fetcher)
+  const { data: workoutsData, mutate: mutateWorkouts, isLoading: workoutsLoading } = useSWR("/api/athletes/workouts?excludeCompleted=true", fetcher)
   // Fetch count of completed items this week for the link
   const { data: completedWorkoutsData } = useSWR("/api/athletes/workouts/history?days=7", fetcher)
   const { data: completedSessionsData } = useSWR("/api/athletes/sessions/history?days=7", fetcher)

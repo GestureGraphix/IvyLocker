@@ -45,12 +45,14 @@ export async function GET(request: Request) {
       startDate = nextSunday.toISOString().split('T')[0]
       endDate = nextSaturday.toISOString().split('T')[0]
     } else {
-      // Default: today and next 7 days
+      // Default: start of current week through end of next week (14-day window)
       const today = new Date()
-      const weekLater = new Date(today)
-      weekLater.setDate(today.getDate() + 7)
-      startDate = today.toISOString().split('T')[0]
-      endDate = weekLater.toISOString().split('T')[0]
+      const sunday = new Date(today)
+      sunday.setDate(today.getDate() - today.getDay())
+      const twoWeeksOut = new Date(sunday)
+      twoWeeksOut.setDate(sunday.getDate() + 13)
+      startDate = sunday.toISOString().split('T')[0]
+      endDate = twoWeeksOut.toISOString().split('T')[0]
     }
 
     // Fetch assigned workouts with session and exercise details
