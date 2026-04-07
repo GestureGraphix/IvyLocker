@@ -45,7 +45,8 @@ interface AssignedWorkout {
   coach_name: string
   exercises: Exercise[] | null
   hide_exercises: boolean
-  day_intensities: Record<string, string> | null
+  day_intensities: Record<string, string | { level: string; time?: string }> | null
+  sibling_ids?: string[] // other session IDs on the same day (merged)
 }
 
 interface AssignedWorkoutCardProps {
@@ -105,7 +106,10 @@ export function AssignedWorkoutCard({ workout, onUpdate, showDate = false }: Ass
       const res = await fetch(`/api/athletes/workouts/${workout.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ completed: !workout.completed }),
+        body: JSON.stringify({
+          completed: !workout.completed,
+          sibling_ids: workout.sibling_ids || [],
+        }),
       })
 
       if (res.ok) {

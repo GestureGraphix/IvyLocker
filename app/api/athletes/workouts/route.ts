@@ -101,7 +101,46 @@ export async function GET(request: Request) {
       ORDER BY aw.workout_date ASC, ps.start_time ASC NULLS LAST
     `
 
-    return NextResponse.json({ workouts })
+    // Group by workout_date so multiple sessions on the same day appear as one card
+    const dayMap = new Map<string, Record<string, unknown>>()
+    for (const row of workouts as Record<string, unknown>[]) {
+      const dateKey = String(row.workout_date).slice(0, 10)
+      if (!dayMap.has(dateKey)) {
+        dayMap.set(dateKey, {
+          ...row,
+          exercises: (row.exercises as unknown[] | null) || [],
+          sibling_ids: [] as string[],
+        })
+      } else {
+        const existing = dayMap.get(dateKey)!
+        ;(existing.sibling_ids as string[]).push(row.id as string)
+        // Merge exercises from additional sessions
+        const newExercises = (row.exercises as unknown[] | null) || []
+        if (newExercises.length) {
+          existing.exercises = [...(existing.exercises as unknown[]), ...newExercises]
+        }
+        // Day is incomplete if any session is still incomplete
+        if (!row.completed) {
+          existing.completed = false
+          existing.completed_at = null
+        }
+        // Combine session titles when types differ
+        const existingType = existing.session_type as string
+        const newType = row.session_type as string
+        if (newType && newType !== existingType) {
+          existing.session_title = [
+            (existing.session_title as string) || existingType,
+            (row.session_title as string) || newType,
+          ]
+            .filter(Boolean)
+            .join(' + ')
+        }
+        // Show exercises if any session has them visible
+        if (row.hide_exercises === false) existing.hide_exercises = false
+      }
+    }
+
+    return NextResponse.json({ workouts: Array.from(dayMap.values()) })
   } catch (error) {
     console.error('Get assigned workouts error:', error)
     return NextResponse.json({ error: 'Failed to get workouts' }, { status: 500 })

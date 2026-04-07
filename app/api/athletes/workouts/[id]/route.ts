@@ -77,7 +77,7 @@ export async function PATCH(
     }
 
     const body = await request.json()
-    const { completed, notes, perceived_effort } = body
+    const { completed, notes, perceived_effort, sibling_ids } = body
 
     // Verify ownership
     const existing = await sql`
@@ -95,17 +95,22 @@ export async function PATCH(
 
     if (typeof completed === 'boolean') {
       if (completed) {
-        await sql`
-          UPDATE assigned_workouts
-          SET completed = true, completed_at = NOW()
-          WHERE id = ${id}
-        `
+        await sql`UPDATE assigned_workouts SET completed = true, completed_at = NOW() WHERE id = ${id}`
       } else {
-        await sql`
-          UPDATE assigned_workouts
-          SET completed = false, completed_at = NULL
-          WHERE id = ${id}
-        `
+        await sql`UPDATE assigned_workouts SET completed = false, completed_at = NULL WHERE id = ${id}`
+      }
+      // Mark sibling sessions (same day) complete/incomplete too
+      if (Array.isArray(sibling_ids) && sibling_ids.length > 0) {
+        for (const sibId of sibling_ids) {
+          const owns = await sql`SELECT id FROM assigned_workouts WHERE id = ${sibId} AND athlete_id = ${user.id}`
+          if (owns.length > 0) {
+            if (completed) {
+              await sql`UPDATE assigned_workouts SET completed = true, completed_at = NOW() WHERE id = ${sibId}`
+            } else {
+              await sql`UPDATE assigned_workouts SET completed = false, completed_at = NULL WHERE id = ${sibId}`
+            }
+          }
+        }
       }
     }
 
