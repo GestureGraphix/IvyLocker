@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/hooks/use-auth"
 import { UNIVERSITY_THEMES, getUniversityTheme } from "@/lib/university-themes"
-import { User, Mail, Phone, MapPin, GraduationCap, Target, Droplets, Flame, Beef, Save, Loader2, Lock, Eye, EyeOff } from "lucide-react"
+import { User, Mail, Phone, MapPin, GraduationCap, Target, Droplets, Flame, Beef, Save, Loader2, Lock, Eye, EyeOff, Leaf } from "lucide-react"
 
 const UNIVERSITIES = Object.keys(UNIVERSITY_THEMES)
 
@@ -404,6 +404,35 @@ export function AccountContent({ initialName = "", initialEmail = "", initialPro
               />
             </div>
           </div>
+        </GlassCard>
+
+        {/* Dietary Restrictions */}
+        <GlassCard>
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Leaf className="h-5 w-5" style={{ color: "var(--ivy-mid)" }} />
+            Dietary Restrictions
+          </h2>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {["Vegetarian", "Vegan", "Gluten-Free", "Dairy-Free", "Nut Allergy", "Halal", "Kosher", "No Pork"].map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                className="px-3 py-1.5 rounded-full text-sm border transition-colors"
+                style={{ borderColor: "var(--rule)", color: "var(--muted-foreground)", background: "transparent" }}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="other-restrictions" className="text-sm text-muted-foreground">Other restrictions or allergies</Label>
+            <Input
+              id="other-restrictions"
+              placeholder="e.g. shellfish allergy, low FODMAP..."
+              disabled
+            />
+          </div>
+
         </GlassCard>
 
         {/* Save Button */}
