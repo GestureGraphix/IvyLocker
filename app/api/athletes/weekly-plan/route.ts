@@ -204,9 +204,9 @@ export async function POST(request: Request) {
     }
 
     // This week's workouts by day — formatted explicitly so the AI uses them
-    ctx += `\n=== THIS WEEK'S TRAINING SCHEDULE ===\n`
+    ctx += `\n=== TRAINING SCHEDULE FOR WEEK OF ${weekStart} ===\n`
     ctx += `Coach-assigned workouts: ${(workouts as any[]).length} | Self-created sessions: ${(selfSessions as any[]).length}\n`
-    ctx += `NOTE: Every training day below MUST inform the food/sleep/mobility guidance for that day and the night before.\n\n`
+    ctx += `NOTE: Every training day MUST inform food/sleep/mobility for that day AND the night before. Cross-day prep is critical.\n\n`
 
     for (let i = 0; i < 7; i++) {
       const d = new Date(weekStart + 'T12:00:00')
@@ -313,42 +313,49 @@ YOUR EXPERTISE: Sports nutrition timing, sleep science for athletes, periodizati
 STRICT DATA RULES:
 - If NO CLASSES are listed, the "study" field must say "No classes registered" — never invent courses.
 - If NO DEADLINES are listed, do not mention academic work.
-- Every day labelled [TRAINING DAY] in the schedule MUST be reflected in that day's food/sleep/mobility guidance.
-- The summary field for every training day MUST mention what the session is (e.g., "Heavy lift day", "Practice at 4pm", "High-intensity conditioning").
-- If a day lists specific exercises, reference muscle groups in the mobility field and post-workout nutrition in the food field.
-- If a day has NO workout → it is a rest day.
-- Workouts are SCHEDULED, not completed. Don't say "after you complete" — say "before/after your session."
-- If a dining hall menu is provided, recommend specific items by name.
+- Every day labelled [TRAINING DAY] MUST be reflected in that day's food, sleep, and mobility guidance.
+- The summary field for every training day MUST name the actual session (e.g., "High-intensity practice at 4pm + lift", "Medium conditioning @ track").
+- If a day lists specific exercises, reference those muscle groups in mobility and post-workout nutrition in food.
+- If a day has NO workout → it is a rest day — use it for recovery, studying, and lighter eating.
+- Workouts are SCHEDULED. Say "before your session" / "after your session", not "after you complete".
 
-FOOD GUIDANCE (be specific, not "eat X calories"):
-- Night before a high-intensity day: Complex carbs for glycogen loading — pasta, rice, sweet potato. Moderate protein. Example: "Dinner: grilled chicken with brown rice and roasted vegetables. Aim for a carb-heavy plate."
-- Breakfast before training: Easily digestible carbs + moderate protein 2-3hrs before. Example: "Oatmeal with banana and peanut butter, or eggs with toast."
-- Pre-training snack (1hr before): Light, fast-digesting. "Banana, granola bar, or handful of pretzels."
-- Post-training (within 30min): Protein + carbs for recovery. "Chocolate milk, protein shake with banana, or Greek yogurt with granola."
-- Lunch on training days: Balanced plate — protein source, complex carb, vegetables.
-- Rest day food: Slightly lower carbs, maintain protein. Focus on anti-inflammatory foods if sore.
-- If dining hall menu available: Name specific menu items that fit these patterns.
+CROSS-DAY LOGIC (critical):
+- Look at TOMORROW's training when writing TODAY's food and sleep.
+- If tomorrow is HIGH intensity → tonight prioritize carb-heavy dinner + early bedtime ("in bed by 10pm").
+- If tomorrow is MEDIUM intensity → moderate carb dinner, "in bed by 10:30pm is ideal."
+- If tomorrow is REST → tonight is a good study night; still aim for 7+ hours but flexible bedtime.
+- Sunday's plan must reflect Monday's training. Saturday's plan must reflect whether Sunday is a rest or training day.
 
-SLEEP GUIDANCE (be specific with times):
-- Night before high-intensity: "In bed by 10pm, aim for 8-9 hours. No screens after 9:30pm."
-- Night before medium-intensity: "In bed by 10:30pm, 7-8 hours."
-- Night before rest day or low-intensity: "Flexible — good night to stay up slightly later for studying if needed. Still aim for 7+ hours."
-- After high-intensity day: "Prioritize sleep tonight for recovery. In bed by 10pm."
-- Consider next day: If tomorrow is heavy, tonight's sleep matters more.
+FOOD GUIDANCE — be specific, name actual foods, not calories:
+- Night before high-intensity: Glycogen load — pasta, rice, sweet potato + lean protein. "Dinner tonight: grilled chicken, brown rice, and roasted vegetables. Go heavier on the carbs than usual."
+- Morning of training: 2–3hrs before → oatmeal with banana + peanut butter, or eggs on toast. Easy on fat/fiber.
+- Pre-session snack (60–90 min before): Fast carbs — banana, granola bar, handful of pretzels, rice cakes.
+- Post-session (within 30 min): Protein + simple carbs to start recovery — chocolate milk, protein shake with banana, Greek yogurt with granola, turkey sandwich.
+- Lunch on training days: Balanced — protein (chicken, eggs, fish), complex carb (rice, pasta, quinoa), vegetables.
+- Rest day food: Keep protein high, reduce carbs slightly. Emphasize anti-inflammatory foods if any soreness: salmon, leafy greens, berries, turmeric.
+- Competition days: Eat what you know. Familiar foods, higher carbs, avoid new/heavy/fatty foods before competing.
 
-MOBILITY GUIDANCE:
-- High-intensity training days: "15min dynamic warmup before, 10min static stretching + foam roll after. Focus on [relevant muscle groups for their sport]."
-- Medium days: "10min mobility work post-session."
-- Rest days: "20-30min extended mobility session — foam roll, hip openers, thoracic spine work."
-- If soreness data exists: Target those specific areas.
+SLEEP GUIDANCE — give specific bedtimes and hours:
+- Night before HIGH-intensity: "In bed by 10pm — aim for 8–9 hours. Put your phone away by 9:30pm."
+- Night before MEDIUM-intensity: "In bed by 10:30pm, 7–8 hours is enough."
+- Night before competition: "In bed by 10pm no matter what. Nerves are normal but sleep is the edge."
+- Night before rest/low-intensity: "Flexible tonight — good night to study later if needed. Still get 7+ hours."
+- After high-intensity day: "Recovery happens overnight. Prioritize sleep tonight — in bed by 10pm."
+- Pattern: If two back-to-back hard days, the night between them is critical. Say so explicitly.
+
+MOBILITY GUIDANCE — reference their actual sport and exercises when possible:
+- Before high-intensity: "10–15min dynamic warmup — leg swings, hip circles, high knees, arm circles."
+- After high-intensity: "10min static stretch + foam roll. Focus on [muscle groups from their exercises or sport]."
+- Rest days: "20–30min extended mobility session — hip flexors, hamstrings, thoracic spine, foam roll IT band."
+- If soreness areas listed: Target those specifically.
 - If physio protocol exists: Reference it by name.
 
-STUDY GUIDANCE:
-- Only if classes/deadlines exist in the data.
-- Rest days and low-intensity days = best study blocks.
+STUDY GUIDANCE (only if classes/deadlines exist):
+- Rest days and low-intensity days = prime study blocks. "Block 2–3 hours for deep work today."
+- Day before competition: "Light review only — don't overload tonight."
 - "No classes registered" if no class data exists.
 
-OUTPUT FORMAT — each field should be 2-4 sentences of actionable detail, not one-liners:
+OUTPUT FORMAT — 2–4 sentences per field, actionable and specific:
 
 {
   "days": {
@@ -358,8 +365,8 @@ OUTPUT FORMAT — each field should be 2-4 sentences of actionable detail, not o
   }
 }
 
-Output ONLY valid JSON.`,
-      messages: [{ role: 'user', content: `Create a detailed weekly performance plan using this athlete's data:\n\n${ctx}` }],
+Output ONLY valid JSON. No markdown, no explanation.`,
+      messages: [{ role: 'user', content: `Create a detailed weekly performance plan for the week of ${weekStart} (Sunday) through ${weekEndStr} (Saturday).\n\nAthlete data:\n\n${ctx}` }],
     })
 
     const textContent = message.content.find((c) => c.type === 'text')
