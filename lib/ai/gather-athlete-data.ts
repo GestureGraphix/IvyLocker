@@ -126,10 +126,15 @@ export async function gatherAthleteData(userId: string): Promise<AthleteContext>
   const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   const threeDaysFromNow = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
+  // Compute today's day key for day_intensities lookup (e.g. "tuesday")
+  const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+  const todayDayKey = dayKeys[new Date(today + 'T12:00:00').getDay()]
+
   // Fetch all data in parallel
   const [
     profileResult,
     sessionsResult,
+    assignedWorkoutsResult,
     checkInsResult,
     mealsResult,
     hydrationResult,
@@ -153,13 +158,31 @@ export async function gatherAthleteData(userId: string): Promise<AthleteContext>
       WHERE u.id = ${userId}
     `,
 
-    // Today's sessions
+    // Today's self-created sessions
     sql`
       SELECT type, title, start_at, end_at, intensity, focus
       FROM sessions
       WHERE user_id = ${userId}
         AND DATE(start_at) = ${today}
       ORDER BY start_at
+    `,
+
+    // Today's coach-assigned workouts
+    sql`
+      SELECT
+        ps.session_type as type,
+        ps.title,
+        ps.start_time,
+        ps.end_time,
+        wp.day_intensities,
+        wp.hide_exercises
+      FROM assigned_workouts aw
+      JOIN plan_sessions ps ON ps.id = aw.plan_session_id
+      JOIN plan_days pd ON pd.id = ps.plan_day_id
+      JOIN weekly_plans wp ON wp.id = pd.weekly_plan_id
+      WHERE aw.athlete_id = ${userId}
+        AND aw.workout_date = ${today}
+      ORDER BY ps.start_time
     `,
 
     // Recent check-ins (last 3 days)
@@ -236,6 +259,20 @@ export async function gatherAthleteData(userId: string): Promise<AthleteContext>
 
   const todayHydration = hydrationResult[0] || { total_ounces: 0 }
 
+  // Map assigned workouts to the same shape as self-created sessions
+  const assignedSessions = (assignedWorkoutsResult as any[]).map((w: any) => {
+    const raw = w.day_intensities?.[todayDayKey]
+    const intensity = typeof raw === 'object' && raw !== null ? raw.level : (raw || null)
+    return {
+      type: w.type,
+      title: w.title || w.type,
+      start_at: w.start_time ? `${today}T${w.start_time}` : `${today}T00:00:00`,
+      end_at: w.end_time ? `${today}T${w.end_time}` : null,
+      intensity,
+      focus: null,
+    }
+  })
+
   return {
     profile: {
       name: profile.name,
@@ -248,14 +285,17 @@ export async function gatherAthleteData(userId: string): Promise<AthleteContext>
       protein_goal_grams: Number(profile.protein_goal_grams),
       hydration_goal_oz: Number(profile.hydration_goal_oz),
     },
-    todaySessions: sessionsResult.map((s: any) => ({
-      type: s.type,
-      title: s.title,
-      start_at: s.start_at,
-      end_at: s.end_at,
-      intensity: s.intensity,
-      focus: s.focus,
-    })),
+    todaySessions: [
+      ...sessionsResult.map((s: any) => ({
+        type: s.type,
+        title: s.title,
+        start_at: s.start_at,
+        end_at: s.end_at,
+        intensity: s.intensity,
+        focus: s.focus,
+      })),
+      ...assignedSessions,
+    ],
     recentCheckIns: checkInsResult.map((c: any) => ({
       date: c.date,
       mental_state: c.mental_state,
