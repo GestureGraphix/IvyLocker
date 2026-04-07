@@ -17,7 +17,7 @@ export function DailyRecommendationCard() {
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isGenerating, setIsGenerating] = useState(false)
-  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {

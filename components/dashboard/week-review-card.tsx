@@ -25,7 +25,7 @@ export function WeekReviewCard() {
     `/api/athletes/week-review?localDate=${localDate}`, fetcher
   )
   const [generating, setGenerating] = useState(false)
-  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(true)
 
   async function generate() {
     setGenerating(true)
