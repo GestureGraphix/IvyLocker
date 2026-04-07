@@ -203,6 +203,18 @@ export async function POST(request: Request) {
       return null
     }
 
+    // Neon may return date columns as JS Date objects; normalize to "YYYY-MM-DD"
+    const toDateStr = (val: any): string => {
+      if (!val) return ''
+      if (val instanceof Date) return val.toISOString().split('T')[0]
+      const s = String(val)
+      // Already ISO format "2026-04-06" or "2026-04-06T..."
+      if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10)
+      // Fallback: parse and re-format
+      const d = new Date(s)
+      return isNaN(d.getTime()) ? '' : d.toISOString().split('T')[0]
+    }
+
     // This week's workouts by day — formatted explicitly so the AI uses them
     ctx += `\n=== TRAINING SCHEDULE FOR WEEK OF ${weekStart} ===\n`
     ctx += `Coach-assigned workouts: ${(workouts as any[]).length} | Self-created sessions: ${(selfSessions as any[]).length}\n`
@@ -215,9 +227,9 @@ export async function POST(request: Request) {
       const dayName = dayNames[d.getDay()]
       const dayKey = dayKeys[d.getDay()]
 
-      const dayWorkouts = (workouts as any[]).filter((w: any) => String(w.workout_date || '').slice(0, 10) === dateStr)
+      const dayWorkouts = (workouts as any[]).filter((w: any) => toDateStr(w.workout_date) === dateStr)
       const daySessions = (selfSessions as any[]).filter((s: any) => {
-        const sDate = String(s.scheduled_date || s.start_at || '').slice(0, 10)
+        const sDate = toDateStr(s.scheduled_date || s.start_at)
         return sDate === dateStr
       })
 
