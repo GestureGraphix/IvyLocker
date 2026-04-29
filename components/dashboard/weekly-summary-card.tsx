@@ -61,7 +61,7 @@ export function WeeklySummaryCard() {
     fetcher
   )
 
-  if (!data) return null
+  if (!data?.wellness) return null
 
   const weekLabel = (() => {
     const start = new Date(weekStart + "T12:00:00")
