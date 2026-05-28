@@ -54,7 +54,9 @@ export function useAuth() {
       const data = await res.json()
 
       if (!res.ok) {
-        throw new Error(data.error || "Failed to login")
+        const err = new Error(data.error || "Failed to login") as Error & { code?: string }
+        err.code = data.code
+        throw err
       }
 
       await mutate()
@@ -78,11 +80,10 @@ export function useAuth() {
         throw new Error(data.error || "Failed to register")
       }
 
-      await mutate()
-      router.push("/")
+      // Don't redirect — caller shows "check your email" state
       return data
     },
-    [mutate, router],
+    [],
   )
 
   const logout = useCallback(async () => {

@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
+    "@aws-sdk/client-bedrock-runtime": "^3.1055.0",
+    "@aws-sdk/client-ses": "^3.1053.0",
     "@hookform/resolvers": "^3.10.0",
     "@mediapipe/tasks-vision": "^0.10.18",
     "@neondatabase/serverless": "1.0.2",

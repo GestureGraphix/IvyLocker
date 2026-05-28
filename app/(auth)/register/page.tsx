@@ -8,8 +8,7 @@ import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, UserPlus } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { Loader2, UserPlus, Mail } from "lucide-react"
 
 export default function RegisterPage() {
   const { register } = useAuth()
@@ -20,6 +19,7 @@ export default function RegisterPage() {
   const [role, setRole] = useState<"ATHLETE" | "COACH" | "PHYSIO">("ATHLETE")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [registered, setRegistered] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -29,6 +29,7 @@ export default function RegisterPage() {
     setIsLoading(true)
     try {
       await register(email, name, password, role)
+      setRegistered(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to register")
     } finally {
@@ -36,128 +37,89 @@ export default function RegisterPage() {
     }
   }
 
+  const leftPanel = (
+    <div
+      className="hidden md:flex flex-col justify-between w-[340px] flex-shrink-0 p-10 relative overflow-hidden"
+      style={{
+        background: "#162e22",
+        backgroundImage:
+          "repeating-linear-gradient(-55deg, transparent, transparent 40px, rgba(255,255,255,0.018) 40px, rgba(255,255,255,0.018) 41px)",
+      }}
+    >
+      <div>
+        <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "20px", letterSpacing: "5px", color: "#f7f2ea" }}>
+          LOCKEROOM
+        </p>
+        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "8px", letterSpacing: "2px", textTransform: "uppercase", color: "#c9a84c", marginTop: "4px" }}>
+          Athlete Performance
+        </p>
+      </div>
+      <div>
+        <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "48px", lineHeight: 1, color: "#f7f2ea", letterSpacing: "1px" }}>
+          Your lockeroom. Your data. Your edge.
+        </p>
+      </div>
+      <span aria-hidden className="absolute pointer-events-none select-none leading-none" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "220px", color: "rgba(255,255,255,0.03)", right: "-20px", bottom: "-40px", letterSpacing: "-8px" }}>
+        00
+      </span>
+    </div>
+  )
+
+  if (registered) {
+    return (
+      <div className="min-h-screen bg-background flex">
+        {leftPanel}
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="w-full max-w-sm text-center">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full mb-6" style={{ background: "var(--cream-d)" }}>
+              <Mail className="w-7 h-7" style={{ color: "var(--ivy)" }} />
+            </div>
+            <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "32px", letterSpacing: "1px", color: "var(--ink)", lineHeight: 1 }}>
+              Check Your Email
+            </h1>
+            <p className="mt-3 mb-6" style={{ fontFamily: "'DM Mono', monospace", fontSize: "11px", letterSpacing: "0.5px", color: "var(--muted)", lineHeight: 1.6 }}>
+              We sent a verification link to<br />
+              <span style={{ color: "var(--ink)" }}>{email}</span>
+            </p>
+            <p className="text-sm text-muted-foreground mb-8">
+              Click the link in the email to activate your account. Check your spam folder if you don't see it.
+            </p>
+            <p className="text-sm text-center">
+              <span className="text-muted-foreground">Already verified? </span>
+              <Link href="/login" className="text-ivy-mid font-medium hover:underline">Sign in</Link>
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Left panel */}
-      <div
-        className="hidden md:flex flex-col justify-between w-[340px] flex-shrink-0 p-10 relative overflow-hidden"
-        style={{
-          background: "#162e22",
-          backgroundImage:
-            "repeating-linear-gradient(-55deg, transparent, transparent 40px, rgba(255,255,255,0.018) 40px, rgba(255,255,255,0.018) 41px)",
-        }}
-      >
-        <div>
-          <p
-            style={{
-              fontFamily: "'Bebas Neue', sans-serif",
-              fontSize: "20px",
-              letterSpacing: "5px",
-              color: "#f7f2ea",
-            }}
-          >
-            LOCKEROOM
-          </p>
-          <p
-            style={{
-              fontFamily: "'DM Mono', monospace",
-              fontSize: "8px",
-              letterSpacing: "2px",
-              textTransform: "uppercase",
-              color: "#c9a84c",
-              marginTop: "4px",
-            }}
-          >
-            Athlete Performance
-          </p>
-        </div>
+      {leftPanel}
 
-        <div>
-          <p
-            style={{
-              fontFamily: "'Bebas Neue', sans-serif",
-              fontSize: "48px",
-              lineHeight: 1,
-              color: "#f7f2ea",
-              letterSpacing: "1px",
-            }}
-          >
-            Your lockeroom. Your data. Your edge.
-          </p>
-        </div>
-
-        <span
-          aria-hidden
-          className="absolute pointer-events-none select-none leading-none"
-          style={{
-            fontFamily: "'Bebas Neue', sans-serif",
-            fontSize: "220px",
-            color: "rgba(255,255,255,0.03)",
-            right: "-20px",
-            bottom: "-40px",
-            letterSpacing: "-8px",
-          }}
-        >
-          00
-        </span>
-      </div>
-
-      {/* Right panel */}
       <div className="flex-1 flex items-center justify-center p-8 overflow-y-auto">
         <div className="w-full max-w-sm py-8">
-          <p
-            className="md:hidden mb-8"
-            style={{
-              fontFamily: "'Bebas Neue', sans-serif",
-              fontSize: "24px",
-              letterSpacing: "4px",
-              color: "var(--ivy)",
-            }}
-          >
+          <p className="md:hidden mb-8" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "24px", letterSpacing: "4px", color: "var(--ivy)" }}>
             LOCKEROOM
           </p>
 
           <div className="mb-8">
-            <h1
-              style={{
-                fontFamily: "'Bebas Neue', sans-serif",
-                fontSize: "36px",
-                letterSpacing: "1px",
-                color: "var(--ink)",
-                lineHeight: 1,
-              }}
-            >
+            <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "36px", letterSpacing: "1px", color: "var(--ink)", lineHeight: 1 }}>
               Create Account
             </h1>
-            <p
-              className="mt-1"
-              style={{
-                fontFamily: "'DM Mono', monospace",
-                fontSize: "10px",
-                letterSpacing: "1px",
-                color: "var(--muted)",
-              }}
-            >
+            <p className="mt-1" style={{ fontFamily: "'DM Mono', monospace", fontSize: "10px", letterSpacing: "1px", color: "var(--muted)" }}>
               Start tracking your performance today
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div
-                className="p-3 text-sm"
-                style={{
-                  background: "var(--red-pale, #f9e8e8)",
-                  border: "1px solid rgba(184,50,50,0.2)",
-                  color: "var(--red, #b83232)",
-                  borderRadius: "3px",
-                }}
-              >
+              <div className="p-3 text-sm" style={{ background: "var(--red-pale, #f9e8e8)", border: "1px solid rgba(184,50,50,0.2)", color: "var(--red, #b83232)", borderRadius: "3px" }}>
                 {error}
               </div>
             )}
 
-            {/* Role Selection */}
             <div className="space-y-1.5">
               <Label>I am a...</Label>
               <div className="grid grid-cols-3 gap-2">

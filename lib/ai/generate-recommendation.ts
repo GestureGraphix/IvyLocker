@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk'
+import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime'
 import { sql } from '@/lib/db'
 import { gatherAthleteData, formatAthleteDataForPrompt } from './gather-athlete-data'
 
@@ -55,43 +55,46 @@ export interface GenerationResult {
   error?: string
 }
 
+const bedrock = new BedrockRuntimeClient({
+  region: process.env.AWS_REGION || 'us-east-1',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+})
+
+const BEDROCK_MODEL = 'anthropic.claude-3-haiku-20240307-v1:0'
+
 export async function generateRecommendation(userId: string): Promise<GenerationResult> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return { success: false, error: 'ANTHROPIC_API_KEY not configured' }
+  if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+    return { success: false, error: 'AWS credentials not configured' }
   }
 
   try {
-    // Gather athlete data
     const athleteData = await gatherAthleteData(userId)
     const formattedData = formatAthleteDataForPrompt(athleteData)
 
-    // Initialize Anthropic client
-    const anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
-    })
-
-    // Generate recommendation
-    const message = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
+    const body = JSON.stringify({
+      anthropic_version: 'bedrock-2023-05-31',
       max_tokens: 800,
       system: SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: formattedData,
-        },
-      ],
+      messages: [{ role: 'user', content: formattedData }],
     })
 
-    // Extract text content
-    const textContent = message.content.find((c) => c.type === 'text')
-    if (!textContent || textContent.type !== 'text') {
+    const response = await bedrock.send(new InvokeModelCommand({
+      modelId: BEDROCK_MODEL,
+      contentType: 'application/json',
+      accept: 'application/json',
+      body,
+    }))
+
+    const result = JSON.parse(new TextDecoder().decode(response.body))
+
+    const recommendation = result.content?.[0]?.text
+    if (!recommendation) {
       return { success: false, error: 'No text content in response' }
     }
 
-    const recommendation = textContent.text
-
-    // Extract priority focus (first line after **Priority Focus**:)
     const priorityMatch = recommendation.match(/\*\*Priority Focus\*\*:\s*(.+?)(?:\n|$)/)
     const priorityFocus = priorityMatch ? priorityMatch[1].trim() : null
 
@@ -99,8 +102,8 @@ export async function generateRecommendation(userId: string): Promise<Generation
       success: true,
       recommendation,
       priorityFocus: priorityFocus || undefined,
-      inputTokens: message.usage.input_tokens,
-      outputTokens: message.usage.output_tokens,
+      inputTokens: result.usage?.input_tokens,
+      outputTokens: result.usage?.output_tokens,
     }
   } catch (error) {
     console.error('Error generating recommendation:', error)
@@ -136,7 +139,7 @@ export async function generateAndSaveRecommendation(userId: string): Promise<Gen
         ${today},
         ${result.recommendation},
         ${result.priorityFocus || null},
-        'claude-3-haiku-20240307',
+        BEDROCK_MODEL,
         ${result.inputTokens || null},
         ${result.outputTokens || null}
       )

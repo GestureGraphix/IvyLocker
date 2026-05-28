@@ -1,6 +1,7 @@
 import { cookies, headers } from "next/headers"
 import { sql } from "./db"
 import { SignJWT, jwtVerify } from "jose"
+import { randomBytes } from "crypto"
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "locker-v2-secret-key-change-in-production")
 
@@ -98,12 +99,39 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   return passwordHash === hash
 }
 
+// Generate a cryptographically secure token
+export function generateToken(): string {
+  return randomBytes(32).toString("hex")
+}
+
 // Get user by email
 export async function getUserByEmail(email: string) {
   const result = await sql`
-    SELECT id, email, name, role, password_hash 
-    FROM users 
+    SELECT id, email, name, role, password_hash, email_verified,
+           email_verification_token, email_verification_expires,
+           password_reset_token, password_reset_expires
+    FROM users
     WHERE email = ${email}
+  `
+  return result[0] || null
+}
+
+// Get user by email verification token
+export async function getUserByVerificationToken(token: string) {
+  const result = await sql`
+    SELECT id, email, name, role, email_verified, email_verification_expires
+    FROM users
+    WHERE email_verification_token = ${token}
+  `
+  return result[0] || null
+}
+
+// Get user by password reset token
+export async function getUserByResetToken(token: string) {
+  const result = await sql`
+    SELECT id, email, name, role, password_reset_expires
+    FROM users
+    WHERE password_reset_token = ${token}
   `
   return result[0] || null
 }
@@ -111,11 +139,13 @@ export async function getUserByEmail(email: string) {
 // Create new user
 export async function createUser(email: string, name: string, password: string, role: "ATHLETE" | "COACH" | "PHYSIO" = "ATHLETE") {
   const passwordHash = await hashPassword(password)
+  const verificationToken = generateToken()
+  const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24h
 
   const result = await sql`
-    INSERT INTO users (email, name, password_hash, role)
-    VALUES (${email}, ${name}, ${passwordHash}, ${role})
-    RETURNING id, email, name, role
+    INSERT INTO users (email, name, password_hash, role, email_verification_token, email_verification_expires)
+    VALUES (${email}, ${name}, ${passwordHash}, ${role}, ${verificationToken}, ${verificationExpires.toISOString()})
+    RETURNING id, email, name, role, email_verification_token
   `
 
   const user = result[0]
