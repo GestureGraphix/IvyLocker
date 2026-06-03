@@ -4,6 +4,8 @@ import { useState } from "react"
 import { ChevronLeft, ChevronRight, Brain, Heart, Utensils, Droplets, Dumbbell, Stethoscope, AlertTriangle, TrendingUp, TrendingDown, Minus } from "lucide-react"
 import useSWR from "swr"
 
+import { muscleLabel } from "./body-map"
+
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 interface WeeklySummary {
@@ -264,10 +266,10 @@ export function WeeklySummaryCard() {
                 {data.wellness.soreness.map((s) => (
                   <span
                     key={s.area}
-                    className="text-[10px] px-2 py-0.5 rounded-full capitalize"
+                    className="text-[10px] px-2 py-0.5 rounded-full"
                     style={{ background: "#fee2e2", color: "#dc2626" }}
                   >
-                    {s.area} ({s.count}x)
+                    {muscleLabel(s.area)} ({s.count}x)
                   </span>
                 ))}
               </div>

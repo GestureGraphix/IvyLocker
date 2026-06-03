@@ -149,6 +149,9 @@ importers:
       react:
         specifier: 19.2.0
         version: 19.2.0
+      react-body-highlighter:
+        specifier: ^2.0.5
+        version: 2.0.5(react@19.2.0)
       react-day-picker:
         specifier: 9.8.0
         version: 9.8.0(react@19.2.0)
@@ -1856,6 +1859,12 @@ packages:
 
   prop-types@15.8.1:
     resolution: {integrity: sha512-oj87CgZICdulUohogVAR7AjlC0327U4el4L6eAvOqCeudMDVU0NThNaV+b9Df4dXgSP1gXMTnPdhfe/2qDH5cg==}
+
+  react-body-highlighter@2.0.5:
+    resolution: {integrity: sha512-yt37177vKIc+8TGxQw//G/3ah2aw/3E0g1oDt4N+46fMLVZ9BSelhc9S7kiwEkJRvYc3RyUSr9453uMJnvtxRg==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      react: '>=16'
 
   react-day-picker@9.8.0:
     resolution: {integrity: sha512-E0yhhg7R+pdgbl/2toTb0xBhsEAtmAx1l7qjIWYfcxOy8w4rTSVfbtBoSzVVhPwKP/5E9iL38LivzoE3AQDhCQ==}
@@ -3862,6 +3871,10 @@ snapshots:
       loose-envify: 1.4.0
       object-assign: 4.1.1
       react-is: 16.13.1
+
+  react-body-highlighter@2.0.5(react@19.2.0):
+    dependencies:
+      react: 19.2.0
 
   react-day-picker@9.8.0(react@19.2.0):
     dependencies:

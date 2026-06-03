@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { Brain, Heart, CheckCircle2, Loader2 } from "lucide-react"
-import { BodyMap } from "./body-map"
+import { BodyMap, muscleLabel } from "./body-map"
 
 export function CheckInWidget() {
   const [mentalState, setMentalState] = useState<number | null>(null)
@@ -216,27 +216,6 @@ export function CheckInWidget() {
           {sorenessAreas.length > 0 && (
             <div className="flex flex-wrap gap-1.5 pt-1">
               {sorenessAreas.map(id => {
-                const allZones = [
-                  { id: "head", label: "Head" }, { id: "neck", label: "Neck" },
-                  { id: "l-shoulder", label: "L Shoulder" }, { id: "r-shoulder", label: "R Shoulder" },
-                  { id: "chest", label: "Chest" }, { id: "l-bicep", label: "L Bicep" },
-                  { id: "r-bicep", label: "R Bicep" }, { id: "core", label: "Core" },
-                  { id: "l-forearm", label: "L Forearm" }, { id: "r-forearm", label: "R Forearm" },
-                  { id: "l-hip", label: "L Hip" }, { id: "r-hip", label: "R Hip" },
-                  { id: "l-quad", label: "L Quad" }, { id: "r-quad", label: "R Quad" },
-                  { id: "l-knee", label: "L Knee" }, { id: "r-knee", label: "R Knee" },
-                  { id: "l-shin", label: "L Shin" }, { id: "r-shin", label: "R Shin" },
-                  { id: "b-head", label: "Head" }, { id: "b-neck", label: "Neck" },
-                  { id: "l-trap", label: "L Trap" }, { id: "r-trap", label: "R Trap" },
-                  { id: "l-shoulder-b", label: "L Shoulder" }, { id: "r-shoulder-b", label: "R Shoulder" },
-                  { id: "upper-back", label: "Upper Back" }, { id: "l-lat", label: "L Lat" },
-                  { id: "r-lat", label: "R Lat" }, { id: "lower-back", label: "Lower Back" },
-                  { id: "l-glute", label: "L Glute" }, { id: "r-glute", label: "R Glute" },
-                  { id: "l-hamstring", label: "L Hamstring" }, { id: "r-hamstring", label: "R Hamstring" },
-                  { id: "l-knee-b", label: "L Knee" }, { id: "r-knee-b", label: "R Knee" },
-                  { id: "l-calf", label: "L Calf" }, { id: "r-calf", label: "R Calf" },
-                ]
-                const zone = allZones.find(z => z.id === id)
                 return (
                   <button
                     key={id}
@@ -251,7 +230,7 @@ export function CheckInWidget() {
                       letterSpacing: "0.3px",
                     }}
                   >
-                    {zone?.label ?? id} ×
+                    {muscleLabel(id)} ×
                   </button>
                 )
               })}
