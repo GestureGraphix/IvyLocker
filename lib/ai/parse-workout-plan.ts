@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk'
+import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime'
 
 export interface ParsedExercise {
   name: string
@@ -136,9 +136,17 @@ If a day is not mentioned, don't include it in the output.
 For multi-part exercises (warmup items, multiple drills), combine them into one exercise with details.
 If schedule info isn't clear, set scheduleInfo to null.`
 
+const bedrock = new BedrockRuntimeClient({
+  region: process.env.AWS_REGION || 'us-east-1',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+})
+
 export async function parseWorkoutPlan(input: ParseInput): Promise<ParseResult> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return { success: false, error: 'ANTHROPIC_API_KEY not configured' }
+  if (!process.env.AWS_ACCESS_KEY_ID) {
+    return { success: false, error: 'AWS credentials not configured' }
   }
 
   if (!input.text?.trim() && !input.image) {
@@ -146,16 +154,13 @@ export async function parseWorkoutPlan(input: ParseInput): Promise<ParseResult> 
   }
 
   try {
-    const anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
-    })
-
     // Use Sonnet for image inputs (better spatial reasoning), Haiku for text
-    const model = input.image ? 'claude-sonnet-4-20250514' : 'claude-3-haiku-20240307'
+    const modelId = input.image
+      ? 'anthropic.claude-3-5-sonnet-20241022-v2:0'
+      : 'anthropic.claude-3-5-haiku-20241022-v1:0'
     const maxTokens = input.image ? 8000 : 4000
 
-    // Build content array
-    const content: Anthropic.MessageCreateParams['messages'][0]['content'] = []
+    const content: Array<Record<string, unknown>> = []
 
     if (input.image) {
       content.push({
@@ -172,43 +177,39 @@ export async function parseWorkoutPlan(input: ParseInput): Promise<ParseResult> 
       ? `Parse this training plan:\n\n${input.text}`
       : 'Parse the workout plan shown in this image into structured JSON.'
 
-    content.push({
-      type: 'text',
-      text: textPrompt,
-    })
+    content.push({ type: 'text', text: textPrompt })
 
-    const message = await anthropic.messages.create({
-      model,
+    const body = JSON.stringify({
+      anthropic_version: 'bedrock-2023-05-31',
       max_tokens: maxTokens,
       system: SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content,
-        },
-      ],
+      messages: [{ role: 'user', content }],
     })
 
-    const textContent = message.content.find((c) => c.type === 'text')
-    if (!textContent || textContent.type !== 'text') {
+    const response = await bedrock.send(new InvokeModelCommand({
+      modelId,
+      contentType: 'application/json',
+      accept: 'application/json',
+      body,
+    }))
+
+    const result = JSON.parse(new TextDecoder().decode(response.body))
+    const text = result.content?.[0]?.text
+
+    if (!text) {
       return { success: false, error: 'No text content in response' }
     }
 
-    // Parse the JSON response
     let plan: ParsedPlan
     try {
-      // Try to extract JSON from the response (in case there's extra text)
-      const jsonMatch = textContent.text.match(/\{[\s\S]*\}/)
-      if (!jsonMatch) {
-        throw new Error('No JSON found in response')
-      }
+      const jsonMatch = text.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) throw new Error('No JSON found in response')
       plan = JSON.parse(jsonMatch[0])
-    } catch (parseError) {
-      console.error('Failed to parse AI response:', textContent.text)
+    } catch {
+      console.error('Failed to parse AI response:', text)
       return { success: false, error: 'Failed to parse AI response as JSON' }
     }
 
-    // Validate the structure
     if (!plan.days || !Array.isArray(plan.days)) {
       return { success: false, error: 'Invalid plan structure: missing days array' }
     }
@@ -216,8 +217,8 @@ export async function parseWorkoutPlan(input: ParseInput): Promise<ParseResult> 
     return {
       success: true,
       plan,
-      inputTokens: message.usage.input_tokens,
-      outputTokens: message.usage.output_tokens,
+      inputTokens: result.usage?.input_tokens,
+      outputTokens: result.usage?.output_tokens,
     }
   } catch (error) {
     console.error('Parse workout plan error:', error)

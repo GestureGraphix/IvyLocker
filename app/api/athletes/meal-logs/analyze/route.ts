@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { sql } from '@/lib/db'
-import Anthropic from '@anthropic-ai/sdk'
+import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime'
 
 const DAILY_LIMIT = 3
 
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!process.env.ANTHROPIC_API_KEY) {
+    if (!process.env.AWS_ACCESS_KEY_ID) {
       return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
     }
 
@@ -90,12 +90,16 @@ export async function POST(request: Request) {
     else if (image.type === 'image/gif') mediaType = 'image/gif'
     else if (image.type === 'image/webp') mediaType = 'image/webp'
 
-    const anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
+    const bedrock = new BedrockRuntimeClient({
+      region: process.env.AWS_REGION || 'us-east-1',
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+      },
     })
 
-    const message = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
+    const analyzeBody = JSON.stringify({
+      anthropic_version: 'bedrock-2023-05-31',
       max_tokens: 500,
       messages: [
         {
@@ -103,33 +107,32 @@ export async function POST(request: Request) {
           content: [
             {
               type: 'image',
-              source: {
-                type: 'base64',
-                media_type: mediaType,
-                data: base64,
-              },
+              source: { type: 'base64', media_type: mediaType, data: base64 },
             },
-            {
-              type: 'text',
-              text: type === 'label' ? LABEL_PROMPT : FOOD_PROMPT,
-            },
+            { type: 'text', text: type === 'label' ? LABEL_PROMPT : FOOD_PROMPT },
           ],
         },
       ],
     })
 
-    const textContent = message.content.find((c) => c.type === 'text')
-    if (!textContent || textContent.type !== 'text') {
+    const analyzeResponse = await bedrock.send(new InvokeModelCommand({
+      modelId: 'anthropic.claude-3-5-haiku-20241022-v1:0',
+      contentType: 'application/json',
+      accept: 'application/json',
+      body: analyzeBody,
+    }))
+
+    const analyzeResult = JSON.parse(new TextDecoder().decode(analyzeResponse.body))
+    const analyzeText = analyzeResult.content?.[0]?.text
+
+    if (!analyzeText) {
       return NextResponse.json({ error: 'No response from AI' }, { status: 500 })
     }
 
-    // Parse JSON response
     let result
     try {
-      const jsonMatch = textContent.text.match(/\{[\s\S]*\}/)
-      if (!jsonMatch) {
-        throw new Error('No JSON found')
-      }
+      const jsonMatch = analyzeText.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) throw new Error('No JSON found')
       result = JSON.parse(jsonMatch[0])
     } catch {
       return NextResponse.json({ error: 'Failed to parse AI response' }, { status: 500 })
@@ -160,8 +163,8 @@ export async function POST(request: Request) {
       data: normalized,
       remaining,
       usage: {
-        inputTokens: message.usage.input_tokens,
-        outputTokens: message.usage.output_tokens,
+        inputTokens: analyzeResult.usage?.input_tokens,
+        outputTokens: analyzeResult.usage?.output_tokens,
       },
     })
   } catch (error) {

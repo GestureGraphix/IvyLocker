@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { sql } from '@/lib/db'
-import Anthropic from '@anthropic-ai/sdk'
+import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime'
 
 // GET /api/athletes/week-review
 export async function GET(request: Request) {
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     const user = await getCurrentUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    if (!process.env.ANTHROPIC_API_KEY) {
+    if (!process.env.AWS_ACCESS_KEY_ID) {
       return NextResponse.json({ error: 'Not configured' }, { status: 500 })
     }
 
@@ -214,10 +214,16 @@ export async function POST(request: Request) {
       })
     }
 
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    const bedrock = new BedrockRuntimeClient({
+      region: process.env.AWS_REGION || 'us-east-1',
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+      },
+    })
 
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+    const reviewBody = JSON.stringify({
+      anthropic_version: 'bedrock-2023-05-31',
       max_tokens: 3000,
       system: `You are an elite sports performance coach writing a weekly review for a student-athlete. Use ONLY the data provided — never invent classes, workouts, meals, or any information not explicitly listed.
 
@@ -264,14 +270,23 @@ Output ONLY valid JSON:
       messages: [{ role: 'user', content: `Analyze this athlete's week and write their performance review:\n\n${ctx}` }],
     })
 
-    const textContent = message.content.find((c) => c.type === 'text')
-    if (!textContent || textContent.type !== 'text') {
+    const reviewResponse = await bedrock.send(new InvokeModelCommand({
+      modelId: 'anthropic.claude-3-5-sonnet-20241022-v2:0',
+      contentType: 'application/json',
+      accept: 'application/json',
+      body: reviewBody,
+    }))
+
+    const reviewResult = JSON.parse(new TextDecoder().decode(reviewResponse.body))
+    const reviewText = reviewResult.content?.[0]?.text
+
+    if (!reviewText) {
       return NextResponse.json({ error: 'No response' }, { status: 500 })
     }
 
     let review
     try {
-      const jsonMatch = textContent.text.match(/\{[\s\S]*\}/)
+      const jsonMatch = reviewText.match(/\{[\s\S]*\}/)
       if (!jsonMatch) throw new Error()
       review = JSON.parse(jsonMatch[0])
     } catch {
