@@ -155,10 +155,33 @@ export async function GET(request: Request) {
 
     const avg = (arr: number[]) => arr.length > 0 ? Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10 : null
 
+    // Per-day breakdown (7 days from weekStart) — powers the dashboard's per-day rings
+    const dayKey = (v: any) => (typeof v === 'string' ? v.slice(0, 10) : new Date(v).toISOString().slice(0, 10))
+    const checkinByDay: Record<string, any> = {}
+    checkins.forEach((c: any) => { checkinByDay[dayKey(c.date)] = c })
+    const nutByDay: Record<string, any> = {}
+    nutrition.forEach((n: any) => { nutByDay[dayKey(n.day)] = n })
+    const hydByDay: Record<string, any> = {}
+    hydration.forEach((h: any) => { hydByDay[dayKey(h.day)] = h })
+    const days = Array.from({ length: 7 }, (_, i) => {
+      const dt = new Date(weekStart + 'T00:00:00')
+      dt.setDate(dt.getDate() + i)
+      const ds = dayKey(dt)
+      const ci = checkinByDay[ds]
+      const wv = [ci?.mental_state, ci?.physical_state].filter((v) => typeof v === 'number') as number[]
+      return {
+        date: ds,
+        wellness: wv.length ? Math.round(wv.reduce((a, b) => a + b, 0) / wv.length) : null,
+        calories: nutByDay[ds]?.total_calories ?? 0,
+        hydrationOz: hydByDay[ds]?.total_oz ?? 0,
+      }
+    })
+
     return NextResponse.json({
       weekStart,
       weekEnd: weekEndStr,
       checkedInDays: checkins.length,
+      days,
       wellness: {
         mentalAvg: avg(mentalScores),
         physicalAvg: avg(physicalScores),
