@@ -63,7 +63,7 @@ const bedrock = new BedrockRuntimeClient({
   },
 })
 
-const BEDROCK_MODEL = 'anthropic.claude-3-5-haiku-20241022-v1:0'
+const BEDROCK_MODEL = 'anthropic.claude-haiku-4-5-20251001-v1:0'
 
 export async function generateRecommendation(userId: string): Promise<GenerationResult> {
   if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {

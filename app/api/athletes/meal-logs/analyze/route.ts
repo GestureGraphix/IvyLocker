@@ -116,7 +116,7 @@ export async function POST(request: Request) {
     })
 
     const analyzeResponse = await bedrock.send(new InvokeModelCommand({
-      modelId: 'anthropic.claude-3-5-haiku-20241022-v1:0',
+      modelId: 'anthropic.claude-haiku-4-5-20251001-v1:0',
       contentType: 'application/json',
       accept: 'application/json',
       body: analyzeBody,
