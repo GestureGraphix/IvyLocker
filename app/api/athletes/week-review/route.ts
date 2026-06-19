@@ -214,6 +214,26 @@ export async function POST(request: Request) {
       })
     }
 
+    // Structured stats for the dashboard stat grid (numbers the AI no longer restates in prose)
+    const avgOf = (a: number[]) =>
+      a.length ? Math.round((a.reduce((x, y) => x + y, 0) / a.length) * 10) / 10 : null
+    const stats = {
+      checkins: checkins.length,
+      mentalAvg: avgOf(mentalScores),
+      physicalAvg: avgOf(physicalScores),
+      workoutsDone: allWorkouts.filter((w) => w.completed).length,
+      workoutsTotal: allWorkouts.length,
+      nutritionDays: nutrition.length,
+      avgCal: nutrition.length
+        ? Math.round(nutrition.reduce((s: number, d: any) => s + d.cals, 0) / nutrition.length)
+        : 0,
+      calGoal,
+      avgOz: hydration.length
+        ? Math.round(hydration.reduce((s: number, d: any) => s + d.oz, 0) / hydration.length)
+        : 0,
+      hydGoal,
+    }
+
     const bedrock = new BedrockRuntimeClient({
       region: process.env.AWS_REGION || 'us-east-1',
       credentials: {
@@ -234,36 +254,36 @@ STRICT RULES:
 - Reference exact numbers from the data (e.g., "You averaged 1,800 calories vs your 2,500 goal").
 - Workouts: only count what the data shows as completed. Don't assume completion.
 
+WRITING STYLE — CRITICAL: This renders on a phone dashboard, NOT an email. Be RUTHLESSLY concise. Short headlines people can scan in seconds. The numbers are shown separately as stat tiles, so DO NOT restate raw numbers in prose unless adding insight. No filler, no "this will sabotage your performance" lectures. One crisp idea per item.
+
 YOUR REVIEW MUST INCLUDE:
 
-1. **overview**: 3-4 sentences. Honest assessment of the week. What patterns do you see? Reference specific numbers. If data is sparse, acknowledge that tracking more would help.
+1. **headline**: ONE short sentence (max 12 words) — the single most important takeaway or biggest thing to fix this week. E.g. "Hydration is your biggest gap — aim to triple it." If everything's on track, make it encouraging.
 
-2. **wins**: Array of things they did well — ONLY if supported by data. If they have no data, this can be an empty array. Examples: "Checked in 5 of 7 days — great consistency", "Hydration averaged 95oz, close to your 100oz goal."
+2. **overview**: Max 2 short sentences. The honest gist of the week. Don't restate the stat numbers.
 
-3. **concerns**: Array of areas needing attention. Be specific and actionable:
-   - Under-eating: "You averaged X cal/day vs your Y goal. That's a Z cal deficit. Try adding a post-training snack — a protein shake + banana adds ~400 cal and 30g protein."
-   - Soreness: "Your [body part] was sore X times. Add 10 minutes of targeted foam rolling after each session, focusing on [specific area]."
-   - Low physical state: "Physical scores dipped to X on [days]. Consider lighter recovery sessions the day after intense training."
-   - Dehydration: "Hydration averaged Xoz vs your Yoz goal. Keep a water bottle during class and set hourly reminders."
-   - If no concerning data, this can be empty.
+3. **wins**: Array of SHORT one-liners (max 8 words each), only if supported by data. E.g. "Perfect 10/10 mental wellness", "Checked in 3 days". Empty array if none.
 
-4. **nutrition_focus**: 2-3 sentences of specific nutritional advice for next week based on their gaps. What foods to add, when to eat them, how to close calorie/protein gaps. Example: "You're consistently 30g short on protein. Add Greek yogurt (15g) at breakfast and a protein shake (25g) post-training. For dinner, prioritize chicken, fish, or beans over lighter options." If no nutrition data, say "Start logging meals to get personalized nutrition advice."
+4. **concerns**: Array of objects, each { "title": "...", "detail": "..." }. title = the problem in max 7 words (e.g. "Hydration far below goal"). detail = ONE sentence with the fix (max 18 words, e.g. "Fill a 32oz bottle 3× daily and set hourly reminders."). Max 3 concerns — only the most important. Empty array if none.
 
-5. **recovery_focus**: 2-3 sentences about recovery priorities. Based on soreness patterns, training load, and physical scores. What specific mobility work, when to foam roll, sleep adjustments. If no data, give general advice based on their sport.
+5. **nutrition_focus**: Max 2 sentences of specific food/timing advice. If no nutrition data: "Start logging meals to get personalized nutrition advice."
 
-6. **next_week**: Array of 3-5 specific, numbered action items for the coming week. Each should be one concrete thing they can do. Not vague — include quantities, timing, specific foods or exercises.
+6. **recovery_focus**: Max 2 sentences on recovery priorities (mobility, foam rolling, sleep).
 
-7. **mood_check**: If mental wellness averaged below 5, include a supportive 2-3 sentence message. Acknowledge the difficulty without being preachy. Suggest one specific self-care action. If scores are fine or no data, set to null.
+7. **next_week**: Array of 3-5 SHORT action items (max 12 words each), no leading numbers. Each one concrete thing with a quantity. E.g. "Log meals at least 5 of 7 days".
+
+8. **mood_check**: If mental wellness averaged below 5, a supportive 2-sentence message with one self-care action. Otherwise null.
 
 Output ONLY valid JSON:
 {
   "review": {
+    "headline": "...",
     "overview": "...",
     "wins": ["...", "..."],
-    "concerns": ["...", "..."],
+    "concerns": [{ "title": "...", "detail": "..." }],
     "nutrition_focus": "...",
     "recovery_focus": "...",
-    "next_week": ["1. ...", "2. ...", "3. ..."],
+    "next_week": ["...", "..."],
     "mood_check": "..." or null
   }
 }`,
@@ -295,7 +315,7 @@ Output ONLY valid JSON:
 
     // Cache with a special key (reuse weekly_plan_cache with week_start = last monday)
     // Use a wrapper so GET can distinguish it from weekly plans
-    const wrapped = { review: review.review || review }
+    const wrapped = { review: review.review || review, stats }
     await sql`
       INSERT INTO weekly_plan_cache (user_id, week_start, plan_json)
       VALUES (${user.id}, ${lastSunday}, ${JSON.stringify(wrapped)})
