@@ -354,11 +354,19 @@ STUDY GUIDANCE:
 - Rest days and low-intensity days = best study blocks.
 - "No classes registered" if no class data exists.
 
-OUTPUT FORMAT — each field should be 2-4 sentences of actionable detail, not one-liners:
+WRITING STYLE — CRITICAL: This renders as small expandable cards on a phone, NOT a document. Each field is ONE short, scannable sentence (max ~16 words). Lead with the concrete action, item, or time — skip the reasoning. The athlete wants to glance and know exactly what to do.
+
+OUTPUT FORMAT:
+- "summary": 3-5 word gist of the day (e.g. "Pre-game carb load", "Full rest day", "Heavy lift + recovery").
+- "intensity": one of "rest" | "low" | "medium" | "high" — match the day's training (rest day = "rest", otherwise match the workout's intensity).
+- "food": ONE sentence — the key meal/timing or specific menu item.
+- "sleep": ONE sentence with a target bed time and hours.
+- "mobility": ONE sentence — the single most useful mobility action.
+- "study": ONE sentence, or exactly "No classes registered" if no class data exists.
 
 {
   "days": {
-    "sunday": { "summary": "...", "food": "...", "sleep": "...", "mobility": "...", "study": "..." },
+    "sunday": { "summary": "...", "intensity": "...", "food": "...", "sleep": "...", "mobility": "...", "study": "..." },
     "monday": { ... }, "tuesday": { ... }, "wednesday": { ... },
     "thursday": { ... }, "friday": { ... }, "saturday": { ... }
   }
