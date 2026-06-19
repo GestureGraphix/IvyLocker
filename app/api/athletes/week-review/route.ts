@@ -214,26 +214,6 @@ export async function POST(request: Request) {
       })
     }
 
-    // Structured stats for the dashboard stat grid (numbers the AI no longer restates in prose)
-    const avgOf = (a: number[]) =>
-      a.length ? Math.round((a.reduce((x, y) => x + y, 0) / a.length) * 10) / 10 : null
-    const stats = {
-      checkins: checkins.length,
-      mentalAvg: avgOf(mentalScores),
-      physicalAvg: avgOf(physicalScores),
-      workoutsDone: allWorkouts.filter((w) => w.completed).length,
-      workoutsTotal: allWorkouts.length,
-      nutritionDays: nutrition.length,
-      avgCal: nutrition.length
-        ? Math.round(nutrition.reduce((s: number, d: any) => s + d.cals, 0) / nutrition.length)
-        : 0,
-      calGoal,
-      avgOz: hydration.length
-        ? Math.round(hydration.reduce((s: number, d: any) => s + d.oz, 0) / hydration.length)
-        : 0,
-      hydGoal,
-    }
-
     const bedrock = new BedrockRuntimeClient({
       region: process.env.AWS_REGION || 'us-east-1',
       credentials: {
@@ -254,7 +234,7 @@ STRICT RULES:
 - Reference exact numbers from the data (e.g., "You averaged 1,800 calories vs your 2,500 goal").
 - Workouts: only count what the data shows as completed. Don't assume completion.
 
-WRITING STYLE — CRITICAL: This renders on a phone dashboard, NOT an email. Be RUTHLESSLY concise. Short headlines people can scan in seconds. The numbers are shown separately as stat tiles, so DO NOT restate raw numbers in prose unless adding insight. No filler, no "this will sabotage your performance" lectures. One crisp idea per item.
+WRITING STYLE — CRITICAL: This renders on a phone dashboard, NOT an email. Be RUTHLESSLY concise. Short headlines people can scan in seconds. A separate stats card already shows all the raw numbers (calories, hydration oz, workout completion %, wellness scores, check-in count), so DO NOT restate raw numbers in prose unless a specific number is the whole point of the insight. No filler, no "this will sabotage your performance" lectures. One crisp idea per item.
 
 YOUR REVIEW MUST INCLUDE:
 
@@ -315,7 +295,7 @@ Output ONLY valid JSON:
 
     // Cache with a special key (reuse weekly_plan_cache with week_start = last monday)
     // Use a wrapper so GET can distinguish it from weekly plans
-    const wrapped = { review: review.review || review, stats }
+    const wrapped = { review: review.review || review }
     await sql`
       INSERT INTO weekly_plan_cache (user_id, week_start, plan_json)
       VALUES (${user.id}, ${lastSunday}, ${JSON.stringify(wrapped)})
