@@ -12,6 +12,8 @@ interface ExerciseData {
   id: string
   name: string
   notes?: string
+  rest_seconds?: number
+  rest_after_seconds?: number
   sets: SetData[]
 }
 
@@ -100,8 +102,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       const exercise = exercisesWithSets[i]
 
       const exerciseResult = await sql`
-        INSERT INTO session_exercises (session_id, name, notes, sort_order)
-        VALUES (${session.id}, ${exercise.name}, ${exercise.notes || null}, ${i})
+        INSERT INTO session_exercises (session_id, name, notes, rest_seconds, rest_after_seconds, sort_order)
+        VALUES (${session.id}, ${exercise.name}, ${exercise.notes || null}, ${exercise.rest_seconds ?? null}, ${exercise.rest_after_seconds ?? null}, ${i})
         RETURNING *
       `
 

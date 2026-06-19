@@ -17,6 +17,8 @@ interface SetRecord extends SetInput {
 interface ExerciseInput {
   name: string
   notes?: string
+  rest_seconds?: number
+  rest_after_seconds?: number
   sets: SetInput[]
 }
 
@@ -25,6 +27,8 @@ interface ExerciseRecord {
   template_id: string
   name: string
   notes?: string
+  rest_seconds?: number
+  rest_after_seconds?: number
   sort_order: number
 }
 
@@ -156,8 +160,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           const exercise: ExerciseInput = body.exercises[i]
 
           const exerciseResult = await sql`
-            INSERT INTO template_exercises (template_id, name, notes, sort_order)
-            VALUES (${id}, ${exercise.name}, ${exercise.notes || null}, ${i})
+            INSERT INTO template_exercises (template_id, name, notes, rest_seconds, rest_after_seconds, sort_order)
+            VALUES (${id}, ${exercise.name}, ${exercise.notes || null}, ${exercise.rest_seconds ?? null}, ${exercise.rest_after_seconds ?? null}, ${i})
             RETURNING *
           ` as ExerciseRecord[]
 
