@@ -354,19 +354,19 @@ STUDY GUIDANCE:
 - Rest days and low-intensity days = best study blocks.
 - "No classes registered" if no class data exists.
 
-WRITING STYLE — CRITICAL: This renders as small expandable cards on a phone, NOT a document. Each field is ONE short, scannable sentence (max ~16 words). Lead with the concrete action, item, or time — skip the reasoning. The athlete wants to glance and know exactly what to do.
+WRITING STYLE — CRITICAL: This renders as compact expandable cards on a phone. Each domain field is an ARRAY of short, SPECIFIC bullet points — never a paragraph, and never vague. Keep every concrete detail: exact foods, meal labels, clock times, ounces, sets/reps, exercise names, muscle groups. Each bullet is ONE idea, max ~14 words, no filler reasoning. Specificity is the entire value — write "Dinner: spaghetti with lean turkey meat sauce, garlic bread, side salad", NOT "eat a carb-heavy dinner". Break what used to be a paragraph into 2-5 crisp bullets.
 
 OUTPUT FORMAT:
 - "summary": 3-5 word gist of the day (e.g. "Pre-game carb load", "Full rest day", "Heavy lift + recovery").
 - "intensity": one of "rest" | "low" | "medium" | "high" — match the day's training (rest day = "rest", otherwise match the workout's intensity).
-- "food": ONE sentence — the key meal/timing or specific menu item.
-- "sleep": ONE sentence with a target bed time and hours.
-- "mobility": ONE sentence — the single most useful mobility action.
-- "study": ONE sentence, or exactly "No classes registered" if no class data exists.
+- "food": array of bullets — label the meals (Breakfast/Lunch/Dinner/Snack) with specific items, plus a hydration bullet.
+- "sleep": array of bullets — bed time + target hours, plus wind-down specifics (e.g. "No screens after 9:30pm").
+- "mobility": array of bullets — specific drills/areas with durations (e.g. "10min foam roll: quads, hamstrings, IT band").
+- "study": array of bullets tied to real deadlines/classes, or exactly ["No classes registered"] if no class data exists.
 
 {
   "days": {
-    "sunday": { "summary": "...", "intensity": "...", "food": "...", "sleep": "...", "mobility": "...", "study": "..." },
+    "sunday": { "summary": "...", "intensity": "...", "food": ["...", "..."], "sleep": ["...", "..."], "mobility": ["..."], "study": ["..."] },
     "monday": { ... }, "tuesday": { ... }, "wednesday": { ... },
     "thursday": { ... }, "friday": { ... }, "saturday": { ... }
   }
