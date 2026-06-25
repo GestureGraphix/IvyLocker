@@ -7,16 +7,24 @@ import { toast } from "sonner"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
+type Concern = string | { title?: string; detail?: string }
+
 interface WeekReview {
   review: {
+    headline?: string
     overview: string
     wins: string[]
-    concerns: string[]
+    concerns: Concern[]
     nutrition_focus: string
     recovery_focus: string
     next_week: string[]
     mood_check: string | null
   }
+}
+
+function normConcern(c: Concern): { title: string; detail: string } {
+  if (typeof c === "string") return { title: c, detail: "" }
+  return { title: c.title || "", detail: c.detail || "" }
 }
 
 export function WeekReviewCard() {
@@ -157,11 +165,15 @@ export function WeekReviewCard() {
                 </span>
               </div>
               <div className="space-y-1.5">
-                {review.concerns.map((c, i) => (
-                  <p key={i} className="text-xs leading-relaxed" style={{ color: "var(--ink)" }}>
-                    {c}
-                  </p>
-                ))}
+                {review.concerns.map((c, i) => {
+                  const { title, detail } = normConcern(c)
+                  return (
+                    <div key={i} className="text-xs leading-relaxed" style={{ color: "var(--ink)" }}>
+                      <span className="font-medium">{title}</span>
+                      {detail && <span style={{ color: "var(--muted)" }}>{title ? " — " : ""}{detail}</span>}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}
