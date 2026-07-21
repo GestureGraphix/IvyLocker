@@ -60,6 +60,7 @@ export async function GET(request: Request) {
           ps.location,
           ps.is_optional,
           wp.name as plan_name,
+          wp.day_intensities ->> LOWER(TO_CHAR(aw.workout_date, 'FMDay')) as intensity,
           u.name as coach_name
         FROM assigned_workouts aw
         JOIN plan_sessions ps ON ps.id = aw.plan_session_id
@@ -153,11 +154,29 @@ export async function GET(request: Request) {
       console.error('Failed to fetch courses:', error)
     }
 
+    // Fetch the athlete's own per-day intensity markers
+    let dayIntensities: Record<string, unknown>[] = []
+    try {
+      dayIntensities = await sql`
+        SELECT
+          TO_CHAR(date, 'YYYY-MM-DD') as date,
+          intensity
+        FROM athlete_day_intensity
+        WHERE athlete_id = ${user.id}
+          AND date >= ${startDate}::date
+          AND date <= ${endDate}::date
+        ORDER BY date
+      `
+    } catch (error) {
+      console.error('Failed to fetch day intensities (table may not exist):', error)
+    }
+
     return NextResponse.json({
       assignedWorkouts,
       sessions,
       academics,
       courses,
+      dayIntensities,
       dateRange: { startDate, endDate },
       debug: {
         userId: user.id,
