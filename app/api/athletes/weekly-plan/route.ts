@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { sql } from '@/lib/db'
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime'
+import { fetchYaleMenuForWeek, type DiningMeal } from '@/lib/ai/gather-athlete-data'
 
 // GET /api/athletes/weekly-plan?localDate=YYYY-MM-DD
 export async function GET(request: Request) {
@@ -48,10 +49,10 @@ export async function POST(request: Request) {
     const weekEndStr = weekEnd.toISOString().split('T')[0]
 
     // Pull ALL relevant data in parallel
-    const [profile, workouts, selfSessions, courses, academics, checkins, physioPlans, lastWeekNutrition, lastWeekHydration] = await Promise.all([
+    const [profile, workouts, selfSessions, courses, academics, checkins, physioPlans, lastWeekNutrition, lastWeekHydration, athleteDayIntensities] = await Promise.all([
       // Profile + goals
       sql`
-        SELECT u.name, ap.sport, ap.position, ap.team,
+        SELECT u.name, ap.sport, ap.position, ap.team, ap.university,
           ap.calorie_goal, ap.protein_goal_grams, ap.hydration_goal_oz,
           ap.height_cm, ap.weight_kg
         FROM users u LEFT JOIN athlete_profiles ap ON u.id = ap.user_id
@@ -146,11 +147,49 @@ export async function POST(request: Request) {
           GROUP BY date
         ) daily
       `,
+      // Athlete's own per-day intensity markers for this week (WeekIntensityCard grid).
+      // Guarded so a missing table (unrun migration 027) can't break generation.
+      sql`
+        SELECT TO_CHAR(date, 'YYYY-MM-DD') as date, intensity
+        FROM athlete_day_intensity
+        WHERE athlete_id = ${user.id}
+          AND date >= ${weekStart}::date AND date < ${weekEndStr}::date
+        ORDER BY date
+      `.catch(() => [] as any[]),
     ])
 
     const p = profile[0] || {}
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
     const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+
+    // The 7 dates of this week (weekStart is Sunday) — reused by the schedule
+    // loop, the intensity resolver, and the dining-menu section.
+    const weekDates: string[] = []
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekStart + 'T12:00:00')
+      d.setDate(d.getDate() + i)
+      weekDates.push(d.toISOString().split('T')[0])
+    }
+
+    // Athlete's own per-day intensity, keyed by date. Used only when the coach
+    // hasn't set an intensity for that day (coach always wins).
+    const athleteIntensityByDate: Record<string, string> = {}
+    for (const r of (athleteDayIntensities as any[]) || []) {
+      if (r?.date && r?.intensity) athleteIntensityByDate[r.date] = r.intensity
+    }
+
+    // Pull the real Yale dining menus for the week so food recs name actual
+    // dishes. Scoped to Yale athletes for now (the Nutrislice source is Yale-only).
+    // Best-effort: a failure or timeout falls back to generic food guidance.
+    const isYale = String(p.university || '').toLowerCase().includes('yale')
+    let weekMenus: Record<string, DiningMeal[]> = {}
+    if (isYale) {
+      try {
+        weekMenus = await fetchYaleMenuForWeek(weekDates)
+      } catch (err) {
+        console.error('Weekly plan: Yale menu fetch failed, using generic food guidance', err)
+      }
+    }
 
     // Build rich context
     let ctx = `=== ATHLETE PROFILE ===\n`
@@ -215,13 +254,16 @@ export async function POST(request: Request) {
       return isNaN(d.getTime()) ? '' : d.toISOString().split('T')[0]
     }
 
+    // Coach's plan-level per-weekday intensity (shared across the week's plan).
+    const coachDayIntensities: Record<string, any> =
+      (workouts as any[]).find((w: any) => w.day_intensities)?.day_intensities || {}
+
     // This week's workouts by day
     ctx += `\n=== THIS WEEK'S TRAINING SCHEDULE ===\n`
     ctx += `(Week: ${weekStart} to ${weekEndStr}, ${(workouts as any[]).length} assigned workouts found, ${(selfSessions as any[]).length} self sessions)\n`
     for (let i = 0; i < 7; i++) {
-      const d = new Date(weekStart + 'T12:00:00')
-      d.setDate(d.getDate() + i)
-      const dateStr = d.toISOString().split('T')[0]
+      const dateStr = weekDates[i]
+      const d = new Date(dateStr + 'T12:00:00')
       const dayName = dayNames[d.getDay()]
       const dayKey = dayKeys[d.getDay()]
 
@@ -231,14 +273,21 @@ export async function POST(request: Request) {
         return sDate === dateStr
       })
 
+      // Resolve the day's intensity: the coach's plan-level intensity wins; the
+      // athlete's own per-day marker fills in when the coach hasn't set one.
+      const coachLevel = getIntensityLevel(coachDayIntensities[dayKey])
+      const athleteLevel = athleteIntensityByDate[dateStr] || null
+      const effectiveIntensity = (coachLevel && coachLevel !== 'n/a') ? coachLevel : athleteLevel
+      const intensitySource = (coachLevel && coachLevel !== 'n/a') ? 'coach' : (athleteLevel ? 'athlete' : null)
+
       if (dayWorkouts.length === 0 && daySessions.length === 0) {
-        // Check if there's intensity data from any workout in this plan
-        const intensityData = (workouts as any[]).find((w: any) => w.day_intensities)?.day_intensities
-        const intensityLevel = getIntensityLevel(intensityData?.[dayKey])
-        if (intensityLevel && intensityLevel !== 'n/a') {
-          ctx += `${dayName}: ${intensityLevel.charAt(0).toUpperCase() + intensityLevel.slice(1)} intensity training day\n`
+        if (effectiveIntensity && effectiveIntensity !== 'n/a' && effectiveIntensity !== 'rest') {
+          const cap = effectiveIntensity.charAt(0).toUpperCase() + effectiveIntensity.slice(1)
+          ctx += `${dayName}: ${cap} intensity day (no specific workout assigned, ${intensitySource}-set) [DAY INTENSITY: ${effectiveIntensity}]\n`
+        } else if (effectiveIntensity === 'rest') {
+          ctx += `${dayName}: Rest day (${intensitySource}-set) [DAY INTENSITY: rest]\n`
         } else {
-          ctx += `${dayName}: Rest day\n`
+          ctx += `${dayName}: Rest day [DAY INTENSITY: rest]\n`
         }
       } else {
         const parts = dayWorkouts.map((w: any) => {
@@ -263,7 +312,32 @@ export async function POST(request: Request) {
           if (s.focus) str += ` (${s.focus})`
           return str
         })
-        ctx += `${dayName}: ${[...parts, ...selfParts].join(' | ')}\n`
+        const intensityTag = (effectiveIntensity && effectiveIntensity !== 'n/a')
+          ? ` [DAY INTENSITY: ${effectiveIntensity}${intensitySource ? `, ${intensitySource}-set` : ''}]`
+          : ''
+        ctx += `${dayName}: ${[...parts, ...selfParts].join(' | ')}${intensityTag}\n`
+      }
+    }
+
+    // This week's real dining-hall menus (Yale) — the source of truth for the "food" field.
+    ctx += `\n=== YALE DINING MENUS ===\n`
+    const menuDates = Object.keys(weekMenus)
+    if (!isYale) {
+      ctx += `Athlete is not at Yale — no dining menu available. Use general sports-nutrition food guidance.\n`
+    } else if (menuDates.length === 0) {
+      ctx += `No dining menu published for this week — use general sports-nutrition food guidance.\n`
+    } else {
+      ctx += `(Real Branford College menu. Recommend specific dishes BY NAME from the matching day + meal below. Format per item: Name (cal / protein g / carbs g).)\n`
+      for (let i = 0; i < 7; i++) {
+        const dateStr = weekDates[i]
+        const meals = weekMenus[dateStr]
+        if (!meals || meals.length === 0) continue
+        const d = new Date(dateStr + 'T12:00:00')
+        ctx += `${dayNames[d.getDay()]} ${dateStr}:\n`
+        for (const meal of meals) {
+          const items = meal.items.slice(0, 16)
+          ctx += `  ${meal.mealType.toUpperCase()}: ${items.map((it) => `${it.name} (${it.calories}cal, ${it.proteinG}P, ${it.carbsG}C)`).join('; ')}\n`
+        }
       }
     }
 
@@ -324,7 +398,8 @@ STRICT DATA RULES:
 - If a day has a workout in the TRAINING SCHEDULE → it is a training day. Match the exact intensity.
 - If a day has NO workout → it is a rest day.
 - Workouts are SCHEDULED, not completed. Don't say "after you complete" — say "before/after your session."
-- If a dining hall menu is provided, recommend specific items by name.
+- INTENSITY IS THE SPINE OF THE PLAN. Every day line ends with [DAY INTENSITY: level]. That level is the single source of truth for the day's load — set the "intensity" output field to exactly that value, and tune food (carb volume/timing), sleep (bedtime + hours), and mobility (volume) to it. Higher intensity → more carbs and earlier/longer sleep the night before; rest/low → lighter carbs, longer mobility.
+- The YALE DINING MENUS section lists the REAL dining-hall menu per day. On a day that has a menu, the "food" bullets MUST name specific dishes from THAT day's listed meals — never invent foods when a menu is given for that day. Only use generic food guidance for days/meals with no menu listed.
 
 FOOD GUIDANCE (be specific, not "eat X calories"):
 - Night before a high-intensity day: Complex carbs for glycogen loading — pasta, rice, sweet potato. Moderate protein. Example: "Dinner: grilled chicken with brown rice and roasted vegetables. Aim for a carb-heavy plate."
@@ -333,7 +408,7 @@ FOOD GUIDANCE (be specific, not "eat X calories"):
 - Post-training (within 30min): Protein + carbs for recovery. "Chocolate milk, protein shake with banana, or Greek yogurt with granola."
 - Lunch on training days: Balanced plate — protein source, complex carb, vegetables.
 - Rest day food: Slightly lower carbs, maintain protein. Focus on anti-inflammatory foods if sore.
-- If dining hall menu available: Name specific menu items that fit these patterns.
+- These patterns describe WHAT to pick. When a Yale dining menu is listed for the day, pick the ACTUAL menu dishes that best fit the pattern and the day's intensity (e.g. the highest-carb entrée the night before a high day; a high-protein option post-training). Name the real dish, then apply the meal label and timing.
 
 SLEEP GUIDANCE (be specific with times):
 - Night before high-intensity: "In bed by 10pm, aim for 8-9 hours. No screens after 9:30pm."
@@ -358,8 +433,8 @@ WRITING STYLE — CRITICAL: This renders as compact expandable cards on a phone.
 
 OUTPUT FORMAT:
 - "summary": 3-5 word gist of the day (e.g. "Pre-game carb load", "Full rest day", "Heavy lift + recovery").
-- "intensity": one of "rest" | "low" | "medium" | "high" — match the day's training (rest day = "rest", otherwise match the workout's intensity).
-- "food": array of bullets — label the meals (Breakfast/Lunch/Dinner/Snack) with specific items, plus a hydration bullet.
+- "intensity": one of "rest" | "low" | "medium" | "high" — MUST equal the [DAY INTENSITY: ...] value shown on that day's schedule line.
+- "food": array of bullets — label the meals (Breakfast/Lunch/Dinner/Snack). When a dining menu is listed for the day, the items MUST be real dishes from that day's menu, chosen to fit the day's intensity. Include a hydration bullet.
 - "sleep": array of bullets — bed time + target hours, plus wind-down specifics (e.g. "No screens after 9:30pm").
 - "mobility": array of bullets — specific drills/areas with durations (e.g. "10min foam roll: quads, hamstrings, IT band").
 - "study": array of bullets tied to real deadlines/classes, or exactly ["No classes registered"] if no class data exists.

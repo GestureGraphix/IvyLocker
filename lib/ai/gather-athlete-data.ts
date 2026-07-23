@@ -1,6 +1,6 @@
 import { sql } from '@/lib/db'
 
-interface DiningMenuItem {
+export interface DiningMenuItem {
   name: string
   calories: number
   proteinG: number
@@ -8,73 +8,140 @@ interface DiningMenuItem {
   section?: string
 }
 
-interface DiningMeal {
+export interface DiningMeal {
   mealType: string
   items: DiningMenuItem[]
 }
 
-async function fetchYaleMenuForRecommendation(): Promise<DiningMeal[]> {
-  const today = new Date().toISOString().split('T')[0]
-  const API_BASE = 'https://yalehospitality.api.nutrislice.com/menu/api'
-  const headers = {
-    'User-Agent': 'Mozilla/5.0',
-    'Referer': 'https://yalehospitality.nutrislice.com/',
+const YALE_MENU_API_BASE = 'https://yalehospitality.api.nutrislice.com/menu/api'
+const YALE_MENU_HEADERS = {
+  'User-Agent': 'Mozilla/5.0',
+  'Referer': 'https://yalehospitality.nutrislice.com/',
+}
+// Branford is representative — Yale residential colleges share a menu cycle.
+const DEFAULT_HALL = 'branford-college'
+const MEAL_TYPES = ['breakfast', 'lunch', 'dinner'] as const
+
+// Turn a Nutrislice `menu_items` array into clean, de-duplicated DiningMenuItems.
+function parseMenuItems(menuItems: any[]): DiningMenuItem[] {
+  const items: DiningMenuItem[] = []
+  let currentSection = ''
+
+  for (const item of menuItems) {
+    if (item.is_section_title && item.text) {
+      currentSection = item.text
+      continue
+    }
+    const food = item.food
+    if (!food?.name) continue
+    // Skip "Smart Meal" marketing items
+    if (currentSection.toLowerCase().includes('smart meal')) continue
+    if (food.name.toLowerCase().includes('smart meal')) continue
+
+    const nutrition = food.rounded_nutrition_info || {}
+    items.push({
+      name: food.name,
+      calories: Math.round(nutrition.calories || 0),
+      proteinG: Math.round(nutrition.g_protein || 0),
+      carbsG: Math.round(nutrition.g_carbs || 0),
+      section: currentSection || undefined,
+    })
   }
-  // Fetch from one hall (branford) for all meals — representative of what's available
-  const hall = 'branford-college'
+
+  // Deduplicate by name
+  const seen = new Set<string>()
+  return items.filter((i) => {
+    const k = i.name.toLowerCase()
+    if (seen.has(k)) return false
+    seen.add(k)
+    return true
+  })
+}
+
+// Fetch one dining hall's breakfast/lunch/dinner for a single date.
+export async function fetchYaleMenuForDate(
+  date: string,
+  hall: string = DEFAULT_HALL
+): Promise<DiningMeal[]> {
+  const [year, month, day] = date.split('-')
   const meals: DiningMeal[] = []
 
-  for (const mealType of ['breakfast', 'lunch', 'dinner']) {
+  for (const mealType of MEAL_TYPES) {
     try {
-      const [year, month, day] = today.split('-')
       const res = await fetch(
-        `${API_BASE}/weeks/school/${hall}/menu-type/${mealType}/${year}/${month}/${day}`,
-        { headers, signal: AbortSignal.timeout(8000) }
+        `${YALE_MENU_API_BASE}/weeks/school/${hall}/menu-type/${mealType}/${year}/${month}/${day}`,
+        { headers: YALE_MENU_HEADERS, signal: AbortSignal.timeout(8000) }
       )
       if (!res.ok) continue
       const data = await res.json()
-      const dayData = data.days?.find((d: any) => d.date === today)
+      const dayData = data.days?.find((d: any) => d.date === date)
       if (!dayData?.menu_items?.length) continue
 
-      const items: DiningMenuItem[] = []
-      let currentSection = ''
-
-      for (const item of dayData.menu_items) {
-        if (item.is_section_title && item.text) {
-          currentSection = item.text
-          continue
-        }
-        const food = item.food
-        if (!food?.name) continue
-        // Skip "Smart Meal" items
-        if (currentSection.toLowerCase().includes('smart meal')) continue
-        if (food.name.toLowerCase().includes('smart meal')) continue
-
-        const nutrition = food.rounded_nutrition_info || {}
-        items.push({
-          name: food.name,
-          calories: Math.round(nutrition.calories || 0),
-          proteinG: Math.round(nutrition.g_protein || 0),
-          carbsG: Math.round(nutrition.g_carbs || 0),
-          section: currentSection || undefined,
-        })
-      }
-
-      // Deduplicate
-      const seen = new Set<string>()
-      const unique = items.filter((i) => {
-        const k = i.name.toLowerCase()
-        if (seen.has(k)) return false
-        seen.add(k)
-        return true
-      })
-
-      if (unique.length > 0) meals.push({ mealType, items: unique })
+      const items = parseMenuItems(dayData.menu_items)
+      if (items.length > 0) meals.push({ mealType, items })
     } catch {
       // Skip on error
     }
   }
+
   return meals
+}
+
+// Fetch a whole week's menus keyed by date. The Nutrislice "weeks" endpoint
+// returns every day of the week in one request, so we only anchor on the first
+// and last requested dates (covers week-boundary mismatches) — at most
+// 2 anchors x 3 meals = 6 requests regardless of how many days are requested.
+export async function fetchYaleMenuForWeek(
+  dates: string[],
+  hall: string = DEFAULT_HALL
+): Promise<Record<string, DiningMeal[]>> {
+  if (dates.length === 0) return {}
+
+  const wanted = new Set(dates)
+  const anchors = Array.from(new Set([dates[0], dates[dates.length - 1]]))
+  // date -> mealType -> items
+  const byDate: Record<string, Record<string, DiningMenuItem[]>> = {}
+
+  await Promise.all(
+    anchors.flatMap((anchor) =>
+      MEAL_TYPES.map(async (mealType) => {
+        try {
+          const [year, month, day] = anchor.split('-')
+          const res = await fetch(
+            `${YALE_MENU_API_BASE}/weeks/school/${hall}/menu-type/${mealType}/${year}/${month}/${day}`,
+            { headers: YALE_MENU_HEADERS, signal: AbortSignal.timeout(8000) }
+          )
+          if (!res.ok) return
+          const data = await res.json()
+          for (const dayData of data.days || []) {
+            const date = dayData.date
+            if (!wanted.has(date) || !dayData.menu_items?.length) continue
+            byDate[date] = byDate[date] || {}
+            if (byDate[date][mealType]) continue // already captured from another anchor
+            byDate[date][mealType] = parseMenuItems(dayData.menu_items)
+          }
+        } catch {
+          // Skip on error
+        }
+      })
+    )
+  )
+
+  const result: Record<string, DiningMeal[]> = {}
+  for (const date of dates) {
+    const meals: DiningMeal[] = []
+    for (const mealType of MEAL_TYPES) {
+      const items = byDate[date]?.[mealType]
+      if (items && items.length > 0) meals.push({ mealType, items })
+    }
+    if (meals.length > 0) result[date] = meals
+  }
+  return result
+}
+
+async function fetchYaleMenuForRecommendation(): Promise<DiningMeal[]> {
+  const today = new Date().toISOString().split('T')[0]
+  return fetchYaleMenuForDate(today)
 }
 
 export interface AthleteContext {
